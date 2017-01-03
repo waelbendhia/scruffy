@@ -6,7 +6,7 @@ const path = require('path')
 
 app.use(bodyParser.json())
 
-app.get('/ScruffyScrape/Scruffy/MusicService/band/:volume/:url', (req, res) => {
+app.get('/MusicService/band/:volume/:url', (req, res) => {
 	var volume = req.params.volume
 	var url = req.params.url
 	var partialUrl = `${volume}/${url}.html`
@@ -24,28 +24,28 @@ app.get('/ScruffyScrape/Scruffy/MusicService/band/:volume/:url', (req, res) => {
 	scaruffiDB.getBand(partialUrl, callBack)
 })
 
-app.get('/ScruffyScrape/Scruffy/MusicService/ratings/distribution', (req, res) =>{
+app.get('/MusicService/ratings/distribution', (req, res) =>{
 	var callback = function(distribution){
 		res.json(distribution)
 	}
 	scaruffiDB.getRatingDistribution(callback)
 })
 
-app.get('/ScruffyScrape/Scruffy/MusicService/bands/total', (req, res) => {
+app.get('/MusicService/bands/total', (req, res) => {
 	var callback = function(total){
 		res.json(total)
 	}
 	scaruffiDB.getBandCount(callback)
 })
 
-app.get('/ScruffyScrape/Scruffy/MusicService/bands/influential', (req, res) => {
+app.get('/MusicService/bands/influential', (req, res) => {
 	var callback = function(bands){
 		res.json(bands)
 	}
 	scaruffiDB.getBandsInfluential(callback)
 })
 
-app.post('/ScruffyScrape/Scruffy/MusicService/albums/search', (req, res) =>{
+app.post('/MusicService/albums/search', (req, res) =>{
 	var albumSearchRequest = req.body
 	var callback = function(albums){
 		res.json(albums)
@@ -53,7 +53,7 @@ app.post('/ScruffyScrape/Scruffy/MusicService/albums/search', (req, res) =>{
 	scaruffiDB.searchAlbums(albumSearchRequest, callback)
 })
 
-app.post('/ScruffyScrape/Scruffy/MusicService/albums/searchCount', (req, res) =>{
+app.post('/MusicService/albums/searchCount', (req, res) =>{
 	var albumSearchRequest = req.body
 	var callback = function(count){
 		res.json(count)
@@ -61,7 +61,7 @@ app.post('/ScruffyScrape/Scruffy/MusicService/albums/searchCount', (req, res) =>
 	scaruffiDB.searchAlbumsCount(albumSearchRequest, callback)
 })
 
-app.post('/ScruffyScrape/Scruffy/MusicService/bands/search', (req, res) =>{
+app.post('/MusicService/bands/search', (req, res) =>{
 	var bandSearchRequest = req.body
 	var callback = function(bands){
 		res.json(bands)
@@ -69,7 +69,7 @@ app.post('/ScruffyScrape/Scruffy/MusicService/bands/search', (req, res) =>{
 	scaruffiDB.searchBands(bandSearchRequest, callback)
 })
 
-app.post('/ScruffyScrape/Scruffy/MusicService/bands/searchCount', (req, res) =>{
+app.post('/MusicService/bands/searchCount', (req, res) =>{
 	var bandSearchRequest = req.body
 	var callback = function(count){
 		res.json(count)
@@ -86,7 +86,6 @@ app.get('/:page', (req, res) =>{
 })
 
 app.get('/:folder/:filename', (req, res) => {
-	console.log("Getting: ", path.join(__dirname, '/Scaruffi2.0', req.params.folder, req.params.filename ))
 	res.sendFile(path.join(__dirname, '/Scaruffi2.0', req.params.folder, req.params.filename ))
 })
 
