@@ -19,7 +19,7 @@ var parseBandFromRow = function(row){
 		name: row.name,
 		url: row.partialUrl,
 		bio: row.bio,
-		fullurl: `http://scaruffi.com/${row.partialUrl}`,
+		fullUrl: `http://scaruffi.com/${row.partialUrl}`,
 		albums: [],
 		relatedBands: []
 	}
