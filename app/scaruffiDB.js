@@ -81,13 +81,11 @@ var getAlbums = function(band, callback){
 		if(err)
 			throw err
 		for( i = 0; i < rows.length; i++ ){
-			band.relatedBands.push(parseAlbumFromRow(rows[i]))
+			band.albums.push(parseAlbumFromRow(rows[i]))
 		}
 		callback(band)
 	})
 }
-
-module.exports = con
 
 module.exports.getBand = function(partialUrl, callback){
 	var query = `select * from bands where partialUrl ='${partialUrl}'`;
@@ -150,7 +148,7 @@ module.exports.searchAlbums = function(req, callback){
 		+ req.ratingLower + " and " + req.ratingHigher + " and "
 		+ "(a.year between " + req.yearLower + " and " + req.yearHigher
 		+ (req.includeUnknown ? " or a.year = 0" : "") + ") " 
-		+ (req.name ? "" : "and ( instr(lower(a.name), lower('" + req.name + "')) or instr(lower(b.name), lower('" + req.name + "'))) ") 
+		+ (!req.name ? "" : "and ( instr(lower(a.name), lower('" + req.name + "')) or instr(lower(b.name), lower('" + req.name + "'))) ") 
 		+ "order by " + getSortByAsString(req.sortBy, "a", "b") + (req.sortOrderAsc ? " asc " : " desc ") 
 		+ "limit " + (req.page * req.numberOfResults) + "," + req.numberOfResults + ";";
 
@@ -177,7 +175,7 @@ module.exports.searchAlbumsCount = function(req, callback){
 		+ req.ratingLower + " and " + req.ratingHigher + " and "
 		+ "(a.year between " + req.yearLower + " and " + req.yearHigher
 		+ (req.includeUnknown ? " or a.year = 0" : "") + ") " 
-		+ (req.name ? "" : "and ( instr(lower(a.name), lower('" + req.name + "')) or instr(lower(b.name), lower('" + req.name + "'))) ") + ";";
+		+ (!req.name ? "" : "and ( instr(lower(a.name), lower('" + req.name + "')) or instr(lower(b.name), lower('" + req.name + "'))) ") + ";";
 
 	con.query(query, function(err, rows){
 		if(err)
