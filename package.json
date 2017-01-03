@@ -1,0 +1,19 @@
+{
+  "name": "myfirstnodejsserver",
+  "version": "0.0.0",
+  "description": "Yay",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "Wael Ben Dhia",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.15.2",
+    "express": "^4.14.0",
+    "lodash": "^4.17.4"
+  },
+  "devDependencies": {
+    "mocha": "^3.2.0"
+  }
+}
