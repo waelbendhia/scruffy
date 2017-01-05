@@ -65,7 +65,7 @@ var getRelatedBands = function(band, callback){
 	var query = `select * from bands INNER JOIN bands2bands ON bands.partialUrl = bands2bands.urlOfRelated where bands2bands.urlOfBand ='${band.url}'`;
 	con.query(query, function(err, rows){
 		if(err)
-			throw err
+			console.log(err)
 		for( i = 0; i < rows.length; i++ ){
 			var relBand = parseBandFromRow(rows[i])
 			relBand.bio = ''
@@ -79,7 +79,7 @@ var getAlbums = function(band, callback){
 	var query = `select * from albums where band ='${band.url}'`
 	con.query(query, function(err, rows){
 		if(err)
-			throw err
+			console.log(err)
 		for( i = 0; i < rows.length; i++ ){
 			band.albums.push(parseAlbumFromRow(rows[i]))
 		}
@@ -99,7 +99,7 @@ module.exports.getBand = function(partialUrl, callback){
 	}
 	con.query(query, function(err, rows){
 		if(err)
-			throw err;
+			console.log(err)
 		firstBand = parseBandFromRow(rows[0])
 		getRelatedBands(firstBand, callbackFromRelatedBands)
 	})
@@ -110,7 +110,7 @@ module.exports.getRatingDistribution = function(callback){
 	var disrib = {}
 	con.query(query, function(err, rows){
 		if(err)
-			throw err;
+			console.log(err)
 		for(var i = 0; i < rows.length; i++){
 			var row = rows[i]
 			disrib[row.rating.toFixed(1)] = row.count
@@ -123,7 +123,7 @@ module.exports.getBandCount = function(callback){
 	var query = `select count(*) as count FROM bands;`;
 	con.query(query, function(err, rows){
 		if(err)
-			throw err;
+			console.log(err)
 		callback(rows[0].count)
 	})
 }
@@ -133,7 +133,7 @@ module.exports.getBandsInfluential = function(callback){
 	var bands = []
 	con.query(query, function(err, rows){
 		if(err)
-			throw err
+			console.log(err)
 		for( i = 0; i < rows.length; i++ ){
 			var band = parseBandFromRow(rows[i])
 			band.bio = ''
@@ -156,7 +156,7 @@ module.exports.searchAlbums = function(req, callback){
 
 	con.query(query, function(err, rows){
 		if(err)
-			throw err
+			console.log(err)
 		for( i = 0; i < rows.length; i++ ){
 			var album = parseAlbumFromRow(rows[i])
 			album.band = {
@@ -179,7 +179,7 @@ module.exports.searchAlbumsCount = function(req, callback){
 
 	con.query(query, function(err, rows){
 		if(err)
-			throw err
+			console.log(err)
 		callback(rows[0].count)
 	})
 }
@@ -194,7 +194,7 @@ module.exports.searchBands = function(req, callback){
 
 	con.query(query, function(err, rows){
 		if(err)
-			throw err
+			console.log(err)
 		for( i = 0; i < rows.length; i++ ){
 			var band = parseBandFromRow(rows[i])
 			bands.push(band)
@@ -209,7 +209,7 @@ module.exports.searchBandsCount = function(req, callback){
 
 	con.query(query, function(err, rows){
 		if(err)
-			throw err
+			console.log(err)
 		callback(rows[0].count)
 	})
 }
