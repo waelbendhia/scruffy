@@ -1,10 +1,15 @@
 const mysql = require('mysql')
 
+var db_host = process.env.DB_HOST || "localhost"
+var db_user = process.env.DB_USER || "wael"
+var db_password = process.env.DB_PASSWORD || ""
+var db_database = process.env.DB_DATABASE || "scaruffi"
+
 const con = mysql.createConnection({
-	host: "localhost",
-	user: "wael",
-	password: "",
-	database: "scaruffi"
+	host: db_host,
+	user: db_user,
+	password: db_password,
+	database: db_database
 })
 
 const SORT_BY_RATING = 0;
@@ -12,7 +17,13 @@ const SORT_BY_DATE = 1;
 const SORT_BY_ALBUM_NAME = 2;
 const SORT_BY_BANDNAME = 3;
 
-con.connect()
+con.connect(function(err) {
+  if (err) {
+    console.error('error connecting: ' + err.stack);
+    return;
+  }
+  console.log('connected as id ' + connection.threadId);
+})
 
 var parseBandFromRow = function(row){
 	var band = {
