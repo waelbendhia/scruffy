@@ -7,6 +7,8 @@ const path = require('path')
 var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8001
 var ip   = process.env.IP   || process.env.OPENSHIFT_NODEJS_IP || '127.0.0.1'
 
+console.log("Server on : " + ip + " " + port)
+
 server.use(bodyParser.json())
 
 server.get('/MusicService/band/:volume/:url', (req, res) => {

@@ -5,6 +5,8 @@ var db_user = process.env.DB_USER || "wael"
 var db_password = process.env.DB_PASSWORD || ""
 var db_database = process.env.DB_DATABASE || "scaruffi"
 
+console.log("Db on : " + db_host + " user:" + db_user + " password:" + db_password + " name:" + db_database)
+
 const con = mysql.createConnection({
 	host: db_host,
 	user: db_user,
