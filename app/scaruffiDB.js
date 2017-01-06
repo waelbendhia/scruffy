@@ -5,6 +5,10 @@ var db_user = process.env.MYSQL_USER || "wael"
 var db_password = process.env.MYSQL_PASSWORD || ""
 var db_database = process.env.MYSQL_DATABASE || "scaruffi"
 
+console.log("process.env.MYSQL_HOST: " + process.env.MYSQL_HOST)
+console.log("process.env.MYSQL_USER " + process.env.MYSQL_USER)
+console.log(" process.env.MYSQL_PASSWORD:" + process.env.MYSQL_PASSWORD)
+console.log(" process.env.MYSQL_DATABASE:" + process.env.MYSQL_DATABASE)
 console.log("Db on : " + db_host + " user:" + db_user + " password:" + db_password + " name:" + db_database)
 
 const con = mysql.createConnection({
@@ -24,7 +28,7 @@ con.connect(function(err) {
     console.error('error connecting: ' + err.stack);
     return;
   }
-  console.log('connected as id ' + connection.threadId);
+  console.log('connected as id ' + con.threadId);
 })
 
 var parseBandFromRow = function(row){
