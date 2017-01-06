@@ -1,9 +1,9 @@
 const mysql = require('mysql')
 
-var db_host = process.env.DB_HOST || "localhost"
-var db_user = process.env.DB_USER || "wael"
-var db_password = process.env.DB_PASSWORD || ""
-var db_database = process.env.DB_DATABASE || "scaruffi"
+var db_host = process.env.MYSQL_HOST || "localhost"
+var db_user = process.env.MYSQL_USER || "wael"
+var db_password = process.env.MYSQL_PASSWORD || ""
+var db_database = process.env.MYSQL_DATABASE || "scaruffi"
 
 console.log("Db on : " + db_host + " user:" + db_user + " password:" + db_password + " name:" + db_database)
 
