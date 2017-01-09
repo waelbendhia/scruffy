@@ -55,7 +55,7 @@ var parseAlbumFromRow = function(row){
 
 var getSortByAsString = function(sortBy, albumSymbol, bandSymbol){
 	var ret = "";
-	switch (sortBy) {
+	switch (parseInt(sortBy)) {
 	case SORT_BY_RATING:
 		ret = albumSymbol+".rating";
 		break;
@@ -73,6 +73,7 @@ var getSortByAsString = function(sortBy, albumSymbol, bandSymbol){
 		break;
 
 	default:
+		ret= "DEFAULT"
 		break;
 	}
 	return ret;
@@ -168,6 +169,9 @@ module.exports.searchAlbums = function(req, callback){
 		+ (!req.name ? "" : "and ( instr(lower(a.name), lower('" + req.name + "')) or instr(lower(b.name), lower('" + req.name + "'))) ") 
 		+ "order by " + getSortByAsString(req.sortBy, "a", "b") + (req.sortOrderAsc ? " asc " : " desc ") 
 		+ "limit " + (req.page * req.numberOfResults) + "," + req.numberOfResults + ";";
+
+	console.log("Request sort by: " + req.sortBy)
+	console.log("Search query: " + query)
 
 	var albums = []
 
