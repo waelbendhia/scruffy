@@ -26,6 +26,10 @@ var getConnection = function(){
 	})
 }
 
+var filterForSql = function(string){
+	return string.replace(/'/, "\\'")
+}
+
 const SORT_BY_RATING = 0;
 const SORT_BY_DATE = 1;
 const SORT_BY_ALBUM_NAME = 2;
@@ -80,7 +84,7 @@ var getSortByAsString = function(sortBy, albumSymbol, bandSymbol){
 }
 
 var getRelatedBands = function(band, callback){
-	var query = `select * from bands INNER JOIN bands2bands ON bands.partialUrl = bands2bands.urlOfRelated where bands2bands.urlOfBand ='${band.url}'`;
+	var query = `select * from bands INNER JOIN bands2bands ON bands.partialUrl = bands2bands.urlOfRelated where bands2bands.urlOfBand ='${filterForSql(band.url)}'`;
 	getConnection().then(function(con){
 		con.query(query, function(err, rows){
 			if(err)
@@ -99,7 +103,7 @@ var getRelatedBands = function(band, callback){
 }
 
 var getAlbums = function(band, callback){
-	var query = `select * from albums where band ='${band.url}'`
+	var query = `select * from albums where band ='${filterForSql(band.url)}'`
 	getConnection().then(function(con){
 		con.query(query, function(err, rows){
 			if(err)
@@ -116,7 +120,7 @@ var getAlbums = function(band, callback){
 }
 
 module.exports.getBand = function(partialUrl, callback){
-	var query = `select * from bands where partialUrl ='${partialUrl}'`;
+	var query = `select * from bands where partialUrl ='${filterForSql(partialUrl)}'`;
 	var firstBand
 	var finalCallback = function(band){
 		callback(band)
@@ -197,7 +201,7 @@ module.exports.searchAlbums = function(req, callback){
 		+ req.ratingLower + " and " + req.ratingHigher + " and "
 		+ "(a.year between " + req.yearLower + " and " + req.yearHigher
 		+ (req.includeUnknown ? " or a.year = 0" : "") + ") " 
-		+ (!req.name ? "" : "and ( instr(lower(a.name), lower('" + req.name + "')) or instr(lower(b.name), lower('" + req.name + "'))) ") 
+		+ (!req.name ? "" : "and ( instr(lower(a.name), lower('" + filterForSql(req.name) + "')) or instr(lower(b.name), lower('" + filterForSql(req.name) + "'))) ") 
 		+ "order by " + getSortByAsString(req.sortBy, "a", "b") + (req.sortOrderAsc ? " asc " : " desc ") 
 		+ "limit " + (req.page * req.numberOfResults) + "," + req.numberOfResults + ";";
 
@@ -228,7 +232,7 @@ module.exports.searchAlbumsCount = function(req, callback){
 		+ req.ratingLower + " and " + req.ratingHigher + " and "
 		+ "(a.year between " + req.yearLower + " and " + req.yearHigher
 		+ (req.includeUnknown ? " or a.year = 0" : "") + ") " 
-		+ (!req.name ? "" : "and ( instr(lower(a.name), lower('" + req.name + "')) or instr(lower(b.name), lower('" + req.name + "'))) ") + ";";
+		+ (!req.name ? "" : "and ( instr(lower(a.name), lower('" + filterForSql(req.name) + "')) or instr(lower(b.name), lower('" + filterForSql(req.name) + "'))) ") + ";";
 
 	getConnection().then(function(con){
 		con.query(query, function(err, rows){
@@ -245,7 +249,7 @@ module.exports.searchAlbumsCount = function(req, callback){
 
 module.exports.searchBands = function(req, callback){
 	var query = "select b.partialUrl as partialUrl, b.name as name from bands b where "
-				+ "instr(lower(b.name), lower('" + req.name + "')) " 
+				+ "instr(lower(b.name), lower('" + filterForSql(req.name) + "')) " 
 				+ " order by b.name "
 				+ "limit " + (req.page * req.numberOfResults) + "," + req.numberOfResults + ";";
 
@@ -268,7 +272,7 @@ module.exports.searchBands = function(req, callback){
 
 module.exports.searchBandsCount = function(req, callback){
 	var query = "select count(*) as count from bands b where "
-				+ "instr(lower(b.name), lower('" + req.name + "')) " + ";";
+				+ "instr(lower(b.name), lower('" + filterForSql(req.name) + "')) " + ";";
 
 	getConnection().then(function(con){
 		con.query(query, function(err, rows){
