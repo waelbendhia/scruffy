@@ -6,7 +6,7 @@ const bodyParser = require('body-parser');
 const path = require('path')
 
 var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8001
-var ip   = process.env.IP   || process.env.OPENSHIFT_NODEJS_IP || '127.0.0.1'
+var ip   = process.env.IP   || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0'
 
 console.log("process.env.IP : " + process.env.IP)
 console.log("process.env.PORT : " + process.env.PORT)
