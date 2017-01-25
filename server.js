@@ -1,6 +1,7 @@
 const express = require('express')
 const server = express()
 const scaruffiDB = require('./app/scaruffiDB.js')
+const scraper = require('./app/scaruffiScraper.js')
 const bodyParser = require('body-parser');
 const path = require('path')
 
@@ -25,63 +26,72 @@ server.get('/MusicService/band/:volume/:url', (req, res) => {
 		albums: [],
 		relatedBand: []
 	}
-	var callBack = function(band){
+
+	scaruffiDB.getBand(partialUrl).then(function(band){
 		res.json(band)
-	}
-	scaruffiDB.getBand(partialUrl, callBack)
+	},function(err){
+		console.log(err)
+	})
 })
 
 server.get('/MusicService/ratings/distribution', (req, res) =>{
-	var callback = function(distribution){
+	scaruffiDB.getRatingDistribution().then((distribution) => {
 		res.json(distribution)
-	}
-	scaruffiDB.getRatingDistribution(callback)
+	}, (err) => {
+		console.log(err)
+	})
 })
 
 server.get('/MusicService/bands/total', (req, res) => {
-	var callback = function(total){
+	scaruffiDB.getBandCount().then((total) => {
 		res.json(total)
-	}
-	scaruffiDB.getBandCount(callback)
+	}, (err) => {
+		console.log(err)
+	})
 })
 
 server.get('/MusicService/bands/influential', (req, res) => {
-	var callback = function(bands){
+	scaruffiDB.getBandsInfluential().then((bands) => {
 		res.json(bands)
-	}
-	scaruffiDB.getBandsInfluential(callback)
+	}, (err) => {
+		console.log(err)
+	})
 })
 
 server.post('/MusicService/albums/search', (req, res) =>{
 	var albumSearchRequest = req.body
-	var callback = function(albums){
+	scaruffiDB.searchAlbums(albumSearchRequest).then((albums) => {
 		res.json(albums)
-	}
-	scaruffiDB.searchAlbums(albumSearchRequest, callback)
+	}, (err) => {
+		console.log(err)
+	})
 })
 
 server.post('/MusicService/albums/searchCount', (req, res) =>{
 	var albumSearchRequest = req.body
-	var callback = function(count){
+	scaruffiDB.searchAlbumsCount(albumSearchRequest).then((count) => {
 		res.json(count)
-	}
-	scaruffiDB.searchAlbumsCount(albumSearchRequest, callback)
+	}, (err) => {
+		console.log(err)
+	})
 })
 
 server.post('/MusicService/bands/search', (req, res) =>{
 	var bandSearchRequest = req.body
-	var callback = function(bands){
+	scaruffiDB.searchBands(bandSearchRequest).then((bands) => {
 		res.json(bands)
-	}
-	scaruffiDB.searchBands(bandSearchRequest, callback)
+	}, (err) => {
+		console.log(err)
+	})
 })
 
 server.post('/MusicService/bands/searchCount', (req, res) =>{
 	var bandSearchRequest = req.body
-	var callback = function(count){
+	scaruffiDB.searchBandsCount(bandSearchRequest).then((count) => {
 		res.json(count)
-	}
-	scaruffiDB.searchBandsCount(bandSearchRequest, callback)
+	}, (err) => {
+		console.log(err)
+	})
 })
 
 server.get('/', (req, res) => {
@@ -97,5 +107,7 @@ server.get('/:folder/:filename', (req, res) => {
 })
 
 server.listen(port, ip, function () {
-  console.log( "Listening on " + ip + ", port " + port )
+	//scaruffiDB.updateDatabase()
+	console.log( "Listening on " + ip + ", port " + port )
+	scraper.test()
 });
