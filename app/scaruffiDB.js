@@ -6,7 +6,9 @@ var db_host = process.env.MYSQL_HOST || "localhost"
 var db_user = process.env.MYSQL_USER || "wael"
 var db_password = process.env.MYSQL_PASSWORD || ""
 var db_database = process.env.MYSQL_DATABASE || "scaruffi"
-var lastfm_api_key = process.env.LASTFM_API_KEY || '39720b3f01a98c70c1f32e82b71499e1'
+var lastfm_api_key = process.env.LASTFM_API_KEY
+
+console.log(lastfm_api_key)
 
 const pool = mysql.createPool({
 	connectionLimit : 100,
