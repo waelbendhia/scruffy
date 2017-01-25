@@ -8,6 +8,8 @@ const path = require('path')
 var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8001
 var ip   = process.env.IP   || process.env.OPENSHIFT_NODEJS_IP || '127.0.0.1'
 
+console.log("process.env.IP : " + process.env.IP)
+console.log("process.env.PORT : " + process.env.PORT)
 console.log("process.env.OPENSHIFT_NODEJS_IP : " + process.env.OPENSHIFT_NODEJS_IP)
 console.log("process.env.OPENSHIFT_NODEJS_PORT : " + process.env.OPENSHIFT_NODEJS_PORT)
 console.log("Server on : " + ip + " " + port)

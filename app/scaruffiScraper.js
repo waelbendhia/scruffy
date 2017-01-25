@@ -6,7 +6,7 @@ module.exports.test = function() {
 		"http://scaruffi.com/cdreview/index.html",
 		[],
 		function (err, window) {
-			console.log("JSDOM: ", window.document.body.innerHTML);
+			//console.log("JSDOM: ", window.document.body.innerHTML);
 		}
 	)
 }
