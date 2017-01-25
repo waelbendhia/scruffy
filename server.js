@@ -97,14 +97,17 @@ server.post('/MusicService/bands/searchCount', (req, res) =>{
 })
 
 server.get('/', (req, res) => {
-	res.sendFile(path.join(__dirname, '/Scaruffi2.0/index.html'));
+	console.log(path.join(__dirname, './Scaruffi2.0/index.html'))
+	res.sendFile(path.join(__dirname, './Scaruffi2.0/index.html'));
 })
 
 server.get('/:page', (req, res) =>{
+	console.log(path.join(__dirname, '/Scaruffi2.0', req.params.page))
 	res.sendFile(path.join(__dirname, '/Scaruffi2.0', req.params.page));
 })
 
 server.get('/:folder/:filename', (req, res) => {
+	console.log(path.join(__dirname, '/Scaruffi2.0', req.params.folder, req.params.filename ))
 	res.sendFile(path.join(__dirname, '/Scaruffi2.0', req.params.folder, req.params.filename ))
 })
 
