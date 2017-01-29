@@ -8,8 +8,6 @@ var db_password = process.env.MYSQL_PASSWORD || ""
 var db_database = process.env.MYSQL_DATABASE || "scaruffi"
 var lastfm_api_key = process.env.LASTFM_API_KEY
 
-console.log(lastfm_api_key)
-
 const pool = mysql.createPool({
 	connectionLimit : 100,
 	host : db_host,
@@ -38,38 +36,6 @@ const SORT_BY_RATING = 0;
 const SORT_BY_DATE = 1;
 const SORT_BY_ALBUM_NAME = 2;
 const SORT_BY_BANDNAME = 3;
-
-var updateEmptyBandPhotos = function(){
-	var query = `select * from bands where imageUrl = '' or imageUrl is null`
-	getConnection().then(function(con){
-		con.query(query, function(err, rows){
-			con.release()
-			if(err)
-				console.log(err)
-			else{
-				var bands = []
-				for(var i = 0; i < rows.length; i++)
-					bands.push(parseBandFromRow(rows[i]))
-				async.map(bands, insertBandPhotoUrl)
-			}
-		})
-	})
-}
-
-var dropTables = function(){
-	var dropQuery = "drop table if exists bands2bands, albums, bands;"
-	return new Promise(function(fulfill, reject){
-		getConnection().then(function(con){
-			con.query(dropQuery, function(err, rows){
-				con.release()
-				if(err)
-					reject(err)
-				else
-					fulfill(rows)
-			})
-		})
-	})
-}
 
 var createTables = function(){
 	var createBandsQuery     = "create table bands( partialUrl varchar(45) not null primary key, name varchar(45) not null, bio text, imageUrl varchar(120));"
@@ -102,6 +68,38 @@ var createTables = function(){
 						}
 					})
 				}
+			})
+		})
+	})
+}
+
+var updateEmptyBandPhotos = function(){
+	var query = `select * from bands where imageUrl = '' or imageUrl is null`
+	getConnection().then(function(con){
+		con.query(query, function(err, rows){
+			con.release()
+			if(err)
+				console.log(err)
+			else{
+				var bands = []
+				for(var i = 0; i < rows.length; i++)
+					bands.push(parseBandFromRow(rows[i]))
+				async.map(bands, insertBandPhotoUrl)
+			}
+		})
+	})
+}
+
+var dropTables = function(){
+	var dropQuery = "drop table if exists bands2bands, albums, bands;"
+	return new Promise(function(fulfill, reject){
+		getConnection().then(function(con){
+			con.query(dropQuery, function(err, rows){
+				con.release()
+				if(err)
+					reject(err)
+				else
+					fulfill(rows)
 			})
 		})
 	})

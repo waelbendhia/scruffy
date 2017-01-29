@@ -8,12 +8,6 @@ const path = require('path')
 var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8001
 var ip   = process.env.IP   || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0'
 
-console.log("process.env.IP : " + process.env.IP)
-console.log("process.env.PORT : " + process.env.PORT)
-console.log("process.env.OPENSHIFT_NODEJS_IP : " + process.env.OPENSHIFT_NODEJS_IP)
-console.log("process.env.OPENSHIFT_NODEJS_PORT : " + process.env.OPENSHIFT_NODEJS_PORT)
-console.log("Server on : " + ip + " " + port)
-
 server.use(bodyParser.json())
 
 server.get('/MusicService/band/:volume/:url', (req, res) => {
@@ -97,8 +91,8 @@ server.post('/MusicService/bands/searchCount', (req, res) =>{
 })
 
 server.get('/', (req, res) => {
-	console.log(path.join(__dirname, './Scaruffi2.0/index.html'))
-	res.sendFile(path.join(__dirname, './Scaruffi2.0/index.html'));
+	console.log(path.join(__dirname, '/Scaruffi2.0/index.html'))
+	res.sendFile(path.join(__dirname, '/Scaruffi2.0/index.html'));
 })
 
 server.get('/:page', (req, res) =>{
