@@ -23,9 +23,9 @@ server.get('/MusicService/band/:volume/:url', (req, res) => {
 		relatedBand: []
 	}
 
-	scaruffiDB.getBand(partialUrl).then(function(band){
+	scaruffiDB.getBand(partialUrl).then((band) => {
 		res.json(band)
-	},function(err){
+	},(err) => {
 		console.log(err)
 	})
 })
@@ -91,21 +91,18 @@ server.post('/MusicService/bands/searchCount', (req, res) =>{
 })
 
 server.get('/', (req, res) => {
-	console.log(path.join(__dirname, '/Scaruffi2.0/index.html'))
 	res.sendFile(path.join(__dirname, '/Scaruffi2.0/index.html'));
 })
 
 server.get('/:page', (req, res) =>{
-	console.log(path.join(__dirname, '/Scaruffi2.0', req.params.page))
 	res.sendFile(path.join(__dirname, '/Scaruffi2.0', req.params.page));
 })
 
 server.get('/:folder/:filename', (req, res) => {
-	console.log(path.join(__dirname, '/Scaruffi2.0', req.params.folder, req.params.filename ))
 	res.sendFile(path.join(__dirname, '/Scaruffi2.0', req.params.folder, req.params.filename ))
 })
 
-server.listen(port, ip, function () {
+server.listen(port, ip, () => {
 	//scaruffiDB.updateDatabase()
 	console.log( "Listening on " + ip + ", port " + port )
 	scraper.test()

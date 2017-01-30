@@ -17,9 +17,9 @@ const pool = mysql.createPool({
 	debug : false
 });
 
-var getConnection = function(){
-	return new Promise(function(fulfill, reject){
-		pool.getConnection(function(err, connection){
+var getConnection = () => {
+	return new Promise((fulfill, reject) => {
+		pool.getConnection((err, connection) => {
 			if(err){
 				reject(err)
 			}else
@@ -28,7 +28,7 @@ var getConnection = function(){
 	})
 }
 
-var filterForSql = function(string){
+var filterForSql = (string) => {
 	return string.replace(/'/, "\\'")
 }
 
@@ -37,26 +37,26 @@ const SORT_BY_DATE = 1;
 const SORT_BY_ALBUM_NAME = 2;
 const SORT_BY_BANDNAME = 3;
 
-var createTables = function(){
+var createTables = () => {
 	var createBandsQuery     = "create table bands( partialUrl varchar(45) not null primary key, name varchar(45) not null, bio text, imageUrl varchar(120));"
 	var createAlbumsQuery    = "create table albums( name varchar(80) not null, year int(11), rating float, band varchar(45) not null, imageUrl varchar(120), CONSTRAINT pk_albumID PRIMARY KEY (name,band), FOREIGN KEY (band) REFERENCES bands(partialUrl));"
 	var createBand2Bandquery = "create table bands2bands( urlOfBand varchar(45) not null, urlOfRelated varchar(45) not null, CONSTRAINT pk_b2bID PRIMARY KEY (urlOfBand, urlOfRelated), FOREIGN KEY (urlOfBand) REFERENCES bands(partialUrl), FOREIGN KEY (urlOfRelated) REFERENCES bands(partialUrl));"
 	var fuls = []
-	return new Promise(function(fulfill, reject){
-		getConnection().then(function(con){
-			con.query(createBandsQuery, function(err, rows){
+	return new Promise((fulfill, reject) => {
+		getConnection().then((con) => {
+			con.query(createBandsQuery, (err, rows) => {
 				if(err){
 					con.release()
 					reject(err)
 				}else{
 					fuls.push(rows)
-					con.query(createAlbumsQuery, function(err, rows){
+					con.query(createAlbumsQuery, (err, rows) => {
 						if(err){
 							con.release()
 							reject(err)
 						}else{
 							fuls.push(rows)
-							con.query(createBand2Bandquery, function(err, rows){
+							con.query(createBand2Bandquery, (err, rows) => {
 								con.release()
 								if(err)
 									reject(err)
@@ -73,10 +73,10 @@ var createTables = function(){
 	})
 }
 
-var updateEmptyBandPhotos = function(){
+var updateEmptyBandPhotos = () => {
 	var query = `select * from bands where imageUrl = '' or imageUrl is null`
-	getConnection().then(function(con){
-		con.query(query, function(err, rows){
+	getConnection().then((con) => {
+		con.query(query, (err, rows) => {
 			con.release()
 			if(err)
 				console.log(err)
@@ -90,11 +90,11 @@ var updateEmptyBandPhotos = function(){
 	})
 }
 
-var dropTables = function(){
+var dropTables = () => {
 	var dropQuery = "drop table if exists bands2bands, albums, bands;"
-	return new Promise(function(fulfill, reject){
-		getConnection().then(function(con){
-			con.query(dropQuery, function(err, rows){
+	return new Promise((fulfill, reject) => {
+		getConnection().then((con) => {
+			con.query(dropQuery, (err, rows) => {
 				con.release()
 				if(err)
 					reject(err)
@@ -105,10 +105,10 @@ var dropTables = function(){
 	})
 }
 
-var updateEmptyAlbumPhotos = function(){
+var updateEmptyAlbumPhotos = () => {
 	var query = `select a.name as name, a.year as year, a.rating as rating, a.band as bandUrl, b.name as bandName from albums a inner join bands b on a.band = b.partialUrl  where a.imageUrl = '' or a.imageUrl is null;`
-	getConnection().then(function(con){
-		con.query(query, function(err, rows){
+	getConnection().then((con) => {
+		con.query(query, (err, rows) => {
 			con.release()
 			if(err)
 				console.log(err)
@@ -127,19 +127,19 @@ var updateEmptyAlbumPhotos = function(){
 	})
 }
 
-var insertBandPhotoUrl = function(band){
+var insertBandPhotoUrl = (band) => {
 	var infoRequest = {
 		url: `http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${band.name}&api_key=${lastfm_api_key}&format=json`,
 		json: true
 	} 
-	request(infoRequest, function(err, res, json){
+	request(infoRequest, (err, res, json) => {
 		if(err){
 			console.log(`No photo for ${band.name} ${band.url}`)
 		}else{
 			if ( typeof json.artist !== 'undefined' && json.artist ){
 				var imageUrl = json.artist.image[Math.min(3, json.artist.image.length-1)]["#text"]
-				getConnection().then(function(con){
-					con.query('update bands set imageUrl = ? where partialUrl = ?', [imageUrl, band.url], function(err, result){
+				getConnection().then((con) => {
+					con.query('update bands set imageUrl = ? where partialUrl = ?', [imageUrl, band.url], (err, result) => {
 						con.release()
 						if(err)
 							console.log(`No photo for ${band.name} ${band.url}`)
@@ -154,19 +154,19 @@ var insertBandPhotoUrl = function(band){
 	})
 }
 
-var insertAlbumPhotoUrl = function(album){
+var insertAlbumPhotoUrl = (album) => {
 	var infoRequest = {
 		url: `http://ws.audioscrobbler.com/2.0/?method=album.getinfo&artist=${album.band.name}&album=${album.name}&api_key=${lastfm_api_key}&format=json`,
 		json: true
 	}
-	request(infoRequest, function(err, res, json){
+	request(infoRequest, (err, res, json) => {
 		if(err){
 			console.log(`No entry found for ${album.name} ${album.band.url}`)
 		}else{
 			if ( typeof json.album !== 'undefined' && json.album){
 				var imageUrl = json.album.image[Math.min(3, json.album.image.length-1)]["#text"]
-				getConnection().then(function(con){
-					con.query('update albums set imageUrl = ? where name = ? and band = ?', [imageUrl, album.name ,album.band.url], function(err, result){
+				getConnection().then((con) => {
+					con.query('update albums set imageUrl = ? where name = ? and band = ?', [imageUrl, album.name ,album.band.url], (err, result) => {
 						con.release()
 						if(err){
 							throw err
@@ -183,7 +183,7 @@ var insertAlbumPhotoUrl = function(album){
 	})
 }
 
-var parseBandFromRow = function(row){
+var parseBandFromRow = (row) => {
 	var band = {
 		name: row.name,
 		url: row.partialUrl,
@@ -196,7 +196,7 @@ var parseBandFromRow = function(row){
 	return band
 }
 
-var parseAlbumFromRow = function(row){
+var parseAlbumFromRow = (row) => {
 	var album = {
 		name: row.name,
 		year: row.year,
@@ -207,7 +207,7 @@ var parseAlbumFromRow = function(row){
 	return album
 }
 
-var getSortByAsString = function(sortBy, albumSymbol, bandSymbol){
+var getSortByAsString = (sortBy, albumSymbol, bandSymbol) => {
 	var ret = "";
 	switch (parseInt(sortBy)) {
 	case SORT_BY_RATING:
@@ -233,11 +233,11 @@ var getSortByAsString = function(sortBy, albumSymbol, bandSymbol){
 	return ret;
 }
 
-var getRelatedBands = function(band){
+var getRelatedBands = (band) => {
 	var query = `select * from bands INNER JOIN bands2bands ON bands.partialUrl = bands2bands.urlOfRelated where bands2bands.urlOfBand ='${filterForSql(band.url)}'`;
-	return new Promise(function(fulfill, reject){
-		getConnection().then(function(con){
-			con.query(query, function(err, rows){
+	return new Promise((fulfill, reject) => {
+		getConnection().then((con) => {
+			con.query(query, (err, rows) => {
 				con.release()
 				if(err)
 					reject(err)
@@ -251,18 +251,18 @@ var getRelatedBands = function(band){
 					fulfill(relatedBands)
 				}
 			})
-		}, function(err){
+		}, (err) => {
 			con.release()
 			reject(err)	
 		})
 	})
 }
 
-var getAlbums = function(band){
+var getAlbums = (band) => {
 	var query = `select * from albums where band ='${filterForSql(band.url)}'`
-	return new Promise(function(fulfill, reject){
-		getConnection().then(function(con){
-			con.query(query, function(err, rows){
+	return new Promise((fulfill, reject) => {
+		getConnection().then((con) => {
+			con.query(query, (err, rows) => {
 				con.release()
 				if(err)
 					reject(err)
@@ -274,14 +274,14 @@ var getAlbums = function(band){
 					fulfill(albums)
 				}
 			})
-		}, function(err){
+		}, (err) => {
 			con.release()
 			reject(err)	
 		})
 	})
 }
 
-module.exports.resetDatabase = function(){
+module.exports.resetDatabase = () => {
 	dropTables().then( (rows) => {
 		console.log("Dropped tables.")
 		createTables().then( (rows) =>{
@@ -294,17 +294,17 @@ module.exports.resetDatabase = function(){
 	})
 }
 
-module.exports.updateDatabase = function(){
+module.exports.updateDatabase = () => {
 	updateEmptyBandPhotos()
 	updateEmptyAlbumPhotos()
 }
 
-module.exports.getBand = function(partialUrl){
+module.exports.getBand = (partialUrl) => {
 	var query = `select * from bands where partialUrl ='${filterForSql(partialUrl)}'`;
 	var band
-	return new Promise(function(fulfill, reject){
-		getConnection().then(function(con){
-			con.query(query, function(err, rows){
+	return new Promise((fulfill, reject) => {
+		getConnection().then((con) => {
+			con.query(query, (err, rows) => {
 				con.release()
 				if(err)
 					reject(err)
@@ -317,20 +317,20 @@ module.exports.getBand = function(partialUrl){
 					})
 				}
 			})
-		}, function(err){
+		}, (err) => {
 			con.release()
 			reject(err)	
 		})
 	})
 }
 
-module.exports.getRatingDistribution = function(){
+module.exports.getRatingDistribution = () => {
 	var query = `SELECT floor(albums.rating*2)/2 as rating, count(*) as count FROM albums group by floor(albums.rating*2)/2;`;
 	var disrib = {}
-	return new Promise(function(fulfill, reject){
-		getConnection().then(function(con){
+	return new Promise((fulfill, reject) => {
+		getConnection().then((con) => {
 			con.release()
-			con.query(query, function(err, rows){
+			con.query(query, (err, rows) => {
 				if(err)
 					reject(err)
 				else{
@@ -340,37 +340,37 @@ module.exports.getRatingDistribution = function(){
 					fulfill(disrib)
 				}
 			})
-		}, function(err){
+		}, (err) => {
 			con.release()
 			reject(err)	
 		})
 	})
 }
 
-module.exports.getBandCount = function(){
+module.exports.getBandCount = () => {
 	var query = `select count(*) as count FROM bands;`;
-	return new Promise(function(fulfill, reject){
-		getConnection().then(function(con){
-			con.query(query, function(err, rows){
+	return new Promise((fulfill, reject) => {
+		getConnection().then((con) => {
+			con.query(query, (err, rows) => {
 				con.release()
 				if(err)
 					reject(err)
 				else
 					fulfill(rows[0].count)
 			})
-		}, function(err){
+		}, (err) => {
 			con.release()
 			reject(err)	
 		})
 	})
 }
 
-module.exports.getBandsInfluential = function(){
+module.exports.getBandsInfluential = () => {
 	var query = `select count(b2b.urlOfBand) as inf, b.name, b.partialUrl FROM bands b inner join bands2bands b2b on b.partialUrl = b2b.urlOfRelated group by b2b.urlOfRelated order by inf desc limit 21`;
 	var bands = []
-	return new Promise(function(fulfill, reject){
-		getConnection().then(function(con){
-			con.query(query, function(err, rows){
+	return new Promise((fulfill, reject) => {
+		getConnection().then((con) => {
+			con.query(query, (err, rows) => {
 				if(err)
 					reject(err)
 				else{
@@ -382,14 +382,14 @@ module.exports.getBandsInfluential = function(){
 					fulfill(bands)
 				}
 			})
-		}, function(err){
+		}, (err) => {
 			con.release()
 			reject(err)	
 		})
 	})
 }
 
-module.exports.searchAlbums = function(req){
+module.exports.searchAlbums = (req) => {
 	var query = "select a.name as name, a.imageUrl as imageUrl, a.year as year, a.rating as rating, b.name as bandname, b.partialUrl as bandurl from albums a inner join bands b on b.partialUrl = a.band where a.rating between "
 		+ req.ratingLower + " and " + req.ratingHigher + " and "
 		+ "(a.year between " + req.yearLower + " and " + req.yearHigher
@@ -399,9 +399,9 @@ module.exports.searchAlbums = function(req){
 		+ "limit " + (req.page * req.numberOfResults) + "," + req.numberOfResults + ";";
 
 	var albums = []
-	return new Promise(function(fulfill, reject){
-		getConnection().then(function(con){
-			con.query(query, function(err, rows){
+	return new Promise((fulfill, reject) => {
+		getConnection().then((con) => {
+			con.query(query, (err, rows) => {
 				con.release()
 				if(err)
 					reject(err)
@@ -418,28 +418,28 @@ module.exports.searchAlbums = function(req){
 					fulfill(albums)
 				}
 			})
-		}, function(err){
+		}, (err) => {
 			reject(err)	
 		})
 	})
 }
 
-module.exports.searchAlbumsCount = function(req){
+module.exports.searchAlbumsCount = (req) => {
 	var query = "select count(*) as count from albums a inner join bands b on b.partialUrl = a.band where a.rating between "
 		+ req.ratingLower + " and " + req.ratingHigher + " and "
 		+ "(a.year between " + req.yearLower + " and " + req.yearHigher
 		+ (req.includeUnknown ? " or a.year = 0" : "") + ") " 
 		+ (!req.name ? "" : "and ( instr(lower(a.name), lower('" + filterForSql(req.name) + "')) or instr(lower(b.name), lower('" + filterForSql(req.name) + "'))) ") + ";";
-	return new Promise(function(fulfill, reject){
-		getConnection().then(function(con){
+	return new Promise((fulfill, reject) => {
+		getConnection().then((con) => {
 			con.release()
-			con.query(query, function(err, rows){
+			con.query(query, (err, rows) => {
 				if(err)
 					reject(err)
 				else
 					fulfill(rows[0].count)
 			})
-		}, function(err){
+		}, (err) => {
 			con.release()
 			reject(err)	
 		})
@@ -447,16 +447,16 @@ module.exports.searchAlbumsCount = function(req){
 
 }
 
-module.exports.searchBands = function(req, callback){
+module.exports.searchBands = (req, callback) => {
 	var query = "select b.partialUrl as partialUrl, b.name as name, b.imageUrl as imageUrl from bands b where "
 				+ "instr(lower(b.name), lower('" + filterForSql(req.name) + "')) " 
 				+ " order by b.name "
 				+ "limit " + (req.page * req.numberOfResults) + "," + req.numberOfResults + ";";
 
 	var bands = []
-	return new Promise(function(fulfill, reject){
-		getConnection().then(function(con){
-			con.query(query, function(err, rows){
+	return new Promise((fulfill, reject) => {
+		getConnection().then((con) => {
+			con.query(query, (err, rows) => {
 				con.release()
 				if(err)
 					reject(err)
@@ -466,27 +466,27 @@ module.exports.searchBands = function(req, callback){
 				}
 				fulfill(bands)
 			})
-		}, function(err){
+		}, (err) => {
 			con.release()
 			reject(err)	
 		})
 	})
 }
 
-module.exports.searchBandsCount = function(req, callback){
+module.exports.searchBandsCount = (req, callback) => {
 	var query = "select count(*) as count from bands b where "
 				+ "instr(lower(b.name), lower('" + filterForSql(req.name) + "')) " + ";";
 
-	return new Promise(function(fulfill, reject){
-		getConnection().then(function(con){
+	return new Promise((fulfill, reject) => {
+		getConnection().then((con) => {
 			con.release()
-			con.query(query, function(err, rows){
+			con.query(query, (err, rows) => {
 				if(err)
 					reject(err)
 				else
 					fulfill(rows[0].count)
 			})
-		}, function(err){
+		}, (err) => {
 			con.release()
 			reject(err)	
 		})
