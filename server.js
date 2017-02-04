@@ -26,7 +26,8 @@ server.get('/MusicService/band/:volume/:url', (req, res) => {
 	scaruffiDB.getBand(partialUrl).then((band) => {
 		res.json(band)
 	},(err) => {
-		console.log(err)
+		res.status(404);
+		res.send('Whoopsie');
 	})
 })
 
@@ -103,7 +104,10 @@ server.get('/:folder/:filename', (req, res) => {
 })
 
 server.listen(port, ip, () => {
-	//scaruffiDB.updateDatabase()
 	console.log( "Listening on " + ip + ", port " + port )
-	scraper.test()
 });
+
+//scraper.test()
+//scaruffiDB.updateDatabase()
+scaruffiDB.resetDatabase()
+//scaruffiDB.updateEmptyBandPhotos()
