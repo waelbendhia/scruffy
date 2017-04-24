@@ -109,5 +109,5 @@ server.listen(port, ip, () => {
 
 //scraper.test()
 //scaruffiDB.updateDatabase()
-scaruffiDB.resetDatabase()
+//scaruffiDB.resetDatabase()
 //scaruffiDB.updateEmptyBandPhotos()

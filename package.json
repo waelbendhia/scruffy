@@ -1,5 +1,5 @@
 {
-  "name": "myfirstnodejsserver",
+  "name": "Scaruffi2.0",
   "version": "0.0.0",
   "description": "Yay",
   "main": "index.js",
@@ -10,9 +10,10 @@
   "license": "ISC",
   "dependencies": {
     "async": "^2.1.4",
+    "bluebird": "^3.4.7",
     "body-parser": "^1.15.2",
+    "cheerio": "^0.22.0",
     "express": "^4.14.0",
-    "jsdom": "^9.9.1",
     "mysql": "^2.12.0",
     "request": "^2.79.0"
   },
