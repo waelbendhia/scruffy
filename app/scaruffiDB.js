@@ -22,7 +22,7 @@ const pool = mysql.createPool({
 	debug: false
 });
 
-var getConnection = () => {
+function getConnection() {
 	return new Promise((fulfill, reject) => {
 		pool.getConnection((err, connection) => {
 			if (err)
@@ -31,18 +31,18 @@ var getConnection = () => {
 				fulfill(connection);
 		});
 	});
-};
+}
 
-var filterForSql = (string) => {
+function filterForSql(string) {
 	return string.replace(/'/, "\\'");
-};
+}
 
 const SORT_BY_RATING = 0;
 const SORT_BY_DATE = 1;
 const SORT_BY_ALBUM_NAME = 2;
 const SORT_BY_BANDNAME = 3;
 
-var dropTables = () => {
+function dropTables() {
 	var dropQuery = "drop table if exists bands2bands, albums, bands;";
 	return new Promise((fulfill, reject) => {
 		getConnection().then((con) => {
@@ -55,9 +55,9 @@ var dropTables = () => {
 			});
 		});
 	});
-};
+}
 
-var createTables = () => {
+function createTables() {
 	var createBandsQuery = "create table bands( partialUrl varchar(45) not null primary key, name varchar(45) not null, bio text, imageUrl varchar(120));";
 	var createAlbumsQuery = "create table albums( name varchar(80) not null, year int(11), rating float, band varchar(45) not null, imageUrl varchar(120), CONSTRAINT pk_albumID PRIMARY KEY (name,band), FOREIGN KEY (band) REFERENCES bands(partialUrl));";
 	var createBand2Bandquery = "create table bands2bands( urlOfBand varchar(45) not null, urlOfRelated varchar(45) not null, CONSTRAINT pk_b2bID PRIMARY KEY (urlOfBand, urlOfRelated), FOREIGN KEY (urlOfBand) REFERENCES bands(partialUrl), FOREIGN KEY (urlOfRelated) REFERENCES bands(partialUrl));";
@@ -91,9 +91,50 @@ var createTables = () => {
 			});
 		});
 	});
-};
+}
 
-var updateDatabase = () => {
+function insertOrUpdateFull(band) {
+	if (band.name == 'ERROR')
+		return new Promise.resolve(`${band.url} was not scraped`);
+	return new Promise((fulfill, reject) => {
+		insertBandLazy(band)
+			.catch(() => console.log(band.name + ' already exists'))
+			.then(() => {
+				return getConnection();
+			})
+			.then(con => {
+				con.query('update bands set name = ?, bio = ? where partialURl = ?', [band.name, band.bio, band.url], (err) => {
+					con.release();
+					if (err)
+						reject(`Full insertion of ${band.name}-${band.url} failed\n${err}`);
+					else {
+						con.release();
+						var albumAndRelInserts = band.albums.map(album => insertAlbum(band, album))
+							.concat(band.relatedBands.map(relatedBand =>
+								insertBandLazy(relatedBand)
+								.catch(console.log)
+								.then(() => {
+									return insertBandRelation(band, relatedBand);
+								})
+							));
+
+						Promise.all(albumAndRelInserts.map(p => p.catch(console.log))).then(() => {
+								UPDATE_PROGRESS++;
+								console.log(UPDATE_PROGRESS + '/' + UPDATE_TOTAL);
+								fulfill(`Full insertion of ${band.name}-${band.url} successful`);
+							})
+							.catch((err) => {
+								console.log(err);
+								reject(err);
+							});
+					}
+				});
+			})
+			.catch(reject);
+	});
+}
+
+function updateDatabase() {
 	scraper.getAllBands()
 		.then((bands) => {
 			return Promise.map(bands, scraper.getBandInfo, {
@@ -107,27 +148,27 @@ var updateDatabase = () => {
 			return Promise.all(fullBands.map(insertOrUpdateFull));
 		})
 		.catch(err => console.log(err))
-		.then((values) => {
+		.then(() => {
 			console.log("Update complete");
 			updateEmptyBandPhotos();
 			updateEmptyAlbumPhotos();
 		});
-};
+}
 
-var resetDatabase = () => {
+function resetDatabase() {
 	dropTables()
-		.then(rows => {
+		.then(() => {
 			console.log("Dropped tables.");
 			return createTables();
 		}).catch(err => console.log(err))
-		.then(rows => {
+		.then(() => {
 			console.log("Created tables.");
 			updateDatabase();
 		}).catch(err => console.log(err));
 
-};
+}
 
-var updateEmptyBandPhotos = () => {
+function updateEmptyBandPhotos() {
 	var query = `select * from bands where imageUrl = '' or imageUrl is null`;
 	getConnection().then((con) => {
 		con.query(query, (err, rows) => {
@@ -142,13 +183,13 @@ var updateEmptyBandPhotos = () => {
 			}
 		});
 	});
-};
+}
 
-var insertBandLazy = (band) => {
+function insertBandLazy(band) {
 	return new Promise((fulfill, reject) => {
 		getConnection()
 			.then(con => {
-				con.query('insert into bands (partialUrl, name, bio) values (?, ?, ?)', [band.url, band.name, band.bio], (err, result) => {
+				con.query('insert into bands (partialUrl, name, bio) values (?, ?, ?)', [band.url, band.name, band.bio], (err) => {
 					con.release();
 					if (err)
 						reject(`Insertion of ${band.name}-${band.url} failed\n${err}`);
@@ -157,57 +198,13 @@ var insertBandLazy = (band) => {
 				});
 			}, err => reject(err));
 	});
-};
+}
 
-var insertOrUpdateFull = band => {
-	if (band.name == 'ERROR')
-		return new Promise((fulfill, reject) => fulfill(`${band.url} was not scraped`));
-	return new Promise((fulfill, reject) => {
-		insertBandLazy(band)
-			.catch(e => console.log(band.name + ' already exists'))
-			.then(suc => {
-				return getConnection();
-			})
-			.then(con => {
-				con.query('update bands set name = ?, bio = ? where partialURl = ?', [band.name, band.bio, band.url], (err, result) => {
-					con.release();
-					if (err)
-						reject(`Full insertion of ${band.name}-${band.url} failed\n${err}`);
-					else {
-						con.release();
-						if (err)
-							reject(`Full insertion of ${band.name}-${band.url} failed\n${err}`);
-						else {
-							var albumAndRelInserts = band.albums.map(album => insertAlbum(band, album))
-								.concat(band.relatedBands.map(relatedBand =>
-									insertBandLazy(relatedBand)
-									.catch(e => {})
-									.then(s => {
-										return insertBandRelation(band, relatedBand);
-									})
-								));
 
-							Promise.all(albumAndRelInserts.map(p => p.catch(e => {}))).then((success) => {
-									UPDATE_PROGRESS++;
-									console.log(UPDATE_PROGRESS + '/' + UPDATE_TOTAL);
-									fulfill(`Full insertion of ${band.name}-${band.url} successful`);
-								})
-								.catch((err) => {
-									console.log(err);
-									reject(err);
-								});
-						}
-					}
-				});
-			})
-			.catch(e => reject(e));
-	});
-};
-
-var insertBandRelation = (band, related) => {
+function insertBandRelation(band, related) {
 	return new Promise((fulfill, reject) => {
 		getConnection().then((con) => {
-			con.query('insert into bands2bands (urlOfBand, urlOfRelated) values (?, ?)', [band.url, related.url], (err, result) => {
+			con.query('insert into bands2bands (urlOfBand, urlOfRelated) values (?, ?)', [band.url, related.url], (err) => {
 				con.release();
 				if (err)
 					reject(`Insertion of relation ${band.name}-${band.url} and ${related.name}-${related.url} failed\n${err}`);
@@ -216,12 +213,12 @@ var insertBandRelation = (band, related) => {
 			});
 		}).catch(err => reject(`Relation Insert: ${err} with ${band} and ${related}`));
 	});
-};
+}
 
-var insertAlbum = (band, album) => {
+function insertAlbum(band, album) {
 	return new Promise((fulfill, reject) => {
 		getConnection().then((con) => {
-			con.query('insert into albums (name, year, rating, band) values (?, ?, ?, ?)', [album.name, album.year, album.rating, band.url], (err, result) => {
+			con.query('insert into albums (name, year, rating, band) values (?, ?, ?, ?)', [album.name, album.year, album.rating, band.url], (err) => {
 				con.release();
 				if (err)
 					reject(`Insertion of ${album.name}-${band.url} failed\n${err}`);
@@ -232,9 +229,9 @@ var insertAlbum = (band, album) => {
 			reject(err);
 		});
 	});
-};
+}
 
-var updateEmptyAlbumPhotos = () => {
+function updateEmptyAlbumPhotos() {
 	var query = `select a.name as name, a.year as year, a.rating as rating, a.band as bandUrl, b.name as bandName from albums a inner join bands b on a.band = b.partialUrl  where a.imageUrl = '' or a.imageUrl is null;`;
 	getConnection().then((con) => {
 		con.query(query, (err, rows) => {
@@ -254,13 +251,13 @@ var updateEmptyAlbumPhotos = () => {
 			}
 		});
 	});
-};
+}
 
-var insertBandPhotoUrl = (band) => {
+function insertBandPhotoUrl(band) {
 	scraper.getBandPhotoUrl(band)
 		.then((band) => {
 			getConnection().then((con) => {
-				con.query('update bands set imageUrl = ? where partialUrl = ?', [band.imageUrl, band.url], (err, result) => {
+				con.query('update bands set imageUrl = ? where partialUrl = ?', [band.imageUrl, band.url], (err) => {
 					con.release();
 					if (err)
 						if (err.code == 'ETIMEDOUT') {
@@ -279,12 +276,12 @@ var insertBandPhotoUrl = (band) => {
 					console.log(err);
 			});
 		});
-};
+}
 
-var insertAlbumPhotoUrl = (album) => {
+function insertAlbumPhotoUrl(album) {
 	scraper.getAlbumPhotoUrl(album).then((album) => {
 		getConnection().then((con) => {
-			con.query('update albums set imageUrl = ? where name = ? and band = ?', [album.imageUrl, album.name, album.band.url], (err, result) => {
+			con.query('update albums set imageUrl = ? where name = ? and band = ?', [album.imageUrl, album.name, album.band.url], (err) => {
 				con.release();
 				if (err)
 					console.log(`Could not insert for ${album.name} ${album.band.url}`);
@@ -299,9 +296,9 @@ var insertAlbumPhotoUrl = (album) => {
 		} else
 			console.log(err);
 	});
-};
+}
 
-var parseBandFromRow = (row) => {
+function parseBandFromRow(row) {
 	var band = {
 		name: row.name,
 		url: row.partialUrl,
@@ -312,9 +309,9 @@ var parseBandFromRow = (row) => {
 		relatedBands: []
 	};
 	return band;
-};
+}
 
-var parseAlbumFromRow = (row) => {
+function parseAlbumFromRow(row) {
 	var album = {
 		name: row.name,
 		year: row.year,
@@ -323,15 +320,14 @@ var parseAlbumFromRow = (row) => {
 		band: {}
 	};
 	return album;
-};
+}
 
-var getSortByAsString = (sortBy, albumSymbol, bandSymbol) => {
-	var ret = "";
+function getSortByAsString(sortBy, albumSymbol, bandSymbol) {
+	let ret;
 	switch (parseInt(sortBy)) {
 		case SORT_BY_RATING:
 			ret = albumSymbol + ".rating";
 			break;
-
 		case SORT_BY_DATE:
 			ret = albumSymbol + ".year";
 			break;
@@ -343,15 +339,14 @@ var getSortByAsString = (sortBy, albumSymbol, bandSymbol) => {
 		case SORT_BY_BANDNAME:
 			ret = bandSymbol + ".name";
 			break;
-
 		default:
 			ret = "DEFAULT";
 			break;
 	}
 	return ret;
-};
+}
 
-var getRelatedBands = (band) => {
+function getRelatedBands(band) {
 	var query = `select * from bands INNER JOIN bands2bands ON bands.partialUrl = bands2bands.urlOfRelated where bands2bands.urlOfBand ='${filterForSql(band.url)}'`;
 	return new Promise((fulfill, reject) => {
 		getConnection().then((con) => {
@@ -374,9 +369,9 @@ var getRelatedBands = (band) => {
 			reject(err);
 		});
 	});
-};
+}
 
-var getAlbums = (band) => {
+function getAlbums(band) {
 	var query = `select * from albums where band ='${filterForSql(band.url)}'`;
 	return new Promise((fulfill, reject) => {
 		getConnection().then((con) => {
@@ -397,9 +392,9 @@ var getAlbums = (band) => {
 			reject(err);
 		});
 	});
-};
+}
 
-var getBand = (partialUrl) => {
+function getBand(partialUrl) {
 	var query = `select * from bands where partialUrl ='${filterForSql(partialUrl)}'`;
 	var band;
 	return new Promise((fulfill, reject) => {
@@ -425,9 +420,9 @@ var getBand = (partialUrl) => {
 			reject(err);
 		});
 	});
-};
+}
 
-var getRatingDistribution = () => {
+function getRatingDistribution() {
 	var query = `SELECT floor(albums.rating*2)/2 as rating, count(*) as count FROM albums group by floor(albums.rating*2)/2;`;
 	var disrib = {};
 	return new Promise((fulfill, reject) => {
@@ -447,9 +442,9 @@ var getRatingDistribution = () => {
 			reject(err);
 		});
 	});
-};
+}
 
-var getBandCount = () => {
+function getBandCount() {
 	var query = `select count(*) as count FROM bands;`;
 	return new Promise((fulfill, reject) => {
 		getConnection().then((con) => {
@@ -465,9 +460,9 @@ var getBandCount = () => {
 			reject(err);
 		});
 	});
-};
+}
 
-var getBandsInfluential = () => {
+function getBandsInfluential() {
 	var query = `select count(b2b.urlOfBand) as inf, b.name, b.partialUrl FROM bands b inner join bands2bands b2b on b.partialUrl = b2b.urlOfRelated group by b2b.urlOfRelated order by inf desc limit 21`;
 	var bands = [];
 	return new Promise((fulfill, reject) => {
@@ -489,9 +484,9 @@ var getBandsInfluential = () => {
 			reject(err);
 		});
 	});
-};
+}
 
-var searchAlbums = (req) => {
+function searchAlbums(req) {
 	var query = "select a.name as name, a.imageUrl as imageUrl, a.year as year, a.rating as rating, b.name as bandname, b.partialUrl as bandurl from albums a inner join bands b on b.partialUrl = a.band where a.rating between " +
 		req.ratingLower + " and " + req.ratingHigher + " and " +
 		"(a.year between " + req.yearLower + " and " + req.yearHigher +
@@ -508,7 +503,7 @@ var searchAlbums = (req) => {
 				if (err)
 					reject(err);
 				else {
-					for (i = 0; i < rows.length; i++) {
+					for (let i = 0; i < rows.length; i++) {
 						var album = parseAlbumFromRow(rows[i]);
 						album.band = {
 							name: rows[i].bandname,
@@ -522,9 +517,9 @@ var searchAlbums = (req) => {
 			});
 		}, (err) => reject(err));
 	});
-};
+}
 
-var searchAlbumsCount = (req) => {
+function searchAlbumsCount(req) {
 	var query = "select count(*) as count from albums a inner join bands b on b.partialUrl = a.band where a.rating between " +
 		req.ratingLower + " and " + req.ratingHigher + " and " +
 		"(a.year between " + req.yearLower + " and " + req.yearHigher +
@@ -544,9 +539,9 @@ var searchAlbumsCount = (req) => {
 			reject(err);
 		});
 	});
-};
+}
 
-var searchBands = (req, callback) => {
+function searchBands(req) {
 	var query = "select b.partialUrl as partialUrl, b.name as name, b.imageUrl as imageUrl from bands b where " +
 		"instr(lower(b.name), lower('" + filterForSql(req.name) + "')) " +
 		" order by b.name " +
@@ -559,7 +554,7 @@ var searchBands = (req, callback) => {
 				con.release();
 				if (err)
 					reject(err);
-				for (i = 0; i < rows.length; i++) {
+				for (let i = 0; i < rows.length; i++) {
 					var band = parseBandFromRow(rows[i]);
 					bands.push(band);
 				}
@@ -570,9 +565,9 @@ var searchBands = (req, callback) => {
 			reject(err);
 		});
 	});
-};
+}
 
-var searchBandsCount = (req, callback) => {
+function searchBandsCount(req) {
 	var query = "select count(*) as count from bands b where " +
 		"instr(lower(b.name), lower('" + filterForSql(req.name) + "')) " + ";";
 
@@ -590,7 +585,7 @@ var searchBandsCount = (req, callback) => {
 			reject(err);
 		});
 	});
-};
+}
 
 module.exports = {
 	resetDatabase: resetDatabase,
