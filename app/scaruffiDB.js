@@ -1,3 +1,4 @@
+"use strict";
 const mysql = require('mysql');
 const async = require('async');
 const request = require('request');
@@ -561,7 +562,6 @@ function searchBands(req) {
 				fulfill(bands);
 			});
 		}, (err) => {
-			con.release();
 			reject(err);
 		});
 	});

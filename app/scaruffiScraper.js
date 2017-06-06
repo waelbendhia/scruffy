@@ -1,3 +1,4 @@
+"use strict";
 const cheerio = require('cheerio');
 const async = require('async');
 const request = require('request');
@@ -407,7 +408,6 @@ var getAlbumPhotoUrl = (album) => {
 };
 
 module.exports = {
-	test: test,
 	getAllBands: getAllBands,
 	getBandInfo: getBandInfo,
 	getBandPhotoUrl: getBandPhotoUrl,
