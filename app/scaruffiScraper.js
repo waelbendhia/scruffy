@@ -3,6 +3,10 @@ const cheerio = require('cheerio');
 const async = require('async');
 const request = require('request');
 
+const headers = {
+	'User-Agent': 'request'
+};
+
 var lastfm_api_key = process.env.LASTFM_API_KEY;
 
 var SCRAPE_TOTAL = 0;
@@ -14,14 +18,12 @@ var ALL_BANDS = [];
  * These functions scrape the jazz, rock and volume pages for bands
  */
 
-var getBandsFromBandsPage = (url, selectionFunction) => {
-	return new Promise((fulfill, reject) => {
+function getBandsFromBandsPage(url, selectionFunction) {
+	return new Promise(function (fulfill, reject) {
 		request({
 			uri: url,
-			headers: {
-				'User-Agent': 'request'
-			}
-		}, function (err, res, body) {
+			headers: headers
+		}, (err, res, body) => {
 			if (err) {
 				reject(err);
 			} else {
@@ -42,32 +44,21 @@ var getBandsFromBandsPage = (url, selectionFunction) => {
 			}
 		});
 	});
-};
+}
 
-var getRockBands = () => {
-	var url = "http://scaruffi.com/music/groups.html";
-	var selectionFunction = ($) => {
-		return $('table:nth-of-type(3) a').get();
-	};
-	return getBandsFromBandsPage(url, selectionFunction);
-};
+function getRockBands() {
+	return getBandsFromBandsPage("http://scaruffi.com/music/groups.html", $ => $('table:nth-of-type(3) a').get());
+}
 
-var getJazzBands = () => {
-	var url = "http://scaruffi.com/jazz/musician.html";
-	var selectionFunction = ($) => {
-		return $('[width="400"] a').get();
-	};
-	return getBandsFromBandsPage(url, selectionFunction);
-};
+function getJazzBands() {
+	return getBandsFromBandsPage("http://scaruffi.com/jazz/musician.html", $ => $('[width="400"] a').get());
+}
 
-var getBandsFromVolume = (volume) => {
-	var url = "http://scaruffi.com/vol" + volume;
-	var selectionFunction = ($) => {
+function getBandsFromVolume(volume) {
+	return getBandsFromBandsPage("http://scaruffi.com/vol" + volume, $ => {
 		var elems = [];
-		$('select').each((i, elem) => {
-			elems = elems.concat($(elem).children('option').slice(1).get());
-		});
-		elems.forEach((entry) => {
+		$('select').each((i, elem) => elems = elems.concat($(elem).children('option').slice(1).get()));
+		elems.forEach(entry => {
 			var url = $(entry).attr('value');
 			url = url.substring(3, 6) == "vol" || url.substring(3, 8) == "avant" || url.substring(3, 7) == "jazz" ? url : `../vol${volume}/${url}`;
 			if (url.indexOf('#') != -1)
@@ -75,27 +66,25 @@ var getBandsFromVolume = (volume) => {
 			$(entry).attr('href', url);
 		});
 		return elems;
-	};
-	return getBandsFromBandsPage(url, selectionFunction);
-};
+	});
+}
 
-var getAllBands = () => {
-	var bandPromises = [getJazzBands(), getRockBands()];
-	var allBands = {};
-	for (var i = 1; i < 9; i++)
-		bandPromises.push(getBandsFromVolume(i));
-	return new Promise((fulfill, reject) => {
+function getAllBands() {
+	let allBands = {};
+
+	let bandPromises = [getJazzBands(), getRockBands()];
+	for (let i = 1; i < 9; i++) bandPromises.push(getBandsFromVolume(i));
+
+	return new Promise(function (fulfill, reject) {
 		Promise.all(bandPromises)
-			.then((values) => {
-				for (var i = 0; i < values.length; i++)
-					for (var url in values[i])
+			.then(values => {
+				for (let i = 0; i < values.length; i++)
+					for (let url in values[i])
 						if (values[i].hasOwnProperty(url)) {
 							allBands[url] = values[i][url];
 							allBands[url].url = url;
 						}
-				var bandsArr = Object.keys(allBands).map((key) => {
-					return allBands[key];
-				});
+				let bandsArr = Object.keys(allBands).map(key => allBands[key]);
 				SCRAPE_TOTAL = bandsArr.length;
 				SCRAPE_PROGRESS = 0;
 				REJECTED = 0;
@@ -104,9 +93,9 @@ var getAllBands = () => {
 				console.log(`Scraped ${SCRAPE_TOTAL} bands in total`);
 				fulfill(bandsArr);
 			})
-			.catch(err => reject(err));
+			.catch(reject);
 	});
-};
+}
 
 /*
  * These functions scrape individual band pages for album ratings, band relations and bios
@@ -164,8 +153,8 @@ function getBandAlbumsFromBody($) {
 	if (!albumStrings)
 		return albums;
 
-	for (let l = 0; l < albumStrings.length; l++) {
-		const albumString = albumStrings[l];
+	for (let i = 0; i < albumStrings.length; i++) {
+		const albumString = albumStrings[i];
 		albums.push({
 			name: albumString.match(albumNamePattern) ? albumString.match(albumNamePattern)[0].trim() : "",
 			year: albumString.match(yearPattern) ? albumString.match(yearPattern)[0] : 0,
@@ -176,7 +165,7 @@ function getBandAlbumsFromBody($) {
 	return albums;
 }
 
-function getBandRelatedBandsFromBody($) {
+function getBandRelatedBandsFromBody($, band) {
 	const relatedBands = [];
 
 	function extractRelatedBandFromElement(relatedBandElement) {
@@ -186,16 +175,15 @@ function getBandRelatedBandsFromBody($) {
 		};
 		if (!relatedBand.name || !relatedBand.url)
 			return;
-		const nameIsValid = !/contact|contattami/.test(relatedBand.name);
-		const urlIsValid = !/mail|http|history|oldavant|index/.test(relatedBand.url) && (relatedBand.url.match(/\//g) || []).length == 1 && relatedBand.url != band.url;
+		relatedBand.url = relatedBand.url.replace('../', '');
+		relatedBand.url = relatedBand.url.substring(0, relatedBand.url.indexOf('#'));
+		relatedBand.url = (/vol|avant|jazz/.test(relatedBand.url) ? '' : `vol${band.url.charAt(3) - '0'}/`) + relatedBand.url;
 
-		if (urlIsValid && nameIsValid) {
-			relatedBand.url = relatedBand.url.replace('../', '');
-			relatedBand.url = relatedBand.url.substring(0, relatedBand.url.indexOf('#'));
-			relatedBand.url = (/vol|avant|jazz/.test(relatedBand.url) ? '' : `vol${band.url.charAt(3) - '0'}/`) + relatedBand.url;
-
-			relatedBands.push(relatedBand);
-		}
+		const nameIsValid = !(/contact|contattami/.test(relatedBand.name));
+		const urlIsValid = !(/mail|http|history|oldavant|index/.test(relatedBand.url)) && (relatedBand.url.match(/\//g) || []).length == 1 && relatedBand.url != band.url;
+		if (urlIsValid && nameIsValid)
+			return relatedBand;
+		return undefined;
 	}
 
 	if ($("table").get().length <= 1)
@@ -203,22 +191,21 @@ function getBandRelatedBandsFromBody($) {
 	const bioElements = $("table:nth-of-type(2) [bgcolor]").get();
 	for (let m = 0; m < bioElements.length; m++) {
 		const bioElement = bioElements[m];
-		for (let n = 0; n < $(bioElement).children('a').get().length; n++)
-			extractRelatedBandFromElement($(bioElement).children('a').get(n));
+		for (let n = 0; n < $(bioElement).children('a').get().length; n++) {
+			let relatedBand = extractRelatedBandFromElement($(bioElement).children('a').get(n));
+			if (relatedBand) relatedBands.push(relatedBand);
+		}
 	}
-
 	return relatedBands;
 }
 
-var getBandInfo = (band) => {
+function getBandInfo(band) {
 	return new Promise(fulfill => {
 		request({
 			uri: `http://scaruffi.com/${band.url}`,
 			timeout: 30000,
-			headers: {
-				'User-Agent': 'request'
-			}
-		}, (err, res, body) => {
+			headers: headers
+		}, function (err, res, body) {
 			var index = ALL_BANDS.indexOf(band);
 			if (err) {
 				if (err.code === 'ETIMEDOUT')
@@ -230,7 +217,7 @@ var getBandInfo = (band) => {
 				band.name = getBandNameFromBody($);
 				band.bio = getBandBioFromBody($);
 				band.albums = getBandAlbumsFromBody($);
-				band.relatedBands = getBandRelatedBandsFromBody($);
+				band.relatedBands = getBandRelatedBandsFromBody($, band);
 
 				SCRAPE_PROGRESS++;
 			}
@@ -243,20 +230,18 @@ var getBandInfo = (band) => {
 			fulfill(band);
 		});
 	});
-};
+}
 
 /*
  * These functions update album dates from best of all time and best of decades pages
  */
 
-var getBestAlbumsAllTimeDates = () => {
-	return new Promise((fulfill, reject) => {
+function getBestAlbumsAllTimeDates() {
+	return new Promise(function (fulfill, reject) {
 		request({
 			uri: "http://scaruffi.com/music/picbest.html",
-			headers: {
-				'User-Agent': 'request'
-			}
-		}, (err, res, body) => {
+			headers: headers
+		}, function (err, res, body) {
 			if (err)
 				reject(err);
 			else {
@@ -288,9 +273,9 @@ var getBestAlbumsAllTimeDates = () => {
 			}
 		});
 	});
-};
+}
 
-function scrapeForAlbums(elements) {
+function scrapeForAlbums($, elements) {
 	const albums = [];
 	const yearPattern = /[0-9]{4}(?=[)])/;
 	const bandNamePattern = /.*(?=:)/;
@@ -316,14 +301,12 @@ function scrapeForAlbums(elements) {
 	return albums;
 }
 
-var getBestAlbumsOfDecadeDates = (decade) => {
-	return new Promise((fulfill, reject) => {
+function getBestAlbumsOfDecadeDates(decade) {
+	return new Promise(function (fulfill, reject) {
 		request({
 			uri: `http://scaruffi.com/ratings/${decade}.html`,
-			headers: {
-				'User-Agent': 'request'
-			}
-		}, (err, res, body) => {
+			headers: headers
+		}, function (err, res, body) {
 			if (err) {
 				reject(err);
 				return;
@@ -341,38 +324,37 @@ var getBestAlbumsOfDecadeDates = (decade) => {
 				.children("td").eq(0)
 				.children("ul").get();
 
-			const albums = scrapeForAlbums(elements);
+			const albums = scrapeForAlbums($, elements);
 
 			fulfill(albums);
 		});
 	});
-};
+}
 
-var getAllDatesFromScaruffiTopLists = () => {
+function getAllDatesFromScaruffiTopLists() {
 	var datesPromises = [getBestAlbumsAllTimeDates(), getBestAlbumsOfDecadeDates(60), getBestAlbumsOfDecadeDates(70), getBestAlbumsOfDecadeDates(80), getBestAlbumsOfDecadeDates(90), getBestAlbumsOfDecadeDates('00'), getBestAlbumsOfDecadeDates(10)];
-	return new Promise((fulfill, reject) => {
+	return new Promise(function (fulfill, reject) {
 		Promise.all(datesPromises)
-			.then((values) => {
+			.then(function (values) {
 				var albums = [];
 				for (var i = 0; i < values.length; i++)
 					albums = albums.concat(values[i]);
 				fulfill(albums);
 			})
-			.catch((err) => reject(err));
+			.catch(reject);
 	});
-};
+}
 
 /*
  * Last Fm scraping
  */
 
-var getBandPhotoUrl = (band) => {
-	var infoRequest = {
-		url: `http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${band.name}&api_key=${lastfm_api_key}&format=json`,
-		json: true
-	};
-	return new Promise((fulfill, reject) => {
-		request(infoRequest, (err, res, json) => {
+function getBandPhotoUrl(band) {
+	return new Promise(function (fulfill, reject) {
+		request({
+			url: `http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${band.name}&api_key=${lastfm_api_key}&format=json`,
+			json: true
+		}, function (err, res, json) {
 			if (err)
 				reject(err);
 			else {
@@ -384,15 +366,14 @@ var getBandPhotoUrl = (band) => {
 			}
 		});
 	});
-};
+}
 
-var getAlbumPhotoUrl = (album) => {
-	var infoRequest = {
-		url: `http://ws.audioscrobbler.com/2.0/?method=album.getinfo&artist=${album.band.name}&album=${album.name}&api_key=${lastfm_api_key}&format=json`,
-		json: true
-	};
-	return new Promise((fulfill, reject) => {
-		request(infoRequest, (err, res, json) => {
+function getAlbumPhotoUrl(album) {
+	return new Promise(function (fulfill, reject) {
+		request({
+			url: `http://ws.audioscrobbler.com/2.0/?method=album.getinfo&artist=${album.band.name}&album=${album.name}&api_key=${lastfm_api_key}&format=json`,
+			json: true
+		}, function (err, res, json) {
 			if (err) {
 				reject(err);
 			} else {
@@ -405,7 +386,7 @@ var getAlbumPhotoUrl = (album) => {
 			}
 		});
 	});
-};
+}
 
 module.exports = {
 	getAllBands: getAllBands,

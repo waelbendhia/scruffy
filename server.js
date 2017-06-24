@@ -12,15 +12,9 @@ var ip = process.env.IP || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0';
 server.use(bodyParser.json());
 
 server.get('/MusicService/band/:volume/:url', (req, res) => {
-	var volume = req.params.volume;
-	var url = req.params.url;
-	var partialUrl = `${volume}/${url}.html`;
-
-	scaruffiDB.getBand(partialUrl).then(data => res.json(data))
-		.catch(() => {
-			res.status(404);
-			res.send('Whoopsie');
-		});
+	scaruffiDB.getBand(`${req.params.volume}/${req.params.url}.html`)
+		.then(data => res.json(data))
+		.catch(() => res.json(404, 'Whoopsie'));
 });
 
 server.get('/MusicService/ratings/distribution', (req, res) => {
@@ -42,29 +36,25 @@ server.get('/MusicService/bands/influential', (req, res) => {
 });
 
 server.post('/MusicService/albums/search', (req, res) => {
-	var albumSearchRequest = req.body;
-	scaruffiDB.searchAlbums(albumSearchRequest)
+	scaruffiDB.searchAlbums(req.body)
 		.then(data => res.json(data))
 		.catch(console.log);
 });
 
 server.post('/MusicService/albums/searchCount', (req, res) => {
-	var albumSearchRequest = req.body;
-	scaruffiDB.searchAlbumsCount(albumSearchRequest)
+	scaruffiDB.searchAlbumsCount(req.body)
 		.then(data => res.json(data))
 		.catch(console.log);
 });
 
 server.post('/MusicService/bands/search', (req, res) => {
-	var bandSearchRequest = req.body;
-	scaruffiDB.searchBands(bandSearchRequest)
+	scaruffiDB.searchBands(req.body)
 		.then(data => res.json(data))
 		.catch(console.log);
 });
 
 server.post('/MusicService/bands/searchCount', (req, res) => {
-	var bandSearchRequest = req.body;
-	scaruffiDB.searchBandsCount(bandSearchRequest)
+	scaruffiDB.searchBandsCount(req.body)
 		.then(data => res.json(data))
 		.catch(console.log);
 });
@@ -85,7 +75,7 @@ server.listen(port, ip, () => {
 	console.log("Listening on " + ip + ", port " + port);
 });
 
-//scraper.test()
-//scaruffiDB.updateDatabase()
-//scaruffiDB.resetDatabase()
-//scaruffiDB.updateEmptyBandPhotos()
+// scraper.test()
+scaruffiDB.resetDatabase();
+// scaruffiDB.updateDatabase();
+// scaruffiDB.updateEmptyBandPhotos();
