@@ -1,7 +1,14 @@
-"use strict";
-const cheerio = require('cheerio');
-const async = require('async');
-const request = require('request');
+
+export {
+	getAllBands,
+	getBandInfo,
+	getBandPhotoUrl,
+	getAlbumPhotoUrl
+};
+
+import request from "request-promise-native";
+import { load } from "cheerio";
+import { Band, Album } from "./types";
 
 const headers = {
 	'User-Agent': 'request'
@@ -12,64 +19,77 @@ var lastfm_api_key = process.env.LASTFM_API_KEY;
 var SCRAPE_TOTAL = 0;
 var SCRAPE_PROGRESS = 0;
 var REJECTED = 0;
-var ALL_BANDS = [];
+var ALL_BANDS: Band[] = [];
 
 /*
  * These functions scrape the jazz, rock and volume pages for bands
  */
 
-function getBandsFromBandsPage(url, selectionFunction) {
-	return new Promise(function (fulfill, reject) {
-		request({
-			uri: url,
-			headers: headers
-		}, (err, res, body) => {
-			if (err) {
-				reject(err);
-			} else {
-				var $ = cheerio.load(body);
-				var bandElements = selectionFunction($);
-				var bands = {};
+const getBandsFromBandsPage = async (
+	uri: string,
+	selectionFunction: (_: CheerioStatic) => string[]
+) => {
+	const $ = await request({
+		uri, headers, transform: (body) => cheerio.load(body)
+	}) as CheerioStatic,
+		bandElements = selectionFunction($);
 
-				for (var i = 0; i < bandElements.length; i++) {
-					var bandUrl = $(bandElements[i]).attr('href').substring(3);
-					if (bandUrl.indexOf('#') != -1)
-						bandUrl = bandUrl.substring(0, bandUrl.indexOf('#'));
-					bands[bandUrl] = {
-						name: $(bandElements[i]).text().trim()
-					};
+	return bandElements.reduce(
+		(p, elem) => {
+			let bandUrl = $(elem).attr('href').substring(3);
+			if (bandUrl.indexOf('#') != -1)
+				bandUrl = bandUrl.substring(0, bandUrl.indexOf('#'));
+			return {
+				...p,
+				[bandUrl]: {
+					name: $(elem).text().trim()
 				}
-				console.log(`Scraped ${bandElements.length} from ${url}`);
-				fulfill(bands);
 			}
+		},
+		{}
+	) as { [url: string]: { name: string } }[]
+}
+
+const getRockBands = () =>
+	getBandsFromBandsPage(
+		"http://scaruffi.com/music/groups.html",
+		$ => $('table:nth-of-type(3) a').get()
+	);
+
+
+const getJazzBands = () =>
+	getBandsFromBandsPage(
+		"http://scaruffi.com/jazz/musician.html",
+		$ => $('[width="400"] a').get()
+	);
+
+
+const getBandsFromVolume = (volume: number) =>
+	getBandsFromBandsPage(
+		"http://scaruffi.com/vol" + volume,
+		$ => {
+			let elems: string[] = [];
+			$('select')
+				.each(
+					(i, elem) => elems = [...elems, ...$(elem).children('option').slice(1).get()]
+				);
+			elems.forEach(entry => {
+				var url = $(entry).attr('value');
+				url =
+					url.substring(3, 6) == "vol" ||
+						url.substring(3, 8) == "avant" ||
+						url.substring(3, 7) == "jazz"
+						? url : `../vol${volume}/${url}`;
+				if (url.indexOf('#') != -1) {
+					url = url.substring(0, url.indexOf('#'));
+				}
+				$(entry).attr('href', url);
+			});
+			return elems;
 		});
-	});
-}
 
-function getRockBands() {
-	return getBandsFromBandsPage("http://scaruffi.com/music/groups.html", $ => $('table:nth-of-type(3) a').get());
-}
 
-function getJazzBands() {
-	return getBandsFromBandsPage("http://scaruffi.com/jazz/musician.html", $ => $('[width="400"] a').get());
-}
-
-function getBandsFromVolume(volume) {
-	return getBandsFromBandsPage("http://scaruffi.com/vol" + volume, $ => {
-		var elems = [];
-		$('select').each((i, elem) => elems = elems.concat($(elem).children('option').slice(1).get()));
-		elems.forEach(entry => {
-			var url = $(entry).attr('value');
-			url = url.substring(3, 6) == "vol" || url.substring(3, 8) == "avant" || url.substring(3, 7) == "jazz" ? url : `../vol${volume}/${url}`;
-			if (url.indexOf('#') != -1)
-				url = url.substring(0, url.indexOf('#'));
-			$(entry).attr('href', url);
-		});
-		return elems;
-	});
-}
-
-function getAllBands() {
+function getAllBands(): Promise<Band[]> {
 	let allBands = {};
 
 	let bandPromises = [getJazzBands(), getRockBands()];
@@ -199,7 +219,7 @@ function getBandRelatedBandsFromBody($, band) {
 	return relatedBands;
 }
 
-function getBandInfo(band) {
+function getBandInfo(band: Band): Promise<Band> {
 	return new Promise(fulfill => {
 		request({
 			uri: `http://scaruffi.com/${band.url}`,
@@ -349,7 +369,7 @@ function getAllDatesFromScaruffiTopLists() {
  * Last Fm scraping
  */
 
-function getBandPhotoUrl(band) {
+function getBandPhotoUrl(band: Band): Promise<string> {
 	return new Promise(function (fulfill, reject) {
 		request({
 			url: `http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${band.name}&api_key=${lastfm_api_key}&format=json`,
@@ -358,9 +378,10 @@ function getBandPhotoUrl(band) {
 			if (err)
 				reject(err);
 			else {
-				if (typeof json.artist !== 'undefined' && json.artist) {
-					band.imageUrl = json.artist.image[Math.min(3, json.artist.image.length - 1)]["#text"];
-					fulfill(band);
+				if (!!json.artist) {
+					fulfill(
+						json.artist.image[Math.min(3, json.artist.image.length - 1)]["#text"]
+					);
 				} else
 					reject(`No photo for ${band.name} ${band.url}`);
 			}
@@ -368,7 +389,7 @@ function getBandPhotoUrl(band) {
 	});
 }
 
-function getAlbumPhotoUrl(album) {
+function getAlbumPhotoUrl(album: Album): Promise<string> {
 	return new Promise(function (fulfill, reject) {
 		request({
 			url: `http://ws.audioscrobbler.com/2.0/?method=album.getinfo&artist=${album.band.name}&album=${album.name}&api_key=${lastfm_api_key}&format=json`,
@@ -377,9 +398,8 @@ function getAlbumPhotoUrl(album) {
 			if (err) {
 				reject(err);
 			} else {
-				if (typeof json.album !== 'undefined' && json.album) {
-					album.imageUrl = json.album.image[Math.min(3, json.album.image.length - 1)]["#text"];
-					fulfill(album);
+				if (!!json.album) {
+					fulfill(json.album.image[Math.min(3, json.album.image.length - 1)]["#text"]);
 				} else {
 					reject(`No cover for ${album.name} ${album.band.url}`);
 				}
@@ -387,10 +407,3 @@ function getAlbumPhotoUrl(album) {
 		});
 	});
 }
-
-module.exports = {
-	getAllBands: getAllBands,
-	getBandInfo: getBandInfo,
-	getBandPhotoUrl: getBandPhotoUrl,
-	getAlbumPhotoUrl: getAlbumPhotoUrl
-};
