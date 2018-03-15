@@ -1,151 +1,172 @@
-import express from "express";
-import bodyParser from "body-parser";
-import { Pool } from "pg";
-import {
-	getBand, getRatingDistribution, getBandCount, getBandsInfluential,
-	searchAlbums, searchAlbumsCount, AlbumSearchRequest, BandSearchRequest, searchBands, searchBandsCount
-} from "./app/scaruffiDB";
-const server = express();
-const path = require("path");
-
+import express from 'express';
+import morgan from 'morgan';
+import bodyParser from 'body-parser';
+import path from 'path';
+import { Pool } from 'pg';
+import { Album, Band, resetDatabase } from './app';
+const app = express();
 const port =
-	parseInt(
-		process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || ''
-	) || 8001,
-	ip = process.env.IP || process.env.OPENSHIFT_NODEJS_IP || "0.0.0.0",
-	parseAlbumSearchRequest = (b: any): AlbumSearchRequest => ({
-		ratingLower: parseInt(b.ratingLower) || 0,
-		ratingHigher: parseInt(b.ratingHigher) || 1,
-		yearLower: parseInt(b.yearLower) || 0,
-		yearHigher: parseInt(b.yearHigher) || 10000,
-		includeUnknown: !!b.includeUnknown,
-		sortBy: parseInt(b.sortBy) || 10000,
-		sortOrderAsc: !!b.sortOrderAsc,
-		...parseBandSearchRequest(b)
-	}),
-	parseBandSearchRequest = (b: any): BandSearchRequest => ({
-		name: b.name || '',
-		page: parseInt(b.page) || 0,
-		numberOfResults: parseInt(b.numberOfResults) || 10
-	})
+  parseInt(
+    process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || '',
+    10
+  ) || 8001,
+  ip = process.env.IP || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0',
+  parseAlbumSearchRequest = (b: any): Album.SearchRequest => ({
+    ratingLower: parseInt(b.ratingLower, 10) || 0,
+    ratingHigher: parseInt(b.ratingHigher, 10) || 1,
+    yearLower: parseInt(b.yearLower, 10) || 0,
+    yearHigher: parseInt(b.yearHigher, 10) || 10000,
+    includeUnknown: !!b.includeUnknown,
+    sortBy: parseInt(b.sortBy, 10) || 10000,
+    sortOrderAsc: !!b.sortOrderAsc,
+    ...parseBandSearchRequest(b)
+  }),
+  parseBandSearchRequest = (b: any): Band.SearchRequest => ({
+    name: b.name || '',
+    page: parseInt(b.page, 10) || 0,
+    numberOfResults: parseInt(b.numberOfResults, 10) || 10
+  });
 
-server.use(bodyParser.json());
+app.use(bodyParser.json());
 
-server.set(
-	"con",
-	new Pool({
-		user: process.env.PG_USER || "wael",
-		database: process.env.PG_DATABASE || "scaruffi",
-		password: process.env.PG_PASSWORD || "",
-		port: parseInt(process.env.PG_PORT as string) || 5432,
-		host: process.env.PG_HOST || "localhost",
-	})
-);
+app.use(morgan('combined'));
+const pool = new Pool({
+  user: process.env.PG_USER,
+  database: process.env.PG_DATABASE || 'scaruffi',
+  password: process.env.PG_PASSWORD,
+  port: parseInt(process.env.PG_PORT as string, 10) || 5432,
+  host: process.env.PG_HOST || 'localhost',
+});
+(async () => {
+  const con = await pool.connect();
+  await resetDatabase(await pool.connect());
+  con.release();
+})();
+app.set('con', pool);
 
 function getDBCon() {
-	return (server.get("con") as Pool).connect();
+  return (app.get('con') as Pool).connect();
 }
 
-server.get(
-	"/MusicService/band/:volume/:url",
-	async (req, res) => {
-		const con = await getDBCon(),
-			band = await getBand(
-				con,
-				`${req.params.volume}/${req.params.url}.html`,
-			);
-		con.release();
-		if (!!band) {
-			res.json(band);
-		} else {
-			res.status(404).json("Whoopsie")
-		}
-	}
+app.get(
+  '/MusicService/band/:volume/:url',
+  async (req, res) => {
+    const con = await getDBCon();
+    try {
+      const band = await Band.get(
+        con,
+        `${req.params.volume}/${req.params.url}.html`,
+      );
+
+      if (!!band) {
+        res.json(band);
+      } else {
+        res.status(404).json('Whoopsie');
+      }
+    } catch (e) {
+      console.log(e);
+      res.status(500);
+    }
+    con.release();
+  }
 );
 
-server.get(
-	"/MusicService/ratings/distribution",
-	async (req, res) => {
-		const con = await getDBCon(),
-			distribution = await getRatingDistribution(con);
-		con.release();
-		res.json(distribution);
-	}
+app.get(
+  '/MusicService/ratings/distribution',
+  async (req, res) => {
+    try {
+      const con = await getDBCon(),
+        distribution = await Album.getRatingDistribution(con);
+      con.release();
+      res.json(distribution);
+    } catch (e) {
+      console.log(e);
+      res.status(500);
+    }
+  }
 );
 
-server.get(
-	"/MusicService/bands/total",
-	async (req, res) => {
-		const con = await getDBCon(),
-			count = await getBandCount(con);
-		con.release();
-		res.json(count)
-	}
+app.get(
+  '/MusicService/bands/total',
+  async (req, res) => {
+    try {
+      const con = await getDBCon(),
+        count = await Band.getCount(con);
+      con.release();
+      res.json(count);
+    } catch (e) {
+      console.log(e);
+      res.status(500);
+    }
+  }
 );
 
-server.get(
-	"/MusicService/bands/influential",
-	async (req, res) => {
-		const con = await getDBCon(),
-			bands = await getBandsInfluential(con);
-		con.release();
-		res.json(bands);
-	}
+app.get(
+  '/MusicService/bands/influential',
+  async (req, res) => {
+    try {
+      const con = await getDBCon(),
+        bands = await Band.getMostInfluential(con);
+      con.release();
+      res.json(bands);
+    } catch (e) {
+      console.log(e);
+      res.status(500);
+    }
+  }
 );
 
-server.post(
-	"/MusicService/albums/search",
-	async (req, res) => {
-		const con = await getDBCon(),
-			albums = await searchAlbums(con, parseAlbumSearchRequest(req.body));
-		res.json(albums);
-	}
+app.post(
+  '/MusicService/albums/search',
+  async (req, res) => {
+    try {
+      const con = await getDBCon(),
+        albums = await Album.search(con, parseAlbumSearchRequest(req.body));
+      res.json(albums);
+    } catch (e) {
+      console.log(e);
+      res.status(500);
+    }
+  }
 );
 
-server.post(
-	"/MusicService/albums/searchCount",
-	async (req, res) => {
-		const con = await getDBCon(),
-			count = await searchAlbumsCount(con, parseAlbumSearchRequest(req.body));
-		res.json(count);
-	}
+app.post(
+  '/MusicService/bands/search',
+  async (req, res) => {
+    try {
+      const con = await getDBCon(),
+        bands = await Band.search(con, parseBandSearchRequest(req.body));
+      res.json(bands);
+    } catch (e) {
+      console.log(e);
+      res.status(500);
+    }
+  }
 );
 
-server.post(
-	"/MusicService/bands/search",
-	async (req, res) => {
-		const con = await getDBCon(),
-			bands = await searchBands(con, parseBandSearchRequest(req.body));
-		res.json(bands);
-	}
-);
-
-server.post(
-	"/MusicService/bands/searchCount",
-	async (req, res) => {
-		const con = await getDBCon(),
-			count = await searchBandsCount(con, parseBandSearchRequest(req.body));
-		res.json(count);
-	}
-);
-
-server.get("/", (req, res) => {
-	res.sendFile(path.join(__dirname, "../Scaruffi2.0/index.html"));
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../Scaruffi2.0/index.html'));
 });
 
-server.get("/:page", (req, res) => {
-	res.sendFile(path.join(__dirname, "../Scaruffi2.0", req.params.page));
+app.get('/:page', (req, res) => {
+  res.sendFile(path.join(__dirname, '../Scaruffi2.0', req.params.page));
 });
 
-server.get("/:folder/:filename", (req, res) => {
-	res.sendFile(path.join(__dirname, "../Scaruffi2.0", req.params.folder, req.params.filename));
-});
+app.get('/:folder/:filename', (req, res) =>
+  res.sendFile(
+    path.join(
+      __dirname,
+      '../Scaruffi2.0',
+      req.params.folder,
+      req.params.filename,
+    )
+  )
+);
 
-server.listen(port, ip, () => {
-	console.log("Listening on " + ip + ", port " + port);
+app.listen(port, ip, () => {
+  console.log('Listening on ' + ip + ', port ' + port);
 });
 
 // scraper.test()
-// scaruffiDB.resetDatabase();
 // scaruffiDB.updateDatabase();
 // scaruffiDB.updateEmptyBandPhotos();

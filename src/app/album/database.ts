@@ -1,0 +1,212 @@
+export {
+  createTable,
+  insert,
+  find,
+  updateEmptyPhotos,
+  SearchRequest,
+  getRatingDistribution,
+  search
+};
+
+import { PoolClient } from 'pg';
+import { Band } from '../band';
+import { Album, parseFromRow } from './types';
+import { getPhotoUrl } from './scraping';
+
+const SORT_BY_RATING = 0,
+  SORT_BY_DATE = 1,
+  SORT_BY_ALBUM_NAME = 2,
+  SORT_BY_BANDNAME = 3;
+
+const getSortByAsString =
+  (
+    sortBy: number,
+    albumSymbol: string,
+    bandSymbol: string,
+  ) => {
+    switch (sortBy) {
+      case SORT_BY_RATING:
+        return albumSymbol + '.rating';
+      case SORT_BY_DATE:
+        return albumSymbol + '.year';
+      case SORT_BY_ALBUM_NAME:
+        return albumSymbol + '.name';
+      case SORT_BY_BANDNAME:
+        return bandSymbol + '.name';
+      default:
+        return 'DEFAULT';
+    }
+  };
+
+const createAlbumsQuery =
+  `CREATE TABLE albums(
+    name TEXT NOT NULL,
+    year INTEGER,
+    rating REAL,
+    band TEXT NOT NULL,
+    imageUrl TEXT,
+    CONSTRAINT pk_albumID PRIMARY KEY (name, band),
+    FOREIGN KEY (band) REFERENCES bands(partialUrl)
+  );`;
+
+const createTable = (con: PoolClient) => con.query(createAlbumsQuery);
+
+
+const insert = (con: PoolClient, band: Band, album: Album) =>
+  con.query(
+    'INSERT INTO albums (name, year, rating, band) VALUES ($1, $2, $3, $4)',
+    [album.name, album.year, album.rating, band.url]
+  );
+
+const insertPhotoUrl = async (con: PoolClient, album: Album) =>
+  await con.query(
+    'UPDATE albums SET imageUrl = $1 WHERE name = $2 and band = $3',
+    [
+      await getPhotoUrl(album),
+      album.name,
+      album.band ? album.band.url : ''
+    ]
+  );
+
+const updateEmptyPhotos = async (con: PoolClient) => {
+  const res = await con.query(
+    `SELECT
+        a.name AS name,
+        a.year AS year,
+        a.rating AS rating,
+        a.band AS bandUrl,
+        b.name AS bandName
+      FROM albums a INNER JOIN bands b ON a.band = b.partialUrl
+      WHERE a.imageUrl = '' OR a.imageUrl IS NULL;`
+  ),
+    albums: Album[] = res.rows.map(
+      r => ({
+        ...parseFromRow(r),
+        band: {
+          name: r.bandName,
+          url: r.bandUrl
+        }
+      })
+    );
+  await Promise.all(albums.map(a => insertPhotoUrl(con, a)));
+};
+
+const find = (con: PoolClient, band: Band) =>
+  con.query(
+    `SELECT * FROM albums where band =$1`,
+    [band.url]
+  ).then(({ rows }) => rows.map(parseFromRow));
+
+
+
+const getRatingDistribution =
+  (con: PoolClient): Promise<{ [rating: string]: number }> =>
+    con.query(
+      `SELECT
+			floor(albums.rating*2)/2 as rating,
+			count(*) as count
+		FROM albums GROUP BY floor(albums.rating*2)/2;`
+    ).then(({ rows }) =>
+      rows.reduce(
+        (p, { ratings, count }: { ratings: number, count: number }) => ({
+          ...p,
+          [ratings.toFixed(1)]: count
+        })
+        , {}
+      )
+    );
+
+interface SearchRequest {
+  ratingLower: number;
+  ratingHigher: number;
+  yearLower: number;
+  yearHigher: number;
+  includeUnknown: boolean;
+  name: string;
+  sortBy: number;
+  sortOrderAsc: boolean;
+  page: number;
+  numberOfResults: number;
+}
+
+const searchRows =
+  (con: PoolClient, req: SearchRequest) =>
+    con.query(
+      `SELECT
+			a.name AS name,
+			a.imageUrl AS imageUrl,
+			a.year AS year,
+			a.rating AS rating,
+			b.name AS bandname,
+			b.partialUrl AS bandurl
+		FROM albums a INNER JOIN bands b ON b.partialUrl = a.band
+		WHERE
+			a.rating BETWEEN $1 AND $2 AND
+			(a.year BETWEEN $3 AND $4 OR a.year = 0 AND $5) AND
+      ( $6 = '' OR
+        instr(lower(a.name), lower($6))
+        OR instr(lower(b.name), lower($6))
+      )
+		ORDER BY
+				CASE $7
+					WHEN 'a.rating' THEN a.rating
+					WHEN 'a.year'   THEN a.year
+					WHEN 'a.name'   THEN a.name
+					WHEN 'b.name'   THEN b.name
+				END
+				CASE WHEN $8
+					THEN ASC
+					ELSE DESC
+				END
+			LIMIT $9 OFFSET $10;`,
+      [
+        req.ratingLower,
+        req.ratingHigher,
+        req.yearLower,
+        req.yearHigher,
+        req.includeUnknown,
+        req.name,
+        getSortByAsString(req.sortBy, 'a', 'b'),
+        req.sortOrderAsc,
+        req.numberOfResults,
+        req.page * req.numberOfResults,
+      ]
+    )
+      .then(({ rows }) => rows.map(r => ({
+        ...parseFromRow(r),
+        band: {
+          name: r.bandname,
+          url: r.bandurl,
+          fullurl: `http://scaruffi.com/${r.bandurl}`
+        }
+      })));
+
+
+const searchCount =
+  (con: PoolClient, req: SearchRequest) =>
+    con.query(
+      `SELECT
+          count(*)
+        FROM albums a INNER JOIN bands b ON b.partialUrl = a.band
+        WHERE
+          a.rating BETWEEN $1 AND $2 AND
+          (a.year BETWEEN $3 AND $4 OR a.year = 0 AND $5) AND
+          (
+            $6 = '' OR
+            instr(lower(a.name), lower($6)
+          ) OR
+          instr(lower(b.name), lower($6)));`,
+      [
+        req.ratingLower,
+        req.ratingHigher,
+        req.yearLower,
+        req.yearHigher,
+        req.includeUnknown,
+        req.name
+      ]
+    ).then(({ rows }) => parseInt(rows[0].count, 10));
+
+const search = async (con: PoolClient, req: SearchRequest) => ({
+  count: await searchCount(con, req),
+  result: await searchRows(con, req)
+});
