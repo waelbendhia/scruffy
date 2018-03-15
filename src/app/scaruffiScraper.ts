@@ -14,17 +14,13 @@ const headers = {
 	'User-Agent': 'request'
 };
 
-var lastfm_api_key = process.env.LASTFM_API_KEY;
-
-var SCRAPE_TOTAL = 0;
-var SCRAPE_PROGRESS = 0;
-var REJECTED = 0;
-var ALL_BANDS: Band[] = [];
+const lastfm_api_key = process.env.LASTFM_API_KEY;
 
 /*
  * These functions scrape the jazz, rock and volume pages for bands
  */
-
+const withDefault = <T>(res: RegExpMatchArray | null, def: T) =>
+	!!res && res.length > 0 ? res[0] : def;
 const getBandsFromBandsPage = async (
 	uri: string,
 	selectionFunction: (_: CheerioStatic) => string[]
@@ -47,7 +43,7 @@ const getBandsFromBandsPage = async (
 			}
 		},
 		{}
-	) as { [url: string]: { name: string } }[]
+	) as { [url: string]: { name: string } }
 }
 
 const getRockBands = () =>
@@ -89,57 +85,51 @@ const getBandsFromVolume = (volume: number) =>
 		});
 
 
-function getAllBands(): Promise<Band[]> {
+const getAllBands = async () => {
 	let allBands = {};
-
-	let bandPromises = [getJazzBands(), getRockBands()];
-	for (let i = 1; i < 9; i++) bandPromises.push(getBandsFromVolume(i));
-
-	return new Promise(function (fulfill, reject) {
-		Promise.all(bandPromises)
-			.then(values => {
-				for (let i = 0; i < values.length; i++)
-					for (let url in values[i])
-						if (values[i].hasOwnProperty(url)) {
-							allBands[url] = values[i][url];
-							allBands[url].url = url;
-						}
-				let bandsArr = Object.keys(allBands).map(key => allBands[key]);
-				SCRAPE_TOTAL = bandsArr.length;
-				SCRAPE_PROGRESS = 0;
-				REJECTED = 0;
-				ALL_BANDS = bandsArr;
-
-				console.log(`Scraped ${SCRAPE_TOTAL} bands in total`);
-				fulfill(bandsArr);
-			})
-			.catch(reject);
-	});
+	const bands = {
+		...await getJazzBands(),
+		...await getRockBands(),
+		...await getBandsFromVolume(1),
+		...await getBandsFromVolume(2),
+		...await getBandsFromVolume(3),
+		...await getBandsFromVolume(4),
+		...await getBandsFromVolume(5),
+		...await getBandsFromVolume(6),
+		...await getBandsFromVolume(7),
+		...await getBandsFromVolume(8),
+		...await getBandsFromVolume(9)
+	};
+	return Object.keys(bands)
+		.map(url => ({ url, name: bands[url].name }));
 }
 
 /*
  * These functions scrape individual band pages for album ratings, band relations and bios
  */
 
-function getBandNameFromBody($) {
-	let name = '';
-	if ($('center').get().length === 0)
-		return name;
+const getBandNameFromBody = ($: CheerioStatic) => {
+	if ($('center').get().length === 0) {
+		return '';
+	}
 
-	let parentNode = $('center').get(0);
-	while ($(parentNode).children().length > 0)
+	let name = '',
+		parentNode = $('center').get(0);
+
+	while ($(parentNode).children().length > 0) {
 		for (let i = 0; i < $(parentNode).children().length; i++) {
 			name = $($(parentNode).children().get(i)).text().trim();
-			if (name) {
+			if (!!name) {
 				parentNode = $(parentNode).children().get(i);
 				break;
 			}
 		}
+	}
 
 	return name;
 }
 
-function getBandBioFromBody($) {
+const getBandBioFromBody = ($: CheerioStatic) => {
 	let bio = '';
 	if ($('table').get().length > 1) {
 		const tables = $('table:nth-of-type(2) [bgcolor]').get();
@@ -149,261 +139,222 @@ function getBandBioFromBody($) {
 				const childNode = $(table).contents().get(j);
 				bio += childNode.name == 'br' ?
 					'\n' :
-					(childNode.name == 'p' ? '\n\n\n' : ' ') + $(childNode).text().trim().replace(/\n/g, " ");
+					(childNode.name == 'p' ? '\n\n\n' : ' ')
+					+ $(childNode).text().trim().replace(/\n/g, " ");
 			}
 		}
 	}
 	return bio.trim();
 }
 
-function getBandAlbumsFromBody($) {
-	const albums = [];
-
-	const albumPattern = /.+, ([0-9]*.[0-9]+|[0-9]+)\/10/g;
-	const albumNamePattern = /(^.+)(?=[(].*[)])|(^.+)(?=,)/;
-	const yearPattern = /[0-9]{4}(?=\))/;
-	const ratingPattern = /(([0-9].[0-9])|[0-9])(?=\/10)/;
-
-	if ($('table').get().length === 0)
-		return albums;
-
-	const ablumsText = $('table:nth-of-type(1) td:nth-of-type(1)').text();
-	const albumStrings = ablumsText.match(albumPattern);
-
-	if (!albumStrings)
-		return albums;
-
-	for (let i = 0; i < albumStrings.length; i++) {
-		const albumString = albumStrings[i];
-		albums.push({
-			name: albumString.match(albumNamePattern) ? albumString.match(albumNamePattern)[0].trim() : "",
-			year: albumString.match(yearPattern) ? albumString.match(yearPattern)[0] : 0,
-			rating: albumString.match(ratingPattern) ? albumString.match(ratingPattern)[0] : 0
-		});
+const getBandAlbumsFromBody = ($: CheerioStatic): Album[] => {
+	if ($('table').get().length === 0) {
+		return [];
 	}
 
-	return albums;
+	const albumPattern = /.+, ([0-9]*.[0-9]+|[0-9]+)\/10/g,
+		ablumsText = $('table:nth-of-type(1) td:nth-of-type(1)').text(),
+		albumStrings = ablumsText.match(albumPattern);
+
+	if (!albumStrings) {
+		return [];
+	}
+	const albumNamePattern = /(^.+)(?=[(].*[)])|(^.+)(?=,)/,
+		yearPattern = /[0-9]{4}(?=\))/,
+		ratingPattern = /(([0-9].[0-9])|[0-9])(?=\/10)/;
+
+	return albumStrings
+		.map(
+			str => ({
+				name: withDefault(str.match(albumNamePattern), "").trim(),
+				year: parseInt(withDefault(str.match(yearPattern), '0')),
+				rating: parseInt(withDefault(str.match(ratingPattern), '0')),
+				imageUrl: '',
+			})
+		)
 }
 
-function getBandRelatedBandsFromBody($, band) {
-	const relatedBands = [];
+const getBandRelatedBandsFromBody = ($: CheerioStatic, band: Band) => {
+	const relatedBands: Band[] = [],
+		extractRelatedBandFromElement = (relatedBandElement: CheerioElement) => {
+			const relatedBand = {
+				name: $(relatedBandElement).text(),
+				url: $(relatedBandElement).attr("href").replace('../', '')
+			};
 
-	function extractRelatedBandFromElement(relatedBandElement) {
-		const relatedBand = {
-			name: $(relatedBandElement).text(),
-			url: $(relatedBandElement).attr("href")
-		};
-		if (!relatedBand.name || !relatedBand.url)
-			return;
-		relatedBand.url = relatedBand.url.replace('../', '');
-		relatedBand.url = relatedBand.url.substring(0, relatedBand.url.indexOf('#'));
-		relatedBand.url = (/vol|avant|jazz/.test(relatedBand.url) ? '' : `vol${band.url.charAt(3) - '0'}/`) + relatedBand.url;
+			if (!relatedBand.name || !relatedBand.url) { return null; }
 
-		const nameIsValid = !(/contact|contattami/.test(relatedBand.name));
-		const urlIsValid = !(/mail|http|history|oldavant|index/.test(relatedBand.url)) && (relatedBand.url.match(/\//g) || []).length == 1 && relatedBand.url != band.url;
-		if (urlIsValid && nameIsValid)
-			return relatedBand;
-		return undefined;
-	}
+			relatedBand.url = relatedBand.url.substring(0, relatedBand.url.indexOf('#'));
+			relatedBand.url =
+				(
+					/vol|avant|jazz/.test(relatedBand.url)
+						? ''
+						: `vol${parseInt(band.url.charAt(3))}/`
+				) + relatedBand.url;
 
-	if ($("table").get().length <= 1)
-		return relatedBands;
+			const nameIsValid = !(/contact|contattami/.test(relatedBand.name)),
+				urlIsValid =
+					!(/mail|http|history|oldavant|index/.test(relatedBand.url))
+					&& (relatedBand.url.match(/\//g) || []).length == 1
+					&& relatedBand.url != band.url;
+			return urlIsValid && nameIsValid ? relatedBand : null;
+		}
+
+	if ($("table").get().length <= 1) { return relatedBands; }
+
 	const bioElements = $("table:nth-of-type(2) [bgcolor]").get();
-	for (let m = 0; m < bioElements.length; m++) {
-		const bioElement = bioElements[m];
+
+	for (let bioElement in bioElements) {
 		for (let n = 0; n < $(bioElement).children('a').get().length; n++) {
-			let relatedBand = extractRelatedBandFromElement($(bioElement).children('a').get(n));
-			if (relatedBand) relatedBands.push(relatedBand);
+			let relatedBand =
+				extractRelatedBandFromElement($(bioElement).children('a').get(n));
+			if (!!relatedBand) { relatedBands.push(relatedBand); }
 		}
 	}
+
 	return relatedBands;
 }
 
-function getBandInfo(band: Band): Promise<Band> {
-	return new Promise(fulfill => {
-		request({
-			uri: `http://scaruffi.com/${band.url}`,
-			timeout: 30000,
-			headers: headers
-		}, function (err, res, body) {
-			var index = ALL_BANDS.indexOf(band);
-			if (err) {
-				if (err.code === 'ETIMEDOUT')
-					REJECTED++;
-				console.log(band.url + " " + err + " " + REJECTED);
-				band.name = 'ERROR';
-			} else {
-				var $ = cheerio.load(body);
-				band.name = getBandNameFromBody($);
-				band.bio = getBandBioFromBody($);
-				band.albums = getBandAlbumsFromBody($);
-				band.relatedBands = getBandRelatedBandsFromBody($, band);
-
-				SCRAPE_PROGRESS++;
-			}
-			if (index != -1)
-				ALL_BANDS.splice(index, 1);
-			if (ALL_BANDS.length < 100 && ALL_BANDS.length > 0)
-				console.log(ALL_BANDS.map(b => b.url).reduce((prev, cur) => prev + " " + cur) + "\n" + ALL_BANDS.length);
-			else
-				console.log(ALL_BANDS.length);
-			fulfill(band);
-		});
-	});
+const getBandInfo = async (band: Band): Promise<Band> => {
+	const $ = await request({
+		uri: `http://scaruffi.com/${band.url}`,
+		timeout: 30000,
+		headers,
+		transform: (body) => cheerio.load(body)
+	}) as CheerioStatic;
+	return {
+		name: getBandNameFromBody($),
+		bio: getBandBioFromBody($),
+		albums: getBandAlbumsFromBody($),
+		relatedBands: getBandRelatedBandsFromBody($, band),
+		url: band.url,
+	};
 }
 
 /*
  * These functions update album dates from best of all time and best of decades pages
  */
 
-function getBestAlbumsAllTimeDates() {
-	return new Promise(function (fulfill, reject) {
-		request({
-			uri: "http://scaruffi.com/music/picbest.html",
-			headers: headers
-		}, function (err, res, body) {
-			if (err)
-				reject(err);
-			else {
-				var $ = cheerio.load(body);
+const getBestAlbumsAllTimeDates = async (): Promise<Album[]> => {
+	const $ = await request({
+		uri: "http://scaruffi.com/music/picbest.html",
+		headers,
+		transform: (body) => cheerio.load(body)
+	}) as CheerioStatic;
 
-				var yearPattern = /[0-9]{4}(?=\.)/;
-				var albumNamePattern = /: .*/;
+	const yearPattern = /[0-9]{4}(?=\.)/,
+		albumNamePattern = /: .*/,
+		linerElements = $("center:nth-of-type(1) table:nth-of-type(1) tr").get();
 
-				var albums = [];
-
-				var linerElements = $("center:nth-of-type(1) table:nth-of-type(1) tr").get();
-
-				for (var i = 0; i < linerElements.length; i++) {
-					var linerElement = linerElements[i];
-
-					var bandAndAlbumName = $(linerElement).children("td").eq(0).children("font").eq(0).children("b").eq(0);
-					var linerNotes = $(linerElement).children("td").eq(1).text();
-
-					albums.push({
-						year: linerNotes.match(yearPattern)[0],
-						name: bandAndAlbumName.text().replace(/[\r\n]+/g, " ").match(albumNamePattern)[0].substring(2),
-						band: {
-							name: bandAndAlbumName.children("a").eq(0).text(),
-							url: bandAndAlbumName.children("a").attr("href").substring(3)
-						}
-					});
-				}
-				fulfill(albums);
-			}
-		});
-	});
-}
-
-function scrapeForAlbums($, elements) {
-	const albums = [];
-	const yearPattern = /[0-9]{4}(?=[)])/;
-	const bandNamePattern = /.*(?=:)/;
-	const albumNamePattern = /: .*(?=[(])/;
-
-	for (let i = 0; i < elements.length; i++) {
-		const albumElements = $(elements[i]).children("li").get();
-		for (let j = 0; j < albumElements.length; j++) {
-			const bandAlbumName = $(albumElements[j]).text().replace(/[\r\n]+/g, " ");
-			const album = {
-				name: bandAlbumName.match(albumNamePattern) ? bandAlbumName.match(albumNamePattern)[0].substring(2) : null,
-				year: bandAlbumName.match(yearPattern) ? bandAlbumName.match(yearPattern)[0] : null,
+	return linerElements.map(
+		linerElement => {
+			const bandAndAlbumName =
+				$(linerElement)
+					.children("td").eq(0)
+					.children("font").eq(0)
+					.children("b").eq(0),
+				linerNotes = $(linerElement).children("td").eq(1).text();
+			return {
+				year: parseInt(withDefault(linerNotes.match(yearPattern), '0')),
+				rating: 0,
+				imageUrl: '',
+				name: withDefault(
+					bandAndAlbumName.text().replace(/[\r\n]+/g, " ").match(albumNamePattern),
+					""
+				).substring(2),
 				band: {
-					name: bandAlbumName.match(bandNamePattern) ? bandAlbumName.match(bandNamePattern)[0] : '',
-					url: $(albumElements[j]).children('a').get().length > 0 ? $(albumElements[j]).children('a').eq(0).attr('href').substring(3) : null
+					name: bandAndAlbumName.children("a").eq(0).text(),
+					url: bandAndAlbumName.children("a").attr("href").substring(3)
 				}
-			};
-			album.band.url = album.band.url.substring(0, album.band.url.indexOf('#'));
-			if (album.name)
-				albums.push(album);
+			}
 		}
-	}
-	return albums;
+	);
 }
 
-function getBestAlbumsOfDecadeDates(decade) {
-	return new Promise(function (fulfill, reject) {
-		request({
-			uri: `http://scaruffi.com/ratings/${decade}.html`,
-			headers: headers
-		}, function (err, res, body) {
-			if (err) {
-				reject(err);
-				return;
-			}
-			const $ = cheerio.load(body);
+const scrapeForAlbums = ($: CheerioStatic, elements: string[]): Album[] => {
+	const yearPattern = /[0-9]{4}(?=[)])/,
+		bandNamePattern = /.*(?=:)/,
+		albumNamePattern = /: .*(?=[(])/;
+	return elements
+		.map(elem => $(elem).children('li').get())
+		.map(
+			albumElements =>
+				albumElements.map(
+					albumElement => {
+						const bandAlbumName = $(albumElement).text().replace(/[\r\n]+/g, " ");
+						return {
+							name: withDefault(bandAlbumName.match(albumNamePattern), '').substring(2),
+							year: parseInt(withDefault(bandAlbumName.match(yearPattern), '0')),
+							rating: 0,
+							imageUrl: '',
+							band: {
+								name: withDefault(bandAlbumName.match(bandNamePattern), ''),
+								url:
+									(
+										$(albumElement).children('a').get().length > 0
+											? $(albumElement).children('a').eq(0).attr('href').substring(3)
+											: ''
+									).split('#')[0]
+							}
+						};
+					}
+				).filter(({ name }) => !!name)
+		)
+		.reduce((p, c) => [...p, ...c], []);
+}
 
-			if (!$("center").get(0)) {
-				reject(`Couldn't scrape page http://scaruffi.com/ratings/${decade}.html`);
-				return;
-			}
-			const elements = $("center").eq(0)
-				.children("table").eq((decade == '00' || decade == 10) ? 3 : 2)
+const getBestAlbumsOfDecadeDates = async (decade: number) => {
+	const $ = await request({
+		uri: `http://scaruffi.com/ratings/${decade < 10 ? '00' : decade}.html`,
+		headers: headers,
+		transform: body => cheerio.load(body),
+	});
+
+	return !$("center").get(0)
+		? []
+		: scrapeForAlbums(
+			$,
+			$("center").eq(0)
+				.children("table").eq((decade == 0 || decade == 10) ? 3 : 2)
 				.children("tbody").eq(0)
 				.children("tr").eq(0)
 				.children("td").eq(0)
-				.children("ul").get();
-
-			const albums = scrapeForAlbums($, elements);
-
-			fulfill(albums);
-		});
-	});
+				.children("ul").get()
+		);
 }
 
-function getAllDatesFromScaruffiTopLists() {
-	var datesPromises = [getBestAlbumsAllTimeDates(), getBestAlbumsOfDecadeDates(60), getBestAlbumsOfDecadeDates(70), getBestAlbumsOfDecadeDates(80), getBestAlbumsOfDecadeDates(90), getBestAlbumsOfDecadeDates('00'), getBestAlbumsOfDecadeDates(10)];
-	return new Promise(function (fulfill, reject) {
-		Promise.all(datesPromises)
-			.then(function (values) {
-				var albums = [];
-				for (var i = 0; i < values.length; i++)
-					albums = albums.concat(values[i]);
-				fulfill(albums);
-			})
-			.catch(reject);
-	});
-}
+const getAllDatesFromScaruffiTopLists = async () =>
+	[
+		... await getBestAlbumsAllTimeDates(),
+		... await getBestAlbumsOfDecadeDates(60),
+		... await getBestAlbumsOfDecadeDates(70),
+		... await getBestAlbumsOfDecadeDates(80),
+		... await getBestAlbumsOfDecadeDates(90),
+		... await getBestAlbumsOfDecadeDates(0),
+		... await getBestAlbumsOfDecadeDates(10),
+	];
+
 
 /*
  * Last Fm scraping
  */
 
-function getBandPhotoUrl(band: Band): Promise<string> {
-	return new Promise(function (fulfill, reject) {
-		request({
-			url: `http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${band.name}&api_key=${lastfm_api_key}&format=json`,
-			json: true
-		}, function (err, res, json) {
-			if (err)
-				reject(err);
-			else {
-				if (!!json.artist) {
-					fulfill(
-						json.artist.image[Math.min(3, json.artist.image.length - 1)]["#text"]
-					);
-				} else
-					reject(`No photo for ${band.name} ${band.url}`);
-			}
-		});
+const getBandPhotoUrl = async (band: Band) => {
+	const json = await request({
+		url: `http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${band.name}&api_key=${lastfm_api_key}&format=json`,
+		json: true
 	});
+	return !!json.artist
+		? json.artist.image[Math.min(3, json.artist.image.length - 1)]["#text"] as string
+		: '';
 }
 
-function getAlbumPhotoUrl(album: Album): Promise<string> {
-	return new Promise(function (fulfill, reject) {
-		request({
-			url: `http://ws.audioscrobbler.com/2.0/?method=album.getinfo&artist=${album.band.name}&album=${album.name}&api_key=${lastfm_api_key}&format=json`,
-			json: true
-		}, function (err, res, json) {
-			if (err) {
-				reject(err);
-			} else {
-				if (!!json.album) {
-					fulfill(json.album.image[Math.min(3, json.album.image.length - 1)]["#text"]);
-				} else {
-					reject(`No cover for ${album.name} ${album.band.url}`);
-				}
-			}
-		});
-	});
+const getAlbumPhotoUrl = async (album: Album): Promise<string> => {
+	const json = await request({
+		url: `http://ws.audioscrobbler.com/2.0/?method=album.getinfo&artist=${(album.band || { name: '' }).name}&album=${album.name}&api_key=${lastfm_api_key}&format=json`,
+		json: true
+	})
+	return !!json.album
+		? json.album.image[Math.min(3, json.album.image.length - 1)]["#text"] as string
+		: '';
 }

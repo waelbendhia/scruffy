@@ -1,4 +1,4 @@
-import pg, { Client, Query } from "pg";
+import pg, { PoolClient, Query } from "pg";
 import { Band, Album } from "./types";
 import { getAllBands, getBandInfo, getBandPhotoUrl, getAlbumPhotoUrl } from "./scaruffiScraper"
 
@@ -48,10 +48,10 @@ const createBandsQuery =
 		);`,
 	dropQuery = "DROP TABLE IF EXISTS bands2bands, albums, bands;";
 
-const dropTables = async (con: Client) => await con.query(dropQuery);
+const dropTables = async (con: PoolClient) => await con.query(dropQuery);
 
 
-const createTables = async (con: Client) =>
+const createTables = async (con: PoolClient) =>
 	await Promise.all(
 		[
 			createBandsQuery,
@@ -62,7 +62,7 @@ const createTables = async (con: Client) =>
 	);
 
 
-const insertOrUpdateFull = async (con: Client, band: Band) => {
+const insertOrUpdateFull = async (con: PoolClient, band: Band) => {
 	if (band.name == "ERROR" || !band.name || !band.bio) {
 		throw `${band.url} was not scraped successfully`;
 	}
@@ -83,7 +83,7 @@ const insertOrUpdateFull = async (con: Client, band: Band) => {
 	}
 }
 
-export const updateDatabase = async (con: Client) => {
+export const updateDatabase = async (con: PoolClient) => {
 	const bands = await getAllBands(),
 		fullBands = await Promise.all(bands.map(getBandInfo));
 	await Promise.all(fullBands.map(insertOrUpdateFull.bind(con)));
@@ -91,13 +91,13 @@ export const updateDatabase = async (con: Client) => {
 	await updateEmptyAlbumPhotos(con);
 }
 
-export const resetDatabase = async (con: Client) => {
+export const resetDatabase = async (con: PoolClient) => {
 	await dropTables(con);
 	await createTables(con);
 	await updateDatabase(con);
 }
 
-export const updateEmptyBandPhotos = async (con: Client) => {
+export const updateEmptyBandPhotos = async (con: PoolClient) => {
 	const res = await con.query(
 		`SELECT * FROM bands WHERE imageUrl = '' OR imageUrl IS NULL;`
 	);
@@ -106,27 +106,27 @@ export const updateEmptyBandPhotos = async (con: Client) => {
 	);
 }
 
-const insertBandLazy = async (con: Client, band: Band) =>
+const insertBandLazy = async (con: PoolClient, band: Band) =>
 	await con.query(
 		"INSERT INTO bands (partialUrl, name, bio) VALUES ($1, $2, $3);",
 		[band.url, band.name, band.bio],
 	);
 
 
-const insertBandRelation = async (con: Client, band: Band, related: Band) =>
+const insertBandRelation = async (con: PoolClient, band: Band, related: Band) =>
 	await con.query(
 		"INSERT INT bands2bands (urlOfBand, urlOfRelated) VALUES ($1, $@)",
 		[band.url, related.url]
 	);
 
 
-const insertAlbum = async (con: Client, band: Band, album: Album) =>
+const insertAlbum = async (con: PoolClient, band: Band, album: Album) =>
 	await con.query(
 		"INSERT INTO albums (name, year, rating, band) VALUES ($1, $2, $3, $4)",
 		[album.name, album.year, album.rating, band.url]
 	);
 
-const updateEmptyAlbumPhotos = async (con: Client) => {
+const updateEmptyAlbumPhotos = async (con: PoolClient) => {
 	const res = await con.query(
 		`SELECT
 			a.name AS name,
@@ -149,13 +149,13 @@ const updateEmptyAlbumPhotos = async (con: Client) => {
 	await Promise.all(albums.map(a => insertAlbumPhotoUrl(con, a)))
 }
 
-const insertBandPhotoUrl = async (con: Client, band: Band) =>
+const insertBandPhotoUrl = async (con: PoolClient, band: Band) =>
 	await con.query(
 		"UPDATE bands SET imageUrl = $1 WHERE partialUrl = $2;",
 		[await getBandPhotoUrl(band), band.url]
 	);
 
-const insertAlbumPhotoUrl = async (con: Client, album: Album) =>
+const insertAlbumPhotoUrl = async (con: PoolClient, album: Album) =>
 	await con.query(
 		"UPDATE albums SET imageUrl = $1 WHERE name = $2 and band = $3",
 		[
@@ -205,7 +205,7 @@ const getSortByAsString =
 		}
 	}
 
-const getRelatedBands = async (con: Client, band: Band) => {
+const getRelatedBands = async (con: PoolClient, band: Band) => {
 	const res = await con.query(
 		`SELECT * 
 		FROM bands
@@ -217,7 +217,7 @@ const getRelatedBands = async (con: Client, band: Band) => {
 	return res.rows.map(parseBandFromRow);
 }
 
-const getAlbums = async (con: Client, band: Band) => {
+const getAlbums = async (con: PoolClient, band: Band) => {
 	const res = await con.query(
 		`SELECT * FROM albums where band =$1`,
 		[band.url]
@@ -225,7 +225,7 @@ const getAlbums = async (con: Client, band: Band) => {
 	return res.rows.map(parseAlbumFromRow);
 }
 
-export const getBand = async (con: Client, partialUrl: string): Promise<Band | null> => {
+export const getBand = async (con: PoolClient, partialUrl: string): Promise<Band | null> => {
 	const res = await con.query(
 		`SELECT * FROM bands WHERE partialUrl =$1`,
 		[partialUrl]
@@ -242,7 +242,7 @@ export const getBand = async (con: Client, partialUrl: string): Promise<Band | n
 }
 
 export const getRatingDistribution =
-	async (con: Client): Promise<{ [rating: string]: number }> => {
+	async (con: PoolClient): Promise<{ [rating: string]: number }> => {
 		const res = await con.query(
 			`SELECT 
 			floor(albums.rating*2)/2 as rating,
@@ -258,12 +258,12 @@ export const getRatingDistribution =
 		);
 	}
 
-export const getBandCount = async (con: Client) =>
+export const getBandCount = async (con: PoolClient) =>
 	(await con.query(`SELECT count(*) AS count FROM bands;`))
 		.rows[0].count as number;
 
 
-export const getBandsInfluential = async (con: Client) => {
+export const getBandsInfluential = async (con: PoolClient) => {
 	const res = await con.query(
 		`SELECT
 			count(b2b.urlOfBand) as inf,
@@ -276,7 +276,7 @@ export const getBandsInfluential = async (con: Client) => {
 	return res.rows.map(parseBandFromRow)
 }
 
-interface AlbumSearchRequest {
+export interface AlbumSearchRequest {
 	ratingLower: number,
 	ratingHigher: number,
 	yearLower: number,
@@ -289,7 +289,7 @@ interface AlbumSearchRequest {
 	numberOfResults: number,
 }
 
-export const searchAlbums = async (con: Client, req: AlbumSearchRequest) => {
+export const searchAlbums = async (con: PoolClient, req: AlbumSearchRequest) => {
 	const res = await con.query(
 		`SELECT
 			a.name AS name,
@@ -338,7 +338,7 @@ export const searchAlbums = async (con: Client, req: AlbumSearchRequest) => {
 	}));
 }
 
-export const searchAlbumsCount = async (con: Client, req: AlbumSearchRequest) => {
+export const searchAlbumsCount = async (con: PoolClient, req: AlbumSearchRequest) => {
 	const res = await con.query(
 		`SELECT
 			count(*)
@@ -359,13 +359,13 @@ export const searchAlbumsCount = async (con: Client, req: AlbumSearchRequest) =>
 	return res.rows[0].count as number;
 }
 
-interface BandSearchRequest {
+export interface BandSearchRequest {
 	name: string,
 	numberOfResults: number,
 	page: number
 }
 
-export const searchBands = async (con: Client, req: BandSearchRequest) => {
+export const searchBands = async (con: PoolClient, req: BandSearchRequest) => {
 	const res = await con.query(
 		`SELECT
 			b.partialUrl AS partialUrl,
@@ -385,7 +385,7 @@ export const searchBands = async (con: Client, req: BandSearchRequest) => {
 	return res.rows.map(parseBandFromRow);
 }
 
-export const searchBandsCount = async (con: Client, req: BandSearchRequest) => {
+export const searchBandsCount = async (con: PoolClient, req: BandSearchRequest) => {
 	const res = await con.query(
 		`SELECT count(*) as count
 		FROM bands b 
