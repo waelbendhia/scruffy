@@ -12,6 +12,7 @@ import { PoolClient } from 'pg';
 import { Band } from '../band';
 import { Album, parseFromRow } from './types';
 import { getPhotoUrl } from './scraping';
+import http from 'http';
 
 const SORT_BY_RATING = 0,
   SORT_BY_DATE = 1,
@@ -53,24 +54,36 @@ const createTable = (con: PoolClient) => con.query(createAlbumsQuery);
 
 
 const insert = (con: PoolClient, band: Band, album: Album) =>
-  con.query(
-    'INSERT INTO albums (name, year, rating, band) VALUES ($1, $2, $3, $4)',
-    [album.name, album.year, album.rating, band.url]
+  (
+    con.query(
+      `INSERT INTO
+      albums (name, year, rating, band)
+      VALUES ($1,   $2,   $3,     $4)
+    ON CONFLICT DO NOTHING;`,
+      [album.name, album.year, album.rating, band.url]
+    )
   );
 
-const insertPhotoUrl = async (con: PoolClient, album: Album) =>
-  await con.query(
-    'UPDATE albums SET imageUrl = $1 WHERE name = $2 and band = $3',
-    [
-      await getPhotoUrl(album),
-      album.name,
-      album.band ? album.band.url : ''
-    ]
-  );
+const insertPhotoUrl =
+  async (
+    con: PoolClient,
+    album: Album,
+    timeout: number,
+    pool: http.Agent,
+  ) =>
+    await con.query(
+      'UPDATE albums SET imageUrl = $1 WHERE name = $2 and band = $3',
+      [
+        await getPhotoUrl(album, timeout, pool),
+        album.name,
+        album.band ? album.band.url : ''
+      ]
+    );
 
-const updateEmptyPhotos = async (con: PoolClient) => {
-  const res = await con.query(
-    `SELECT
+const updateEmptyPhotos =
+  async (con: PoolClient, timeout: number, pool: http.Agent) => {
+    const res = await con.query(
+      `SELECT
         a.name AS name,
         a.year AS year,
         a.rating AS rating,
@@ -78,18 +91,18 @@ const updateEmptyPhotos = async (con: PoolClient) => {
         b.name AS bandName
       FROM albums a INNER JOIN bands b ON a.band = b.partialUrl
       WHERE a.imageUrl = '' OR a.imageUrl IS NULL;`
-  ),
-    albums: Album[] = res.rows.map(
-      r => ({
-        ...parseFromRow(r),
-        band: {
-          name: r.bandName,
-          url: r.bandUrl
-        }
-      })
-    );
-  await Promise.all(albums.map(a => insertPhotoUrl(con, a)));
-};
+    ),
+      albums: Album[] = res.rows.map(
+        r => ({
+          ...parseFromRow(r),
+          band: {
+            name: r.bandName,
+            url: r.bandUrl
+          }
+        })
+      );
+    await Promise.all(albums.map(a => insertPhotoUrl(con, a, timeout, pool)));
+  };
 
 const find = (con: PoolClient, band: Band) =>
   con.query(

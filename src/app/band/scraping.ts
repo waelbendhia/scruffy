@@ -7,6 +7,8 @@ export {
 import request from 'request-promise-native';
 import { Band } from './types';
 import { Album, findInBody } from '../album';
+import cheerio from 'cheerio';
+import http from 'http';
 
 const
   headers = { 'User-Agent': 'request' },
@@ -20,47 +22,65 @@ const
 const getFromBandsPage =
   async (
     uri: string,
+    timeout: number,
+    pool: http.Agent,
     selectionFunction: (_: CheerioStatic) => string[]
   ) => {
-    const
-      $ = await request({
-        uri, headers, transform: (body) => cheerio.load(body)
-      }) as CheerioStatic,
-      bandElements = selectionFunction($);
+    try {
+      const
+        $ = await request({
+          uri,
+          headers,
+          timeout,
+          pool,
+          transform: (body) => cheerio.load(body)
+        }) as CheerioStatic,
+        bandElements = selectionFunction($);
 
-    return bandElements.reduce(
-      (p, elem) => {
-        let bandUrl = $(elem).attr('href').substring(3);
-        if (bandUrl.indexOf('#') !== -1) {
-          bandUrl = bandUrl.substring(0, bandUrl.indexOf('#'));
-        }
-        return {
-          ...p,
-          [bandUrl]: { name: $(elem).text().trim() }
-        };
-      },
-      {}
-    ) as { [url: string]: { name: string } };
+      return bandElements.reduce(
+        (p, elem) => {
+          let bandUrl = $(elem).attr('href').substring(3);
+          if (bandUrl.indexOf('#') !== -1) {
+            bandUrl = bandUrl.substring(0, bandUrl.indexOf('#'));
+          }
+          return {
+            ...p,
+            [bandUrl]: { name: $(elem).text().trim() }
+          };
+        },
+        {}
+      ) as { [url: string]: { name: string } };
+    } catch (e) {
+      console.log(`Failed to get bands from '${uri}'.`);
+      // TODO: Handle this
+      return {};
+    }
   };
 
 
-const getRock = () =>
+const getRock = (timeout: number, pool: http.Agent) =>
   getFromBandsPage(
     'http://scaruffi.com/music/groups.html',
+    timeout,
+    pool,
     $ => $('table:nth-of-type(3) a').get()
   );
 
 
-const getJazz = () =>
+const getJazz = (timeout: number, pool: http.Agent) =>
   getFromBandsPage(
     'http://scaruffi.com/jazz/musician.html',
+    timeout,
+    pool,
     $ => $('[width="400"] a').get()
   );
 
 
-const getFromVolume = (volume: number) =>
+const getFromVolume = (volume: number, timeout: number, pool: http.Agent) =>
   getFromBandsPage(
     'http://scaruffi.com/vol' + volume,
+    timeout,
+    pool,
     $ => {
       let elems: string[] = [];
       $('select')
@@ -83,22 +103,23 @@ const getFromVolume = (volume: number) =>
       return elems;
     });
 
-const getAllBands = async () => {
+const getAllBands = async (timeout: number, pool: http.Agent) => {
   const bands = {
-    ...await getJazz(),
-    ...await getRock(),
-    ...await getFromVolume(1),
-    ...await getFromVolume(2),
-    ...await getFromVolume(3),
-    ...await getFromVolume(4),
-    ...await getFromVolume(5),
-    ...await getFromVolume(6),
-    ...await getFromVolume(7),
-    ...await getFromVolume(8),
-    ...await getFromVolume(9)
+    ...await getJazz(timeout, pool),
+    ...await getRock(timeout, pool),
+    ...await getFromVolume(1, timeout, pool),
+    ...await getFromVolume(2, timeout, pool),
+    ...await getFromVolume(3, timeout, pool),
+    ...await getFromVolume(4, timeout, pool),
+    ...await getFromVolume(5, timeout, pool),
+    ...await getFromVolume(6, timeout, pool),
+    ...await getFromVolume(7, timeout, pool),
+    ...await getFromVolume(8, timeout, pool),
+    ...await getFromVolume(9, timeout, pool),
   };
   return Object.keys(bands)
-    .map(url => ({ url, name: bands[url].name }));
+    .map(url => ({ url, name: bands[url].name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 };
 
 
@@ -134,7 +155,7 @@ const getBioFromBody = ($: CheerioStatic) => {
         bio += childNode.name === 'br' ?
           '\n' :
           (childNode.name === 'p' ? '\n\n\n' : ' ')
-          + $(childNode).text().trim().replace(/\n/g, ' ');
+          + ($(childNode).text() || '').trim().replace(/\n/g, ' ');
       }
     }
   }
@@ -146,7 +167,7 @@ const getRelatedBandsFromBody = ($: CheerioStatic, band: Band) => {
     extractRelatedBandFromElement = (relatedBandElement: CheerioElement) => {
       const relatedBand = {
         name: $(relatedBandElement).text(),
-        url: $(relatedBandElement).attr('href').replace('../', '')
+        url: ($(relatedBandElement).attr('href') || '').replace('../', '')
       };
 
       if (!relatedBand.name || !relatedBand.url) { return null; }
@@ -178,29 +199,36 @@ const getRelatedBandsFromBody = ($: CheerioStatic, band: Band) => {
     .filter(b => !!b) as Band[];
 };
 
-const getInfo = async (band: Band): Promise<Band> => {
+const getInfo = async (
+  band: Band,
+  timeout: number,
+  pool: http.Agent,
+): Promise<Band> => {
   const $ = await request({
     uri: `http://scaruffi.com/${band.url}`,
-    timeout: 30000,
+    timeout,
+    pool,
     headers,
     transform: (body) => cheerio.load(body)
   }) as CheerioStatic;
   return {
     name: getNameFromBody($),
-    bio: getBioFromBody($),
+    bio: getBioFromBody($).trim(),
     albums: findInBody($),
     relatedBands: getRelatedBandsFromBody($, band),
     url: band.url,
   };
 };
 
-const getPhotoUrl = async (band: Band) => {
+const getPhotoUrl = async (band: Band, timeout: number, pool: http.Agent, ) => {
   const json = await request({
     url:
       'http://ws.audioscrobbler.com/2.0/?method=artist.getinfo'
       + '&artist=' + band.name
       + '&api_key=' + lastfm_api_key
       + '&format=json',
+    timeout,
+    pool,
     json: true
   });
   return !!json.artist

@@ -13,6 +13,7 @@ import { PoolClient } from 'pg';
 import * as Album from '../album';
 import { parseFromRow, Band } from './types';
 import { getPhotoUrl } from './scraping';
+import http from 'http';
 
 const
   createBandsQuery =
@@ -41,51 +42,60 @@ const createTables = (con: PoolClient) =>
 
 const insertPartial = (con: PoolClient, band: Band) =>
   con.query(
-    'INSERT INTO bands (partialUrl, name, bio) VALUES ($1, $2, $3);',
+    `INSERT INTO
+      bands  (partialUrl, name, bio)
+      VALUES ($1,         $2,   $3)
+    ON CONFLICT DO NOTHING;`,
     [band.url, band.name, band.bio],
   );
 
 const insertRelation = (con: PoolClient, band: Band, related: Band) =>
   con.query(
-    'INSERT INT bands2bands (urlOfBand, urlOfRelated) VALUES ($1, $@)',
+    `INSERT INTO
+      bands2bands (urlOfBand, urlOfRelated)
+      VALUES      ($1,        $2)
+    ON CONFLICT DO NOTHING;`,
     [band.url, related.url]
   );
 
 const insertOrUpdateFull = async (con: PoolClient, band: Band) => {
-  if (band.name === 'ERROR' || !band.name || !band.bio) {
-    throw new Error(`${band.url} was not scraped successfully`);
-  }
-
   await insertPartial(con, band);
   await con.query(
     'UPDATE bands SET name = $1, bio = $2 WHERE partialURl = $3',
     [band.name, band.bio, band.url]
   );
-
-  for (const album of band.albums || []) {
-    await Album.insert(con, band, album);
-  }
-
-  for (const other of band.relatedBands || []) {
-    await insertPartial(con, other);
-    await insertRelation(con, band, other);
-  }
+  await Promise.all([
+    ...(band.albums || []).map(async a => {
+      await Album.insert(con, band, a);
+      return;
+    }),
+    ...(band.relatedBands || []).map(
+      async b => {
+        await insertPartial(con, b);
+        await insertRelation(con, b, band);
+        return;
+      }
+    ),
+  ]);
+  return;
 };
 
-const updatePhotoUrl = async (con: PoolClient, band: Band) =>
-  await con.query(
-    'UPDATE bands SET imageUrl = $1 WHERE partialUrl = $2;',
-    [await getPhotoUrl(band), band.url]
-  );
+const updatePhotoUrl =
+  async (con: PoolClient, band: Band, timeout: number, pool: http.Agent) =>
+    await con.query(
+      'UPDATE bands SET imageUrl = $1 WHERE partialUrl = $2;',
+      [await getPhotoUrl(band, timeout, pool), band.url]
+    );
 
-const updateEmptyPhotos = async (con: PoolClient) => {
-  const { rows } = await con.query(
-    `SELECT * FROM bands WHERE imageUrl = '' OR imageUrl IS NULL;`
-  );
-  await Promise.all(
-    rows.map(parseFromRow).map(b => updatePhotoUrl(con, b)),
-  );
-};
+const updateEmptyPhotos =
+  async (con: PoolClient, timeout: number, pool: http.Agent) => {
+    const { rows } = await con.query(
+      `SELECT * FROM bands WHERE imageUrl = '' OR imageUrl IS NULL;`
+    );
+    await Promise.all(
+      rows.map(parseFromRow).map(b => updatePhotoUrl(con, b, timeout, pool)),
+    );
+  };
 
 const getRelatedBands = (con: PoolClient, band: Band) =>
   con.query(
@@ -149,9 +159,9 @@ const searchRows = (con: PoolClient, req: SearchRequest) =>
           b.imageUrl AS imageUrl
         FROM bands b
         WHERE
-          instr(lower(b.name), lower($1)
+          lower(b.name) LIKE '%'||lower($1)||'%'
         ORDER BY b.name
-        LIMIT $2 OFFSET $4;`,
+        LIMIT $2 OFFSET $3;`,
     [
       req.name,
       req.numberOfResults,
@@ -165,7 +175,7 @@ const searchCount =
     con.query(
       `SELECT count(*) as count
         FROM bands b
-        WHERE instr(lower(b.name), lower($1);`,
+        WHERE lower(b.name) LIKE '%'||lower($1)||'%';`,
       [req.name]
     ).then(({ rows }) => parseInt(rows[0].count, 10));
 

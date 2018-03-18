@@ -18,10 +18,10 @@ interface Band {
 const parseFromRow = (row: any): Band =>
   ({
     name: row.name,
-    url: row.partialUrl,
+    url: row.partialurl,
     bio: row.bio,
     imageUrl: row.imageUrl,
-    fullUrl: `http://scaruffi.com/${row.partialUrl}`,
+    fullUrl: `http://scaruffi.com/${row.partialurl}`,
     albums: [],
     relatedBands: []
   });

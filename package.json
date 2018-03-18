@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "npm run serve",
+    "scrape": "npm run build && node dist/scrape.js",
     "build": "npm run build-ts",
     "serve": "node dist/server.js",
     "watch-node": "nodemon dist/server.js",
