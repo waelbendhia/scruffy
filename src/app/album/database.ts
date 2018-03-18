@@ -57,9 +57,9 @@ const insert = (con: PoolClient, band: Band, album: Album) =>
   (
     con.query(
       `INSERT INTO
-      albums (name, year, rating, band)
-      VALUES ($1,   $2,   $3,     $4)
-    ON CONFLICT DO NOTHING;`,
+        albums (name, year, rating, band)
+        VALUES ($1,   $2,   $3,     $4)
+      ON CONFLICT DO NOTHING;`,
       [album.name, album.year, album.rating, band.url]
     )
   );
@@ -116,9 +116,9 @@ const getRatingDistribution =
   (con: PoolClient): Promise<{ [rating: string]: number }> =>
     con.query(
       `SELECT
-			floor(albums.rating*2)/2 as rating,
-			count(*) as count
-		FROM albums GROUP BY floor(albums.rating*2)/2;`
+        floor(albums.rating*2)/2 as rating,
+        count(*) as count
+      FROM albums GROUP BY floor(albums.rating*2)/2;`
     ).then(({ rows }) =>
       rows.reduce(
         (p, { ratings, count }: { ratings: number, count: number }) => ({
@@ -146,32 +146,32 @@ const searchRows =
   (con: PoolClient, req: SearchRequest) =>
     con.query(
       `SELECT
-			a.name AS name,
-			a.imageUrl AS imageUrl,
-			a.year AS year,
-			a.rating AS rating,
-			b.name AS bandname,
-			b.partialUrl AS bandurl
-		FROM albums a INNER JOIN bands b ON b.partialUrl = a.band
-		WHERE
-			a.rating BETWEEN $1 AND $2 AND
-			(a.year BETWEEN $3 AND $4 OR a.year = 0 AND $5) AND
-      ( $6 = '' OR
-        instr(lower(a.name), lower($6))
-        OR instr(lower(b.name), lower($6))
-      )
-		ORDER BY
-				CASE $7
-					WHEN 'a.rating' THEN a.rating
-					WHEN 'a.year'   THEN a.year
-					WHEN 'a.name'   THEN a.name
-					WHEN 'b.name'   THEN b.name
-				END
-				CASE WHEN $8
-					THEN ASC
-					ELSE DESC
-				END
-			LIMIT $9 OFFSET $10;`,
+        a.name AS name,
+        a.imageUrl AS imageUrl,
+        a.year AS year,
+        a.rating AS rating,
+        b.name AS bandname,
+        b.partialUrl AS bandurl
+      FROM albums a INNER JOIN bands b ON b.partialUrl = a.band
+      WHERE
+        a.rating BETWEEN $1 AND $2 AND
+        (a.year BETWEEN $3 AND $4 OR a.year = 0 AND $5) AND
+        ( $6 = '' OR
+          instr(lower(a.name), lower($6))
+          OR instr(lower(b.name), lower($6))
+        )
+      ORDER BY
+          CASE $7
+            WHEN 'a.rating' THEN a.rating
+            WHEN 'a.year'   THEN a.year
+            WHEN 'a.name'   THEN a.name
+            WHEN 'b.name'   THEN b.name
+          END
+          CASE WHEN $8
+            THEN ASC
+            ELSE DESC
+          END
+      LIMIT $9 OFFSET $10;`,
       [
         req.ratingLower,
         req.ratingHigher,
@@ -185,14 +185,18 @@ const searchRows =
         req.page * req.numberOfResults,
       ]
     )
-      .then(({ rows }) => rows.map(r => ({
-        ...parseFromRow(r),
-        band: {
-          name: r.bandname,
-          url: r.bandurl,
-          fullurl: `http://scaruffi.com/${r.bandurl}`
-        }
-      })));
+      .then(
+        ({ rows }) => rows.map(
+          r => ({
+            ...parseFromRow(r),
+            band: {
+              name: r.bandname,
+              url: r.bandurl,
+              fullurl: `http://scaruffi.com/${r.bandurl}`
+            }
+          })
+        )
+      );
 
 
 const searchCount =
