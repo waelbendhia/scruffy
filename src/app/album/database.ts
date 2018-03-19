@@ -30,12 +30,10 @@ const getSortByAsString =
         return albumSymbol + '.rating';
       case SORT_BY_DATE:
         return albumSymbol + '.year';
-      case SORT_BY_ALBUM_NAME:
-        return albumSymbol + '.name';
       case SORT_BY_BANDNAME:
         return bandSymbol + '.name';
       default:
-        return 'DEFAULT';
+        return albumSymbol + '.name';
     }
   };
 
@@ -121,9 +119,9 @@ const getRatingDistribution =
       FROM albums GROUP BY floor(albums.rating*2)/2;`
     ).then(({ rows }) =>
       rows.reduce(
-        (p, { ratings, count }: { ratings: number, count: number }) => ({
+        (p, { rating, count }: { rating: number, count: number }) => ({
           ...p,
-          [ratings.toFixed(1)]: count
+          [rating.toFixed(1)]: count
         })
         , {}
       )
@@ -155,23 +153,16 @@ const searchRows =
       FROM albums a INNER JOIN bands b ON b.partialUrl = a.band
       WHERE
         a.rating BETWEEN $1 AND $2 AND
-        (a.year BETWEEN $3 AND $4 OR a.year = 0 AND $5) AND
-        ( $6 = '' OR
-          instr(lower(a.name), lower($6))
-          OR instr(lower(b.name), lower($6))
+        (a.year BETWEEN $3 AND $4 OR (a.year = 0 AND $5)) AND
+        (
+          $6 = '' OR
+          lower(a.name) LIKE '%'||lower($6)||'%' OR
+          lower(b.name) LIKE '%'||lower($6)||'%'
         )
       ORDER BY
-          CASE $7
-            WHEN 'a.rating' THEN a.rating
-            WHEN 'a.year'   THEN a.year
-            WHEN 'a.name'   THEN a.name
-            WHEN 'b.name'   THEN b.name
-          END
-          CASE WHEN $8
-            THEN ASC
-            ELSE DESC
-          END
-      LIMIT $9 OFFSET $10;`,
+          ${getSortByAsString(req.sortBy, 'a', 'b')}
+          ${req.sortOrderAsc ? 'ASC' : 'DESC'}
+      LIMIT $7 OFFSET $8;`,
       [
         req.ratingLower,
         req.ratingHigher,
@@ -179,8 +170,6 @@ const searchRows =
         req.yearHigher,
         req.includeUnknown,
         req.name,
-        getSortByAsString(req.sortBy, 'a', 'b'),
-        req.sortOrderAsc,
         req.numberOfResults,
         req.page * req.numberOfResults,
       ]
@@ -207,12 +196,12 @@ const searchCount =
         FROM albums a INNER JOIN bands b ON b.partialUrl = a.band
         WHERE
           a.rating BETWEEN $1 AND $2 AND
-          (a.year BETWEEN $3 AND $4 OR a.year = 0 AND $5) AND
+          (a.year BETWEEN $3 AND $4 OR (a.year = 0 AND $5)) AND
           (
             $6 = '' OR
-            instr(lower(a.name), lower($6)
-          ) OR
-          instr(lower(b.name), lower($6)));`,
+            lower(a.name) LIKE '%'||lower($6)||'%' OR
+            lower(b.name) LIKE '%'||lower($6)||'%'
+          );`,
       [
         req.ratingLower,
         req.ratingHigher,

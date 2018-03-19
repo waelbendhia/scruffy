@@ -140,10 +140,18 @@ const getMostInfluential = (con: PoolClient) =>
         FROM bands b
           INNER JOIN bands2bands b2b
           ON b.partialUrl = b2b.urlOfRelated
-        GROUP BY b2b.urlOfRelated
+        GROUP BY b.partialUrl
         ORDER BY inf DESC LIMIT 21;`
   )
-    .then(({ rows }) => rows.map(parseFromRow));
+    .then(
+      ({ rows }) => rows
+        .map(
+          row => ({
+            ...parseFromRow(row),
+            influence: row.inf as number,
+          })
+        )
+    );
 
 interface SearchRequest {
   name: string;

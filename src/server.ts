@@ -8,7 +8,7 @@ import {
   Band,
   resetDatabase,
   updateDatabase,
-  setupRouting
+  router
 } from './app';
 
 
@@ -29,15 +29,16 @@ const pool = new Pool({
 });
 
 
-setupRouting(
-  express()
-    .use(bodyParser.json())
-    .use(morgan('combined')),
-  () => pool.connect(),
-  '/home/wael/node/Scaruffi2.0Node/Scaruffi2.0',
-).listen(
-  port,
-  ip,
-  () => console.log('Listening on ' + ip + ', port ' + port)
-);
+express()
+  .use(bodyParser.json())
+  .use(morgan('combined'))
+  .use('/', router(
+    () => pool.connect(),
+    '/home/wael/node/Scaruffi2.0Node/Scaruffi2.0',
+  ))
+  .listen(
+    port,
+    ip,
+    () => console.log('Listening on ' + ip + ', port ' + port)
+  );
 

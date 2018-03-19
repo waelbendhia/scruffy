@@ -1,9 +1,11 @@
 export {
   Band,
-  parseFromRow
+  parseFromRow,
+  parseBandSearchRequest
 };
 
 import { Album } from '../album';
+import { SearchRequest } from './database';
 
 interface Band {
   url: string;
@@ -24,4 +26,9 @@ const parseFromRow = (row: any): Band =>
     fullUrl: `http://scaruffi.com/${row.partialurl}`,
     albums: [],
     relatedBands: []
+  }),
+  parseBandSearchRequest = (b: any): SearchRequest => ({
+    name: b.name || '',
+    page: parseInt(b.page, 10) || 0,
+    numberOfResults: parseInt(b.numberOfResults, 10) || 10
   });
