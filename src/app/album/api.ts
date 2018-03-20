@@ -3,7 +3,7 @@ export { router };
 import express from 'express';
 import { makeDBConMiddleware } from '../shared';
 import { PoolClient } from 'pg';
-import { search, getRatingDistribution } from './database';
+import { search, getRatingDistribution, getCount } from './database';
 import { parseAlbumSearchRequest } from './types';
 
 const router = (getDBCon: () => Promise<PoolClient>) =>
@@ -19,6 +19,17 @@ const router = (getDBCon: () => Promise<PoolClient>) =>
               parseAlbumSearchRequest(req.query),
             )
           );
+        } catch (e) {
+          console.log(e);
+          res.status(500);
+        }
+      }
+    )
+    .get(
+      '/total',
+      async (_, res) => {
+        try {
+          res.json(await getCount(res.locals.con as PoolClient));
         } catch (e) {
           console.log(e);
           res.status(500);

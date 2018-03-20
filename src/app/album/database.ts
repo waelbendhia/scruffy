@@ -5,7 +5,8 @@ export {
   updateEmptyPhotos,
   SearchRequest,
   getRatingDistribution,
-  search
+  search,
+  getCount,
 };
 
 import { PoolClient } from 'pg';
@@ -120,9 +121,9 @@ const getRatingDistribution =
       FROM albums GROUP BY floor(albums.rating*2)/2;`
     ).then(({ rows }) =>
       rows.reduce(
-        (p, { rating, count }: { rating: number, count: number }) => ({
+        (p, { rating, count }: { rating: number, count: string }) => ({
           ...p,
-          [rating.toFixed(1)]: count
+          [rating.toFixed(1)]: parseInt(count, 10)
         })
         , {}
       )
@@ -217,3 +218,8 @@ const search = async (con: PoolClient, req: SearchRequest) => ({
   count: await searchCount(con, req),
   result: await searchRows(con, req)
 });
+
+const getCount = (con: PoolClient) =>
+  con.query(`SELECT count(*) AS count FROM albums;`)
+    .then(({ rows }) => parseInt(rows[0].count, 10));
+
