@@ -1,6 +1,7 @@
 export {
   findInBody,
   getPhotoUrl,
+  getAllDatesFromScaruffiTopLists
 };
 
 import { Album } from './types';

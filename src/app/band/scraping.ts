@@ -6,18 +6,13 @@ export {
 
 import request from 'request-promise-native';
 import { Band } from './types';
-import { Album, findInBody } from '../album';
+import { findInBody } from '../album';
 import cheerio from 'cheerio';
 import http from 'http';
 
 const
   headers = { 'User-Agent': 'request' },
-  lastfm_api_key = process.env.LASTFM_API_KEY,
-  withDefault =
-    <T>(res: RegExpMatchArray | null, def: T) =>
-      !!res
-        && res.length > 0
-        ? res[0] : def;
+  lastfm_api_key = process.env.LASTFM_API_KEY;
 
 const getFromBandsPage =
   async (
@@ -85,7 +80,7 @@ const getFromVolume = (volume: number, timeout: number, pool: http.Agent) =>
       let elems: string[] = [];
       $('select')
         .each(
-          (i, elem) =>
+          (_, elem) =>
             elems = [...elems, ...$(elem).children('option').slice(1).get()]
         );
       elems.forEach(entry => {

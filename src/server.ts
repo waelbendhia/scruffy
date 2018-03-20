@@ -1,15 +1,8 @@
 import express from 'express';
 import morgan from 'morgan';
 import bodyParser from 'body-parser';
-import path from 'path';
 import { Pool } from 'pg';
-import {
-  Album,
-  Band,
-  resetDatabase,
-  updateDatabase,
-  router
-} from './app';
+import { router } from './app';
 
 
 const port =

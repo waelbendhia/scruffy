@@ -32,6 +32,7 @@ const getSortByAsString =
         return albumSymbol + '.year';
       case SORT_BY_BANDNAME:
         return bandSymbol + '.name';
+      case SORT_BY_ALBUM_NAME:
       default:
         return albumSymbol + '.name';
     }

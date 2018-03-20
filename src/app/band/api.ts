@@ -26,7 +26,7 @@ const router = (getDBCon: () => Promise<PoolClient>) =>
     )
     .get(
       '/influential',
-      async (req, res) => {
+      async (_, res) => {
         try {
           res.json(await getMostInfluential(res.locals.con as PoolClient));
         } catch (e) {
@@ -37,7 +37,7 @@ const router = (getDBCon: () => Promise<PoolClient>) =>
     )
     .get(
       '/total',
-      async (req, res) => {
+      async (_, res) => {
         try {
           res.json(await getCount(res.locals.con as PoolClient));
         } catch (e) {

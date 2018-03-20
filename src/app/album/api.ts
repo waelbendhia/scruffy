@@ -27,7 +27,7 @@ const router = (getDBCon: () => Promise<PoolClient>) =>
     )
     .get(
       '/distribution',
-      async (req, res) => {
+      async (_, res) => {
         try {
           res.json(
             await getRatingDistribution(res.locals.con as PoolClient)

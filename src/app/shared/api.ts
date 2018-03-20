@@ -6,7 +6,7 @@ import { Request, Response, NextFunction } from 'express';
 
 const makeDBConMiddleware =
   (getDBCon: () => Promise<PoolClient>) =>
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (_: Request, res: Response, next: NextFunction) => {
       const con = await getDBCon();
       res.locals.con = con;
       next();

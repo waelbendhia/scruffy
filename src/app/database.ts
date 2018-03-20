@@ -2,7 +2,7 @@ export {
   updateDatabase,
   resetDatabase,
 };
-import pg, { PoolClient, Query } from 'pg';
+import { PoolClient } from 'pg';
 import * as Album from './album';
 import * as Band from './band';
 import http from 'http';

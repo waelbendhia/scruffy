@@ -4,12 +4,11 @@ import * as Band from './band';
 import * as Album from './album';
 import path from 'path';
 import { PoolClient } from 'pg';
-import { Pool } from 'mysql';
 
 
 const api = (getDBCon: () => Promise<PoolClient>) =>
   express.Router()
-    .use(async (req, res, next) => {
+    .use(async (_, res, next) => {
       const con = await getDBCon();
       res.locals.con = con;
       next();
@@ -20,7 +19,7 @@ const api = (getDBCon: () => Promise<PoolClient>) =>
 
 const staticRoutes = (publicDirectory: string) =>
   express.Router()
-    .get('/', (req, res) =>
+    .get('/', (_, res) =>
       res.sendFile(path.join(publicDirectory, '/index.html'))
     )
     .get('/:page', (req, res) =>
