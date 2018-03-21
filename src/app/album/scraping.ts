@@ -37,7 +37,7 @@ const findInBody = ($: CheerioStatic): Album[] => {
       str => ({
         name: withDefault(str.match(albumNamePattern), '').trim(),
         year: parseInt(withDefault(str.match(yearPattern), '0'), 10),
-        rating: parseInt(withDefault(str.match(ratingPattern), '0'), 10),
+        rating: parseFloat(withDefault(str.match(ratingPattern), '0')),
         imageUrl: '',
       })
     );

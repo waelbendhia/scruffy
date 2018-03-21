@@ -30,5 +30,5 @@ const parseFromRow = (row: any): Band =>
   parseBandSearchRequest = (b: any): SearchRequest => ({
     name: b.name || '',
     page: parseInt(b.page, 10) || 0,
-    numberOfResults: parseInt(b.numberOfResults, 10) || 10
+    numberOfResults: Math.min(parseInt(b.numberOfResults, 10) || 10, 50)
   });
