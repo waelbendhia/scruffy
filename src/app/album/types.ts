@@ -27,11 +27,8 @@ const parseFromRow = (row: any): Album =>
     ratingHigher: parseFloat(b.ratingHigher) || 10,
     yearLower: parseInt(b.yearLower, 10) || 0,
     yearHigher: parseInt(b.yearHigher, 10) || 10000,
-    includeUnknown: !!b.includeUnknown,
-    sortBy: parseInt(b.sortBy, 10) || 10000,
-    sortOrderAsc:
-      typeof b.sortOrderAsc === 'undefined'
-        ? true
-        : !!b.sortOrderAsc,
+    includeUnknown: b.includeUnknown === 'true',
+    sortBy: b.sortBy,
+    sortOrderAsc: b.sortOrderAsc === 'true',
     ...parseBandSearchRequest(b)
   });

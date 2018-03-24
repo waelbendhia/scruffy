@@ -16,10 +16,10 @@ import { getPhotoUrl } from './scraping';
 import http from 'http';
 
 enum SortBy {
-  SORT_BY_RATING = 0,
-  SORT_BY_DATE = 1,
-  SORT_BY_ALBUM_NAME = 2,
-  SORT_BY_BANDNAME = 3,
+  RATING = 'rating',
+  DATE = 'date',
+  ALBUM_NAME = 'albumName',
+  BAND_NAME = 'bandName',
 }
 
 const getSortByAsString =
@@ -29,13 +29,13 @@ const getSortByAsString =
     bandSymbol: string,
   ) => {
     switch (sortBy) {
-      case SortBy.SORT_BY_RATING:
+      case SortBy.RATING:
         return albumSymbol + '.rating';
-      case SortBy.SORT_BY_DATE:
+      case SortBy.DATE:
         return albumSymbol + '.year';
-      case SortBy.SORT_BY_BANDNAME:
+      case SortBy.BAND_NAME:
         return bandSymbol + '.name';
-      case SortBy.SORT_BY_ALBUM_NAME:
+      case SortBy.ALBUM_NAME:
       default:
         return albumSymbol + '.name';
     }
@@ -157,7 +157,7 @@ const searchRows =
       FROM albums a INNER JOIN bands b ON b.partialUrl = a.band
       WHERE
         a.rating BETWEEN $1 AND $2 AND
-        (a.year BETWEEN $3 AND $4 OR (a.year = 0 AND $5)) AND
+        (a.year BETWEEN $3 AND $4 AND a.year != 0 OR (a.year = 0 AND $5)) AND
         (
           $6 = '' OR
           lower(a.name) ~ lower($6) OR
@@ -200,7 +200,7 @@ const searchCount =
         FROM albums a INNER JOIN bands b ON b.partialUrl = a.band
         WHERE
           a.rating BETWEEN $1 AND $2 AND
-          (a.year BETWEEN $3 AND $4 OR (a.year = 0 AND $5)) AND
+          (a.year BETWEEN $3 AND $4 AND a.year != 0 OR (a.year = 0 AND $5)) AND
           (
             $6 = '' OR
             lower(a.name) ~ lower($6) OR
