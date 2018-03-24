@@ -15,25 +15,27 @@ import { Album, parseFromRow } from './types';
 import { getPhotoUrl } from './scraping';
 import http from 'http';
 
-const SORT_BY_RATING = 0,
+enum SortBy {
+  SORT_BY_RATING = 0,
   SORT_BY_DATE = 1,
   SORT_BY_ALBUM_NAME = 2,
-  SORT_BY_BANDNAME = 3;
+  SORT_BY_BANDNAME = 3,
+}
 
 const getSortByAsString =
   (
-    sortBy: number,
+    sortBy: SortBy,
     albumSymbol: string,
     bandSymbol: string,
   ) => {
     switch (sortBy) {
-      case SORT_BY_RATING:
+      case SortBy.SORT_BY_RATING:
         return albumSymbol + '.rating';
-      case SORT_BY_DATE:
+      case SortBy.SORT_BY_DATE:
         return albumSymbol + '.year';
-      case SORT_BY_BANDNAME:
+      case SortBy.SORT_BY_BANDNAME:
         return bandSymbol + '.name';
-      case SORT_BY_ALBUM_NAME:
+      case SortBy.SORT_BY_ALBUM_NAME:
       default:
         return albumSymbol + '.name';
     }
@@ -136,7 +138,7 @@ interface SearchRequest {
   yearHigher: number;
   includeUnknown: boolean;
   name: string;
-  sortBy: number;
+  sortBy: SortBy;
   sortOrderAsc: boolean;
   page: number;
   numberOfResults: number;
@@ -201,8 +203,8 @@ const searchCount =
           (a.year BETWEEN $3 AND $4 OR (a.year = 0 AND $5)) AND
           (
             $6 = '' OR
-            lower(a.name) lower($6) OR
-            lower(b.name) lower($6)
+            lower(a.name) ~ lower($6) OR
+            lower(b.name) ~ lower($6)
           );`,
       [
         req.ratingLower,
