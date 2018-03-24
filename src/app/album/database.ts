@@ -158,8 +158,8 @@ const searchRows =
         (a.year BETWEEN $3 AND $4 OR (a.year = 0 AND $5)) AND
         (
           $6 = '' OR
-          lower(a.name) LIKE '%'||lower($6)||'%' OR
-          lower(b.name) LIKE '%'||lower($6)||'%'
+          lower(a.name) ~ lower($6) OR
+          lower(b.name) ~ lower($6)
         )
       ORDER BY
           ${getSortByAsString(req.sortBy, 'a', 'b')}
@@ -201,8 +201,8 @@ const searchCount =
           (a.year BETWEEN $3 AND $4 OR (a.year = 0 AND $5)) AND
           (
             $6 = '' OR
-            lower(a.name) LIKE '%'||lower($6)||'%' OR
-            lower(b.name) LIKE '%'||lower($6)||'%'
+            lower(a.name) lower($6) OR
+            lower(b.name) lower($6)
           );`,
       [
         req.ratingLower,

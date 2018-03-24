@@ -167,7 +167,7 @@ const searchRows = (con: PoolClient, req: SearchRequest) =>
           b.imageUrl AS imageUrl
         FROM bands b
         WHERE
-          lower(b.name) LIKE '%'||lower($1)||'%'
+          lower(b.name) ~ lower($1)
         ORDER BY b.name
         LIMIT $2 OFFSET $3;`,
     [
@@ -183,7 +183,7 @@ const searchCount =
     con.query(
       `SELECT count(*) as count
         FROM bands b
-        WHERE lower(b.name) LIKE '%'||lower($1)||'%';`,
+        WHERE lower(b.name) ~ lower($1);`,
       [req.name]
     ).then(({ rows }) => parseInt(rows[0].count, 10));
 
