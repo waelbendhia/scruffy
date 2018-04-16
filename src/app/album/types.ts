@@ -20,7 +20,7 @@ const parseFromRow = (row: any): Album =>
     name: row.name,
     year: row.year,
     rating: row.rating,
-    imageUrl: row.imageUrl
+    imageUrl: row.imageurl,
   }),
   parseAlbumSearchRequest = (b: any): SearchRequest => ({
     ratingLower: parseFloat(b.ratingLower) || 0,

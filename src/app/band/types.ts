@@ -22,7 +22,7 @@ const parseFromRow = (row: any): Band =>
     name: row.name,
     url: row.partialurl,
     bio: row.bio,
-    imageUrl: row.imageUrl,
+    imageUrl: row.imageurl,
     fullUrl: `http://scaruffi.com/${row.partialurl}`,
     albums: [],
     relatedBands: []

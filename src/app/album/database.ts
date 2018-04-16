@@ -98,12 +98,19 @@ const updateEmptyPhotos =
         r => ({
           ...parseFromRow(r),
           band: {
-            name: r.bandName,
-            url: r.bandUrl
+            name: r.bandname,
+            url: r.bandurl
           }
         })
       );
-    await Promise.all(albums.map(a => insertPhotoUrl(con, a, timeout, pool)));
+    await Promise.all(
+      albums
+        .map(
+          a => insertPhotoUrl(con, a, timeout, pool)
+            .then(() => console.log(`Got photo for ${a.name}`))
+            .catch(e => console.log(`Failed photo for ${a.name} with: ${e}`))
+        )
+    );
   };
 
 const find = (con: PoolClient, band: Band) =>

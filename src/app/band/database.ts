@@ -93,7 +93,13 @@ const updateEmptyPhotos =
       `SELECT * FROM bands WHERE imageUrl = '' OR imageUrl IS NULL;`
     );
     await Promise.all(
-      rows.map(parseFromRow).map(b => updatePhotoUrl(con, b, timeout, pool)),
+      rows
+        .map(parseFromRow)
+        .map(
+          b => updatePhotoUrl(con, b, timeout, pool)
+            .then(() => console.log(`Got photo for ${b.name}`))
+            .catch(e => console.log(`Failed photo for ${b.name} with: ${e}`))
+        ),
     );
   };
 
