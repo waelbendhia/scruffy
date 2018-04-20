@@ -4,7 +4,7 @@ export {
   getAllDatesFromScaruffiTopLists
 };
 
-import { Album } from './types';
+import { IAlbum } from './types';
 import request from 'request-promise-native';
 import cheerio from 'cheerio';
 import http from 'http';
@@ -16,7 +16,7 @@ const
     !!res && res.length > 0 ? res[0] : def;
 
 
-const findInBody = ($: CheerioStatic): Album[] => {
+const findInBody = ($: CheerioStatic): IAlbum[] => {
   if ($('table').get().length === 0) {
     return [];
   }
@@ -44,7 +44,7 @@ const findInBody = ($: CheerioStatic): Album[] => {
 };
 
 const getBestAllTimeDates =
-  async (timeout: number, pool: http.Agent): Promise<Album[]> => {
+  async (timeout: number, pool: http.Agent): Promise<IAlbum[]> => {
     const $ = await request({
       uri: 'http://scaruffi.com/music/picbest.html',
       timeout,
@@ -83,7 +83,7 @@ const getBestAllTimeDates =
     );
   };
 
-const scrape = ($: CheerioStatic, elements: string[]): Album[] => {
+const scrape = ($: CheerioStatic, elements: string[]): IAlbum[] => {
   const yearPattern = /[0-9]{4}(?=[)])/,
     bandNamePattern = /.*(?=:)/,
     albumNamePattern = /: .*(?=[(])/;
@@ -166,7 +166,7 @@ const getAllDatesFromScaruffiTopLists =
 
 const getPhotoUrl =
   async (
-    album: Album,
+    album: IAlbum,
     timeout: number,
     pool: http.Agent,
   ): Promise<string> => {

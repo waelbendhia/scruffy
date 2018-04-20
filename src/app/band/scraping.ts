@@ -5,7 +5,7 @@ export {
 };
 
 import request from 'request-promise-native';
-import { Band } from './types';
+import { IBand } from './types';
 import { findInBody } from '../album';
 import cheerio from 'cheerio';
 import http from 'http';
@@ -157,8 +157,8 @@ const getBioFromBody = ($: CheerioStatic) => {
   return bio.trim();
 };
 
-const getRelatedBandsFromBody = ($: CheerioStatic, band: Band) => {
-  const relatedBands: Band[] = [],
+const getRelatedBandsFromBody = ($: CheerioStatic, band: IBand) => {
+  const relatedBands: IBand[] = [],
     extractRelatedBandFromElement = (relatedBandElement: CheerioElement) => {
       const relatedBand = {
         name: $(relatedBandElement).text(),
@@ -191,14 +191,14 @@ const getRelatedBandsFromBody = ($: CheerioStatic, band: Band) => {
         .map(i => extractRelatedBandFromElement($(elem).children('a').get(i)))
   )
     .reduce((p, c) => [...p, ...c], [])
-    .filter(b => !!b) as Band[];
+    .filter(b => !!b) as IBand[];
 };
 
 const getInfo = async (
-  band: Band,
+  band: IBand,
   timeout: number,
   pool: http.Agent,
-): Promise<Band> => {
+): Promise<IBand> => {
   const $ = await request({
     uri: `http://scaruffi.com/${band.url}`,
     timeout,
@@ -215,7 +215,11 @@ const getInfo = async (
   };
 };
 
-const getPhotoUrl = async (band: Band, timeout: number, pool: http.Agent, ) => {
+const getPhotoUrl = async (
+  band: IBand,
+  timeout: number,
+  pool: http.Agent,
+) => {
   const json = await request({
     url:
       'http://ws.audioscrobbler.com/2.0/?method=artist.getinfo'

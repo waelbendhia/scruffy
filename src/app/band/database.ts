@@ -2,7 +2,7 @@ export {
   createTables,
   insertOrUpdateFull,
   updateEmptyPhotos,
-  SearchRequest,
+  ISearchRequest,
   get,
   getCount,
   getMostInfluential,
@@ -11,7 +11,7 @@ export {
 
 import { PoolClient } from 'pg';
 import * as Album from '../album';
-import { parseFromRow, Band } from './types';
+import { parseFromRow, IBand } from './types';
 import { getPhotoUrl } from './scraping';
 import http from 'http';
 
@@ -40,7 +40,7 @@ const createTables = (con: PoolClient) =>
   );
 
 
-const insertPartial = (con: PoolClient, band: Band) =>
+const insertPartial = (con: PoolClient, band: IBand) =>
   con.query(
     `INSERT INTO
       bands  (partialUrl, name, bio)
@@ -49,7 +49,7 @@ const insertPartial = (con: PoolClient, band: Band) =>
     [band.url, band.name, band.bio],
   );
 
-const insertRelation = (con: PoolClient, band: Band, related: Band) =>
+const insertRelation = (con: PoolClient, band: IBand, related: IBand) =>
   con.query(
     `INSERT INTO
       bands2bands (urlOfBand, urlOfRelated)
@@ -58,7 +58,7 @@ const insertRelation = (con: PoolClient, band: Band, related: Band) =>
     [band.url, related.url]
   );
 
-const insertOrUpdateFull = async (con: PoolClient, band: Band) => {
+const insertOrUpdateFull = async (con: PoolClient, band: IBand) => {
   await insertPartial(con, band);
   await con.query(
     'UPDATE bands SET name = $1, bio = $2 WHERE partialURl = $3',
@@ -81,7 +81,7 @@ const insertOrUpdateFull = async (con: PoolClient, band: Band) => {
 };
 
 const updatePhotoUrl =
-  async (con: PoolClient, band: Band, timeout: number, pool: http.Agent) =>
+  async (con: PoolClient, band: IBand, timeout: number, pool: http.Agent) =>
     await con.query(
       'UPDATE bands SET imageUrl = $1 WHERE partialUrl = $2;',
       [await getPhotoUrl(band, timeout, pool), band.url]
@@ -103,7 +103,7 @@ const updateEmptyPhotos =
     );
   };
 
-const getRelatedBands = (con: PoolClient, band: Band) =>
+const getRelatedBands = (con: PoolClient, band: IBand) =>
   con.query(
     `SELECT *
 		FROM bands
@@ -115,7 +115,7 @@ const getRelatedBands = (con: PoolClient, band: Band) =>
     .then(({ rows }) => rows.map(parseFromRow));
 
 const get =
-  async (con: PoolClient, partialUrl: string): Promise<Band | null> => {
+  async (con: PoolClient, partialUrl: string): Promise<IBand | null> => {
     const { rows } = await con.query(
       `SELECT * FROM bands WHERE partialUrl =$1`,
       [partialUrl]
@@ -159,13 +159,13 @@ const getMostInfluential = (con: PoolClient) =>
         )
     );
 
-interface SearchRequest {
+interface ISearchRequest {
   name: string;
   numberOfResults: number;
   page: number;
 }
 
-const searchRows = (con: PoolClient, req: SearchRequest) =>
+const searchRows = (con: PoolClient, req: ISearchRequest) =>
   con.query(
     `SELECT
           b.partialUrl AS partialUrl,
@@ -185,7 +185,7 @@ const searchRows = (con: PoolClient, req: SearchRequest) =>
     .then(({ rows }) => rows.map(parseFromRow));
 
 const searchCount =
-  (con: PoolClient, req: SearchRequest) =>
+  (con: PoolClient, req: ISearchRequest) =>
     con.query(
       `SELECT count(*) as count
         FROM bands b
@@ -194,7 +194,7 @@ const searchCount =
     ).then(({ rows }) => parseInt(rows[0].count, 10));
 
 const search =
-  async (con: PoolClient, req: SearchRequest) => ({
+  async (con: PoolClient, req: ISearchRequest) => ({
     count: await searchCount(con, req),
     result: await searchRows(con, req)
   });

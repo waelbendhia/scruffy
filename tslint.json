@@ -71,6 +71,18 @@
     "no-use-before-declare": true,
     "no-var-keyword": true,
     "object-literal-sort-keys": false,
+    "align": [
+      true,
+      "parameters",
+      "arguments",
+      "statements",
+      "members",
+      "elements"
+    ],
+    "interface-name": [
+      true,
+      "always-prefix"
+    ],
     "one-line": [
       true,
       "check-open-brace",

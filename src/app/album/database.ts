@@ -3,15 +3,15 @@ export {
   insert,
   find,
   updateEmptyPhotos,
-  SearchRequest,
+  ISearchRequest,
   getRatingDistribution,
   search,
   getCount,
 };
 
 import { PoolClient } from 'pg';
-import { Band } from '../band';
-import { Album, parseFromRow } from './types';
+import { IBand } from '../band';
+import { IAlbum, parseFromRow } from './types';
 import { getPhotoUrl } from './scraping';
 import http from 'http';
 
@@ -22,24 +22,23 @@ enum SortBy {
   BAND_NAME = 'bandName',
 }
 
-const getSortByAsString =
-  (
-    sortBy: SortBy,
-    albumSymbol: string,
-    bandSymbol: string,
-  ) => {
-    switch (sortBy) {
-      case SortBy.RATING:
-        return albumSymbol + '.rating';
-      case SortBy.DATE:
-        return albumSymbol + '.year';
-      case SortBy.BAND_NAME:
-        return bandSymbol + '.name';
-      case SortBy.ALBUM_NAME:
-      default:
-        return albumSymbol + '.name';
-    }
-  };
+const getSortByAsString = (
+  sortBy: SortBy,
+  albumSymbol: string,
+  bandSymbol: string,
+) => {
+  switch (sortBy) {
+    case SortBy.RATING:
+      return albumSymbol + '.rating';
+    case SortBy.DATE:
+      return albumSymbol + '.year';
+    case SortBy.BAND_NAME:
+      return bandSymbol + '.name';
+    case SortBy.ALBUM_NAME:
+    default:
+      return albumSymbol + '.name';
+  }
+};
 
 const createAlbumsQuery =
   `CREATE TABLE albums(
@@ -55,7 +54,7 @@ const createAlbumsQuery =
 const createTable = (con: PoolClient) => con.query(createAlbumsQuery);
 
 
-const insert = (con: PoolClient, band: Band, album: Album) =>
+const insert = (con: PoolClient, band: IBand, album: IAlbum) =>
   (
     con.query(
       `INSERT INTO
@@ -69,7 +68,7 @@ const insert = (con: PoolClient, band: Band, album: Album) =>
 const insertPhotoUrl =
   async (
     con: PoolClient,
-    album: Album,
+    album: IAlbum,
     timeout: number,
     pool: http.Agent,
   ) =>
@@ -94,7 +93,7 @@ const updateEmptyPhotos =
       FROM albums a INNER JOIN bands b ON a.band = b.partialUrl
       WHERE a.imageUrl = '' OR a.imageUrl IS NULL;`
     ),
-      albums: Album[] = res.rows.map(
+      albums: IAlbum[] = res.rows.map(
         r => ({
           ...parseFromRow(r),
           band: {
@@ -113,7 +112,7 @@ const updateEmptyPhotos =
     );
   };
 
-const find = (con: PoolClient, band: Band) =>
+const find = (con: PoolClient, band: IBand) =>
   con.query(
     `SELECT * FROM albums where band =$1`,
     [band.url]
@@ -133,12 +132,12 @@ const getRatingDistribution =
         (p, { rating, count }: { rating: number, count: string }) => ({
           ...p,
           [rating.toFixed(1)]: parseInt(count, 10)
-        })
-        , {}
+        }),
+        {},
       )
     );
 
-interface SearchRequest {
+interface ISearchRequest {
   ratingLower: number;
   ratingHigher: number;
   yearLower: number;
@@ -152,7 +151,7 @@ interface SearchRequest {
 }
 
 const searchRows =
-  (con: PoolClient, req: SearchRequest) =>
+  (con: PoolClient, req: ISearchRequest) =>
     con.query(
       `SELECT
         a.name AS name,
@@ -201,7 +200,7 @@ const searchRows =
 
 
 const searchCount =
-  (con: PoolClient, req: SearchRequest) =>
+  (con: PoolClient, req: ISearchRequest) =>
     con.query(
       `SELECT
           count(*)
@@ -224,7 +223,7 @@ const searchCount =
       ]
     ).then(({ rows }) => parseInt(rows[0].count, 10));
 
-const search = async (con: PoolClient, req: SearchRequest) => ({
+const search = async (con: PoolClient, req: ISearchRequest) => ({
   count: await searchCount(con, req),
   result: await searchRows(con, req)
 });

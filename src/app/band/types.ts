@@ -1,23 +1,23 @@
 export {
-  Band,
+  IBand,
   parseFromRow,
   parseBandSearchRequest
 };
 
-import { Album } from '../album';
+import { IAlbum } from '../album';
 import { SearchRequest } from './database';
 
-interface Band {
+interface IBand {
   url: string;
   fullUrl?: string;
   name: string;
   bio?: string;
   imageUrl?: string;
-  relatedBands?: Band[];
-  albums?: Album[];
+  relatedBands?: IBand[];
+  albums?: IAlbum[];
 }
 
-const parseFromRow = (row: any): Band =>
+const parseFromRow = (row: any): IBand =>
   ({
     name: row.name,
     url: row.partialurl,
