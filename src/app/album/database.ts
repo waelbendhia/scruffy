@@ -99,7 +99,7 @@ const updateEmptyPhotos =
           ...parseFromRow(r),
           band: {
             name: r.bandname,
-            url: r.bandurl
+            url: r.bandurl,
           }
         })
       );
@@ -172,7 +172,8 @@ const searchRows =
         )
       ORDER BY
           ${getSortByAsString(req.sortBy, 'a', 'b')}
-          ${req.sortOrderAsc ? 'ASC' : 'DESC'}
+          ${req.sortOrderAsc ? 'ASC' : 'DESC'},
+          a.name
       LIMIT $7 OFFSET $8;`,
       [
         req.ratingLower,
