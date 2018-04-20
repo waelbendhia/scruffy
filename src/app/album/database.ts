@@ -1,14 +1,3 @@
-export {
-  createTable,
-  insert,
-  find,
-  updateEmptyPhotos,
-  ISearchRequest,
-  getRatingDistribution,
-  search,
-  getCount,
-};
-
 import { PoolClient } from 'pg';
 import { IBand } from '../band';
 import { IAlbum, parseFromRow } from './types';
@@ -232,3 +221,13 @@ const getCount = (con: PoolClient) =>
   con.query(`SELECT count(*) AS count FROM albums;`)
     .then(({ rows }) => parseInt(rows[0].count, 10));
 
+export {
+  createTable,
+  insert,
+  find,
+  updateEmptyPhotos,
+  ISearchRequest,
+  getRatingDistribution,
+  search,
+  getCount,
+};

@@ -1,4 +1,3 @@
-export { router };
 import express from 'express';
 import * as Band from './band';
 import * as Album from './album';
@@ -39,3 +38,6 @@ const router = (getDBCon: () => Promise<PoolClient>, publicDirectory: string) =>
   express.Router()
     .use('/api/', api(getDBCon))
     .use('/', staticRoutes(publicDirectory));
+
+
+export { router };

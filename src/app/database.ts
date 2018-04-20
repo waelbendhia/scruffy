@@ -1,7 +1,3 @@
-export {
-  updateDatabase,
-  resetDatabase,
-};
 import { PoolClient } from 'pg';
 import * as Album from './album';
 import * as Band from './band';
@@ -54,3 +50,5 @@ const resetDatabase =
     console.log('Updating tables');
     await updateDatabase(con, timeout, pool);
   };
+
+export { updateDatabase, resetDatabase };

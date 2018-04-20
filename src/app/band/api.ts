@@ -1,5 +1,3 @@
-export { router };
-
 import express from 'express';
 import { makeDBConMiddleware } from '../shared';
 import { PoolClient } from 'pg';
@@ -65,3 +63,5 @@ const router = (getDBCon: () => Promise<PoolClient>) =>
         }
       }
     );
+
+export { router };

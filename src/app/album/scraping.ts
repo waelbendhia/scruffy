@@ -1,9 +1,3 @@
-export {
-  findInBody,
-  getPhotoUrl,
-  getAllDatesFromScaruffiTopLists
-};
-
 import { IAlbum } from './types';
 import request from 'request-promise-native';
 import cheerio from 'cheerio';
@@ -187,3 +181,9 @@ const getPhotoUrl =
         .image[Math.min(3, json.album.image.length - 1)]['#text'] as string
       : '';
   };
+
+export {
+  findInBody,
+  getPhotoUrl,
+  getAllDatesFromScaruffiTopLists
+};

@@ -1,11 +1,5 @@
-export {
-  IBand,
-  parseFromRow,
-  parseBandSearchRequest
-};
-
 import { IAlbum } from '../album';
-import { SearchRequest } from './database';
+import { ISearchRequest } from './database';
 
 interface IBand {
   url: string;
@@ -27,8 +21,14 @@ const parseFromRow = (row: any): IBand =>
     albums: [],
     relatedBands: []
   }),
-  parseBandSearchRequest = (b: any): SearchRequest => ({
+  parseBandSearchRequest = (b: any): ISearchRequest => ({
     name: b.name || '',
     page: parseInt(b.page, 10) || 0,
     numberOfResults: Math.min(parseInt(b.numberOfResults, 10) || 10, 50)
   });
+
+export {
+  IBand,
+  parseFromRow,
+  parseBandSearchRequest
+};

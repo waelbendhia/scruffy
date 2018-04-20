@@ -1,9 +1,3 @@
-export {
-  IAlbum,
-  parseFromRow,
-  parseAlbumSearchRequest,
-};
-
 import { IBand, parseBandSearchRequest } from '../band';
 import { ISearchRequest } from './database';
 
@@ -32,3 +26,9 @@ const parseFromRow = (row: any): IAlbum =>
     sortOrderAsc: b.sortOrderAsc === 'true',
     ...parseBandSearchRequest(b)
   });
+
+export {
+  IAlbum,
+  parseFromRow,
+  parseAlbumSearchRequest,
+};

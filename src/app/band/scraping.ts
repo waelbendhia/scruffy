@@ -1,9 +1,3 @@
-export {
-  getPhotoUrl,
-  getInfo,
-  getAllBands,
-};
-
 import request from 'request-promise-native';
 import { IBand } from './types';
 import { findInBody } from '../album';
@@ -235,4 +229,10 @@ const getPhotoUrl = async (
       .artist
       .image[Math.min(3, json.artist.image.length - 1)]['#text'] as string
     : '';
+};
+
+export {
+  getPhotoUrl,
+  getInfo,
+  getAllBands,
 };

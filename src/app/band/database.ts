@@ -1,14 +1,3 @@
-export {
-  createTables,
-  insertOrUpdateFull,
-  updateEmptyPhotos,
-  ISearchRequest,
-  get,
-  getCount,
-  getMostInfluential,
-  search
-};
-
 import { PoolClient } from 'pg';
 import * as Album from '../album';
 import { parseFromRow, IBand } from './types';
@@ -198,3 +187,14 @@ const search =
     count: await searchCount(con, req),
     result: await searchRows(con, req)
   });
+
+export {
+  createTables,
+  insertOrUpdateFull,
+  updateEmptyPhotos,
+  ISearchRequest,
+  get,
+  getCount,
+  getMostInfluential,
+  search
+};

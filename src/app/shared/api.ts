@@ -1,6 +1,3 @@
-export {
-  makeDBConMiddleware
-};
 import { PoolClient } from 'pg';
 import { Request, Response, NextFunction } from 'express';
 
@@ -12,3 +9,5 @@ const makeDBConMiddleware =
       next();
       con.release();
     };
+
+export { makeDBConMiddleware };
