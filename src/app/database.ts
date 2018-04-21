@@ -1,6 +1,7 @@
 import { PoolClient } from 'pg';
 import * as Album from './album';
 import * as Band from './band';
+import * as Correction from './corrections';
 import http from 'http';
 
 const dropTables =
@@ -9,7 +10,11 @@ const dropTables =
 
 
 const createTables = (con: PoolClient) =>
-  Promise.all([Band.createTables(con), Album.createTable(con)]);
+  Promise.all([
+    Band.createTables(con),
+    Album.createTable(con),
+    Correction.createTables(con),
+  ]);
 
 const updateDatabase =
   async (con: PoolClient, timeout: number, pool: http.Agent) => {
