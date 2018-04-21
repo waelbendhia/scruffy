@@ -131,7 +131,7 @@ const getBestOfDecadeDates =
       pool,
       headers: headers,
       transform: body => cheerio.load(body),
-    });
+    }) as CheerioStatic;
 
     return !$('center').get(0)
       ? []
