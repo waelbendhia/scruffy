@@ -222,35 +222,33 @@ const getCount = (con: PoolClient) =>
   con.query(`SELECT count(*) AS count FROM albums;`)
     .then(({ rows }) => parseInt(rows[0].count, 10));
 
+const matchNames = (con: PoolClient, names: string[]) =>
+  con.query(
+    `SELECT
+      a.name AS name,
+      a.imageUrl AS imageUrl,
+      a.year AS year,
+      a.rating AS rating,
+      b.name AS bandname,
+      b.partialUrl AS bandurl
+    FROM albums a INNER JOIN bands b ON b.partialUrl = a.band
+    WHERE
+      lower(a.name) = ANY ($1);`,
+    [names.map(s => s.toLocaleLowerCase())],
+  ).then(
+    ({ rows }) => rows.map(r => ({
+      ...parseFromRow(r),
+      band: {
+        name: r.bandname,
+        url: r.bandurl,
+        fullurl: `http://scaruffi.com/${r.bandurl}`
+      }
+    }))
+  );
+
 const mapLFMAlbums = (con: PoolClient, albums: ILFMAlbum[]) =>
-  Promise
-    .all(
-      albums
-        .map(
-          (a) =>
-            searchRows(
-              con,
-              {
-                page: 0,
-                numberOfResults: 1,
-                name: a.name,
-                ratingLower: 0,
-                ratingHigher: 10,
-                includeUnknown: true,
-                sortBy: SortBy.RATING,
-                sortOrderAsc: false,
-                yearHigher: new Date().getFullYear(),
-                yearLower: 0,
-              })
-              .catch((e) => (console.log(e), []))
-        )
-    )
-    .then(rs =>
-      rs
-        .filter(r => r.length > 0)
-        .map(([b, ..._]) => b)
-        .sort((a, b) => b.rating - a.rating)
-    );
+  matchNames(con, albums.map(a => a.name))
+    .then(as => as.sort((a, b) => b.rating - a.rating));
 
 
 export {

@@ -42,16 +42,18 @@ const router = () =>
     .get(
       '/tag/:tag',
       async (req, res) => {
+        console.log('start');
         const start = new Date();
         try {
           const { timeout, pool } = getHTTPConFromRes(res);
-          const lfm = await getAlbumsByTag(req.params.tag, 100, timeout, pool);
+          const lfm = await getAlbumsByTag(req.params.tag, 500, timeout, pool);
+          console.log('db', new Date().getTime() - start.getTime(), 'ms');
           res.json(await mapLFMAlbums(getDBFromRes(res), lfm.albums.album));
         } catch (e) {
           console.log(e);
-          res.status(500);
+          res.status(500).json('This is bad');
         }
-        console.log(new Date().getTime() - start.getTime(), ' ms');
+        console.log('exit', new Date().getTime() - start.getTime(), 'ms');
       }
     )
     .get(
