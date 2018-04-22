@@ -3,7 +3,8 @@ import * as Band from './band';
 import * as Album from './album';
 import path from 'path';
 import { PoolClient } from 'pg';
-
+import { makeDBConMiddleware, makeHTTPConMiddleware } from './shared';
+import http from 'http';
 
 const api = (getDBCon: () => Promise<PoolClient>) =>
   express.Router()
@@ -13,8 +14,8 @@ const api = (getDBCon: () => Promise<PoolClient>) =>
       next();
       con.release();
     })
-    .use('/band', Band.router(getDBCon))
-    .use('/album', Album.router(getDBCon));
+    .use('/band', Band.router())
+    .use('/album', Album.router());
 
 const staticRoutes = (publicDirectory: string) =>
   express.Router()
@@ -36,6 +37,11 @@ const staticRoutes = (publicDirectory: string) =>
 
 const router = (getDBCon: () => Promise<PoolClient>, publicDirectory: string) =>
   express.Router()
+    .use(makeDBConMiddleware(getDBCon))
+    .use(makeHTTPConMiddleware(500, new http.Agent({
+      maxSockets: 10,
+      keepAlive: true,
+    })))
     .use('/api/', api(getDBCon))
     .use('/', staticRoutes(publicDirectory));
 

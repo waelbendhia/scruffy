@@ -1,7 +1,12 @@
 import express from 'express';
-import { makeDBConMiddleware } from '../shared';
-import { PoolClient } from 'pg';
-import { search, getMostInfluential, getCount, get } from './database';
+import { getDBFromRes, getHTTPConFromRes } from '../shared';
+import {
+  search,
+  getMostInfluential,
+  getCount,
+  get,
+  mapLFMBands,
+} from './database';
 import { parseBandSearchRequest } from './types';
 import {
   submitCorrection,
@@ -9,19 +14,17 @@ import {
   submitRevision,
   getRevisions,
 } from '../corrections';
+import { getLastFMBandData } from '.';
+import { isSuccessful, getByTag } from '../shared/lastfm';
 
-const router = (getDBCon: () => Promise<PoolClient>) =>
+const router = () =>
   express.Router()
-    .use(makeDBConMiddleware(getDBCon))
     .get(
       '/',
       async (req, res) => {
         try {
           res.json(
-            await search(
-              res.locals.con as PoolClient,
-              parseBandSearchRequest(req.query))
-          );
+            await search(getDBFromRes(res), parseBandSearchRequest(req.query)));
         } catch (e) {
           console.log(e);
           res.status(500);
@@ -32,7 +35,7 @@ const router = (getDBCon: () => Promise<PoolClient>) =>
       '/influential',
       async (_, res) => {
         try {
-          res.json(await getMostInfluential(res.locals.con as PoolClient));
+          res.json(await getMostInfluential(getDBFromRes(res)));
         } catch (e) {
           console.log(e);
           res.status(500);
@@ -43,7 +46,20 @@ const router = (getDBCon: () => Promise<PoolClient>) =>
       '/total',
       async (_, res) => {
         try {
-          res.json(await getCount(res.locals.con as PoolClient));
+          res.json(await getCount(getDBFromRes(res)));
+        } catch (e) {
+          console.log(e);
+          res.status(500);
+        }
+      }
+    )
+    .get(
+      '/tag/:tag',
+      async (req, res) => {
+        try {
+          const { timeout, pool } = getHTTPConFromRes(res);
+          const lfm = await getByTag(req.params.tag, 100, timeout, pool);
+          res.json(await mapLFMBands(getDBFromRes(res), lfm.topartists.artist));
         } catch (e) {
           console.log(e);
           res.status(500);
@@ -55,11 +71,68 @@ const router = (getDBCon: () => Promise<PoolClient>) =>
       async (req, res) => {
         try {
           const band = await get(
-            res.locals.con as PoolClient,
+            getDBFromRes(res),
             `${req.params.volume}/${req.params.url}.html`,
           );
           if (!!band) {
-            res.json(band);
+            const { timeout, pool } = getHTTPConFromRes(res);
+            const lfmBand = await getLastFMBandData(band, timeout, pool);
+            res.json({
+              ...band,
+              relatedBands: isSuccessful(lfmBand)
+                ? await mapLFMBands(
+                  getDBFromRes(res),
+                  lfmBand.artist.similar.artist,
+                )
+                : []
+            });
+          } else {
+            res.status(404).json('Whoopsie');
+          }
+        } catch (e) {
+          console.log(e);
+          res.status(500);
+        }
+      }
+    )
+    .get(
+      '/:volume/:url/lastfm',
+      async (req, res) => {
+        try {
+          const band = await get(
+            getDBFromRes(res),
+            `${req.params.volume}/${req.params.url}.html`,
+          );
+          if (!!band) {
+            const { timeout, pool } = getHTTPConFromRes(res);
+            res.json(await getLastFMBandData(band, timeout, pool));
+          } else {
+            res.status(404).json('Whoopsie');
+          }
+        } catch (e) {
+          console.log(e);
+          res.status(500);
+        }
+      }
+    )
+    .get(
+      '/:volume/:url/similar',
+      async (req, res) => {
+        try {
+          const band = await get(
+            getDBFromRes(res),
+            `${req.params.volume}/${req.params.url}.html`,
+          );
+          if (!!band) {
+            const { timeout, pool } = getHTTPConFromRes(res);
+            const lfmBand = await getLastFMBandData(band, timeout, pool);
+            res.json(isSuccessful(lfmBand)
+              ? await mapLFMBands(
+                getDBFromRes(res),
+                lfmBand.artist.similar.artist,
+              )
+              : []
+            );
           } else {
             res.status(404).json('Whoopsie');
           }
@@ -79,7 +152,7 @@ const router = (getDBCon: () => Promise<PoolClient>) =>
           if (text) {
             res.json(
               await submitCorrection(
-                res.locals.con as PoolClient,
+                getDBFromRes(res),
                 text,
                 `${req.params.volume}/${req.params.url}.html`,
               )
@@ -99,7 +172,7 @@ const router = (getDBCon: () => Promise<PoolClient>) =>
         try {
           res.json(
             await getCorrections(
-              res.locals.con as PoolClient,
+              getDBFromRes(res),
               `${req.params.volume}/${req.params.url}.html`,
             )
           );
@@ -119,11 +192,7 @@ const router = (getDBCon: () => Promise<PoolClient>) =>
           const correctionID = parseInt(req.params.id, 10);
           if (!!text && !!correctionID) {
             res.json(
-              await submitRevision(
-                res.locals.con as PoolClient,
-                text,
-                correctionID,
-              )
+              await submitRevision(getDBFromRes(res), text, correctionID)
             );
           } else {
             res.status(400).json(`Empty`);
@@ -141,7 +210,7 @@ const router = (getDBCon: () => Promise<PoolClient>) =>
           const correctionID = parseInt(req.params.id, 10);
           if (!!correctionID) {
             res.json(
-              await getRevisions(res.locals.con as PoolClient, correctionID)
+              await getRevisions(getDBFromRes(res), correctionID)
             );
           } else {
             res.status(404).json(`You done goofed.`);

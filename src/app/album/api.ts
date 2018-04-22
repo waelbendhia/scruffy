@@ -1,19 +1,24 @@
 import express from 'express';
-import { makeDBConMiddleware } from '../shared';
-import { PoolClient } from 'pg';
-import { search, getRatingDistribution, getCount } from './database';
+import { getDBFromRes, getHTTPConFromRes } from '../shared';
+import {
+  search,
+  getRatingDistribution,
+  getCount,
+  mapLFMAlbums,
+} from './database';
 import { parseAlbumSearchRequest } from './types';
+import { getAlbumsByTag } from '../shared/lastfm';
 
-const router = (getDBCon: () => Promise<PoolClient>) =>
+const router = () =>
   express.Router()
-    .use(makeDBConMiddleware(getDBCon))
     .get(
       '/',
       async (req, res) => {
+        console.log(req.query);
         try {
           res.json(
             await search(
-              res.locals.con as PoolClient,
+              getDBFromRes(res),
               parseAlbumSearchRequest(req.query),
             )
           );
@@ -27,7 +32,7 @@ const router = (getDBCon: () => Promise<PoolClient>) =>
       '/total',
       async (_, res) => {
         try {
-          res.json(await getCount(res.locals.con as PoolClient));
+          res.json(await getCount(getDBFromRes(res)));
         } catch (e) {
           console.log(e);
           res.status(500);
@@ -35,11 +40,26 @@ const router = (getDBCon: () => Promise<PoolClient>) =>
       }
     )
     .get(
+      '/tag/:tag',
+      async (req, res) => {
+        const start = new Date();
+        try {
+          const { timeout, pool } = getHTTPConFromRes(res);
+          const lfm = await getAlbumsByTag(req.params.tag, 100, timeout, pool);
+          res.json(await mapLFMAlbums(getDBFromRes(res), lfm.albums.album));
+        } catch (e) {
+          console.log(e);
+          res.status(500);
+        }
+        console.log(new Date().getTime() - start.getTime(), ' ms');
+      }
+    )
+    .get(
       '/distribution',
       async (_, res) => {
         try {
           res.json(
-            await getRatingDistribution(res.locals.con as PoolClient)
+            await getRatingDistribution(getDBFromRes(res))
           );
         } catch (e) {
           console.log(e);

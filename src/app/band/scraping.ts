@@ -3,10 +3,13 @@ import { IBand } from './types';
 import { findInBody } from '../album';
 import cheerio from 'cheerio';
 import http from 'http';
+import {
+  getLastFMBandData,
+  isSuccessful,
+  getBiggestImage,
+} from '../shared/lastfm';
 
-const
-  headers = { 'User-Agent': 'request' },
-  lastfm_api_key = process.env.LASTFM_API_KEY;
+const headers = { 'User-Agent': 'request' };
 
 const getFromBandsPage =
   async (
@@ -209,25 +212,15 @@ const getInfo = async (
   };
 };
 
+
 const getPhotoUrl = async (
   band: IBand,
   timeout: number,
   pool: http.Agent,
 ) => {
-  const json = await request({
-    url:
-      'http://ws.audioscrobbler.com/2.0/?method=artist.getinfo'
-      + '&artist=' + band.name
-      + '&api_key=' + lastfm_api_key
-      + '&format=json',
-    timeout,
-    pool,
-    json: true
-  });
-  return !!json.artist
-    ? json
-      .artist
-      .image[Math.min(3, json.artist.image.length - 1)]['#text'] as string
+  const res = await getLastFMBandData(band, timeout, pool);
+  return isSuccessful(res)
+    ? getBiggestImage(res.artist.image) || ''
     : '';
 };
 
@@ -235,4 +228,5 @@ export {
   getPhotoUrl,
   getInfo,
   getAllBands,
+  getLastFMBandData,
 };

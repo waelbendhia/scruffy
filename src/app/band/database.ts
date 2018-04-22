@@ -3,6 +3,7 @@ import * as Album from '../album';
 import { parseFromRow, IBand } from './types';
 import { getPhotoUrl } from './scraping';
 import http from 'http';
+import { ILFMArtistPartial } from '../shared/lastfm';
 
 const
   createBandsQuery =
@@ -182,11 +183,26 @@ const searchCount =
       [req.name]
     ).then(({ rows }) => parseInt(rows[0].count, 10));
 
+const mapLFMBands = (con: PoolClient, bands: ILFMArtistPartial[]) =>
+  Promise
+    .all(
+      bands
+        .map(
+          (a) => searchRows(con, { page: 0, numberOfResults: 1, name: a.name })
+        )
+    )
+    .then(rs =>
+      rs
+        .filter(r => r.length > 0)
+        .map(([b, ..._]) => b)
+    );
+
 const search =
   async (con: PoolClient, req: ISearchRequest) => ({
     count: await searchCount(con, req),
     result: await searchRows(con, req)
   });
+
 
 export {
   createTables,
@@ -196,5 +212,6 @@ export {
   get,
   getCount,
   getMostInfluential,
+  mapLFMBands,
   search
 };

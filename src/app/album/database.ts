@@ -3,6 +3,7 @@ import { IBand } from '../band';
 import { IAlbum, parseFromRow } from './types';
 import { getPhotoUrl } from './scraping';
 import http from 'http';
+import { ILFMAlbum } from '../shared/lastfm';
 
 enum SortBy {
   RATING = 'rating',
@@ -221,6 +222,37 @@ const getCount = (con: PoolClient) =>
   con.query(`SELECT count(*) AS count FROM albums;`)
     .then(({ rows }) => parseInt(rows[0].count, 10));
 
+const mapLFMAlbums = (con: PoolClient, albums: ILFMAlbum[]) =>
+  Promise
+    .all(
+      albums
+        .map(
+          (a) =>
+            searchRows(
+              con,
+              {
+                page: 0,
+                numberOfResults: 1,
+                name: a.name,
+                ratingLower: 0,
+                ratingHigher: 10,
+                includeUnknown: true,
+                sortBy: SortBy.RATING,
+                sortOrderAsc: false,
+                yearHigher: new Date().getFullYear(),
+                yearLower: 0,
+              })
+              .catch((e) => (console.log(e), []))
+        )
+    )
+    .then(rs =>
+      rs
+        .filter(r => r.length > 0)
+        .map(([b, ..._]) => b)
+        .sort((a, b) => b.rating - a.rating)
+    );
+
+
 export {
   createTable,
   insert,
@@ -230,4 +262,5 @@ export {
   getRatingDistribution,
   search,
   getCount,
+  mapLFMAlbums,
 };
