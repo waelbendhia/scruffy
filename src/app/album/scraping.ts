@@ -3,11 +3,10 @@ import request from 'request-promise-native';
 import cheerio from 'cheerio';
 import http from 'http';
 
-const
-  headers = { 'User-Agent': 'request' },
-  lastfm_api_key = process.env.LASTFM_API_KEY,
-  withDefault = <T>(res: RegExpMatchArray | null, def: T) =>
-    !!res && res.length > 0 ? res[0] : def;
+const headers = { 'User-Agent': 'request' };
+const lastfm_api_key = process.env.LASTFM_API_KEY;
+const withDefault = <T>(res: RegExpMatchArray | null, def: T) =>
+  !!res && res.length > 0 ? res[0] : def;
 
 
 const findInBody = ($: CheerioStatic): IAlbum[] => {
@@ -15,16 +14,15 @@ const findInBody = ($: CheerioStatic): IAlbum[] => {
     return [];
   }
 
-  const albumPattern = /.+, ([0-9]*.[0-9]+|[0-9]+)\/10/g,
-    ablumsText = $('table:nth-of-type(1) td:nth-of-type(1)').text(),
-    albumStrings = ablumsText.match(albumPattern);
+  const albumPattern = /.+, ([0-9]*.[0-9]+|[0-9]+)\/10/g;
+  const ablumsText = $('table:nth-of-type(1) td:nth-of-type(1)').text();
+  const albumStrings = ablumsText.match(albumPattern);
 
-  if (!albumStrings) {
-    return [];
-  }
-  const albumNamePattern = /(^.+)(?=[(].*[)])|(^.+)(?=,)/,
-    yearPattern = /[0-9]{4}(?=\))/,
-    ratingPattern = /(([0-9].[0-9])|[0-9])(?=\/10)/;
+  if (!albumStrings) { return []; }
+
+  const albumNamePattern = /(^.+)(?=[(].*[)])|(^.+)(?=,)/;
+  const yearPattern = /[0-9]{4}(?=\))/;
+  const ratingPattern = /(([0-9].[0-9])|[0-9])(?=\/10)/;
 
   return albumStrings
     .map(
@@ -44,12 +42,13 @@ const getBestAllTimeDates =
       timeout,
       headers,
       pool,
-      transform: (body) => cheerio.load(body)
+      transform: (body) => cheerio.load(body),
     }) as CheerioStatic;
 
-    const yearPattern = /[0-9]{4}(?=\.)/,
-      albumNamePattern = /: .*/,
-      linerElements = $('center:nth-of-type(1) table:nth-of-type(1) tr').get();
+    const yearPattern = /[0-9]{4}(?=\.)/;
+    const albumNamePattern = /: .*/;
+    const linerElements =
+      $('center:nth-of-type(1) table:nth-of-type(1) tr').get();
 
     return linerElements.map(
       linerElement => {
@@ -57,8 +56,9 @@ const getBestAllTimeDates =
           $(linerElement)
             .children('td').eq(0)
             .children('font').eq(0)
-            .children('b').eq(0),
-          linerNotes = $(linerElement).children('td').eq(1).text();
+            .children('b').eq(0);
+        const linerNotes = $(linerElement).children('td').eq(1).text();
+
         return {
           year: parseInt(withDefault(linerNotes.match(yearPattern), '0'), 10),
           rating: 0,
@@ -70,17 +70,18 @@ const getBestAllTimeDates =
           ).substring(2),
           band: {
             name: bandAndAlbumName.children('a').eq(0).text(),
-            url: bandAndAlbumName.children('a').attr('href').substring(3)
-          }
+            url: bandAndAlbumName.children('a').attr('href').substring(3),
+          },
         };
       }
     );
   };
 
 const scrape = ($: CheerioStatic, elements: string[]): IAlbum[] => {
-  const yearPattern = /[0-9]{4}(?=[)])/,
-    bandNamePattern = /.*(?=:)/,
-    albumNamePattern = /: .*(?=[(])/;
+  const yearRX = /[0-9]{4}(?=[)])/;
+  const bandRX = /.*(?=:)/;
+  const albmRX = /: .*(?=[(])/;
+
   return elements
     .map(elem => $(elem).children('li').get())
     .map(
@@ -89,29 +90,26 @@ const scrape = ($: CheerioStatic, elements: string[]): IAlbum[] => {
           albumElement => {
             const bandAlbumName =
               ($(albumElement).text() || '').replace(/[\r\n]+/g, ' ');
+
             return {
               name:
-                withDefault(
-                  bandAlbumName.match(albumNamePattern), ''
-                ).substring(2),
+                withDefault(bandAlbumName.match(albmRX), '')
+                  .substring(2),
               year:
-                parseInt(
-                  withDefault(bandAlbumName.match(yearPattern), '0'),
-                  10
-                ),
+                parseInt(withDefault(bandAlbumName.match(yearRX), '0'), 10),
               rating: 0,
               imageUrl: '',
               band: {
-                name: withDefault(bandAlbumName.match(bandNamePattern), ''),
+                name: withDefault(bandAlbumName.match(bandRX), ''),
                 url:
-                  (
-                    $(albumElement).children('a').get().length > 0
-                      ? $(albumElement)
-                        .children('a').eq(0)
-                        .attr('href').substring(3)
-                      : ''
-                  ).split('#')[0]
-              }
+                  ($(albumElement).children('a').get().length > 0
+                    ? $(albumElement)
+                      .children('a').eq(0)
+                      .attr('href').substring(3)
+                    : ''
+                  )
+                    .split('#')[0],
+              },
             };
           }
         ).filter(({ name }) => !!name)
@@ -123,7 +121,7 @@ const getBestOfDecadeDates =
   async (
     decade: number,
     timeout: number,
-    pool: http.Agent,
+    pool: http.Agent
   ) => {
     const $ = await request({
       uri: `http://scaruffi.com/ratings/${decade < 10 ? '00' : decade}.html`,
@@ -162,7 +160,7 @@ const getPhotoUrl =
   async (
     album: IAlbum,
     timeout: number,
-    pool: http.Agent,
+    pool: http.Agent
   ): Promise<string> => {
     const json = await request({
       url:
@@ -173,8 +171,9 @@ const getPhotoUrl =
         + '&format=json',
       timeout,
       pool,
-      json: true
+      json: true,
     });
+
     return !!json.album
       ? json
         .album

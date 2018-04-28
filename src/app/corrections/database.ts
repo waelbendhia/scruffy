@@ -4,29 +4,28 @@ import {
   parseRevisionFromRow,
 } from './types';
 
-const
-  createCorrectionsQuery =
-    `CREATE TABLE corrections(
-      id SERIAL PRIMARY KEY,
-      text TEXT NOT NULL,
-      submitted_on TIMESTAMP WITH TIME ZONE DEFAULT now(),
-      band TEXT NOT NULL,
-      FOREIGN KEY (band) REFERENCES bands(partialUrl)
-    );`,
-  createRevisionsQuery =
-    `CREATE TABLE revisions(
-      id SERIAL PRIMARY KEY,
-      text TEXT NOT NULL,
-      correction INT NOT NULL,
-      submitted_on TIMESTAMP WITH TIME ZONE DEFAULT now(),
-      FOREIGN KEY (correction) REFERENCES corrections(id)
-    );`;
+const createCorrectionsQuery =
+  `CREATE TABLE corrections(
+    id SERIAL PRIMARY KEY,
+    text TEXT NOT NULL,
+    submitted_on TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    band TEXT NOT NULL,
+    FOREIGN KEY (band) REFERENCES bands(partialUrl)
+  );`;
+const createRevisionsQuery =
+  `CREATE TABLE revisions(
+    id SERIAL PRIMARY KEY,
+    text TEXT NOT NULL,
+    correction INT NOT NULL,
+    submitted_on TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    FOREIGN KEY (correction) REFERENCES corrections(id)
+  );`;
 
 
 const createTables = (con: PoolClient) =>
   Promise.all(
     [createCorrectionsQuery, createRevisionsQuery]
-      .map(query => con.query(query)),
+      .map(query => con.query(query))
   );
 
 
@@ -36,7 +35,7 @@ const submitCorrection = (con: PoolClient, text: string, bandURL: string) =>
       corrections (text, band)
       VALUES      ($1,   $2)
     ON CONFLICT DO NOTHING;`,
-    [text, bandURL],
+    [text, bandURL]
   );
 
 const submitRevision = (con: PoolClient, text: string, correctionID: number) =>

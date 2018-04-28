@@ -35,7 +35,7 @@ const parseRevisionFromRow =
       id: correction,
       text: '',
       submittedOn: new Date(),
-      band: { url: '', name: '' }
+      band: { url: '', name: '' },
     },
   });
 

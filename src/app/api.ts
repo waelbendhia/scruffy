@@ -10,7 +10,9 @@ const api = (getDBCon: () => Promise<PoolClient>) =>
   express.Router()
     .use(async (_, res, next) => {
       const con = await getDBCon();
+
       res.locals.con = con;
+
       next();
       con.release();
     })
@@ -25,14 +27,8 @@ const staticRoutes = (publicDirectory: string) =>
     .get('/:page', (req, res) =>
       res.sendFile(path.join(publicDirectory, req.params.page))
     )
-    .get('/:folder/:filename', (req, res) =>
-      res.sendFile(
-        path.join(
-          publicDirectory,
-          req.params.folder,
-          req.params.filename,
-        )
-      )
+    .get('/:folder/:filename', ({ params: { folder, filename } }, res) =>
+      res.sendFile(path.join(publicDirectory, folder, filename))
     );
 
 const router = (getDBCon: () => Promise<PoolClient>, publicDirectory: string) =>

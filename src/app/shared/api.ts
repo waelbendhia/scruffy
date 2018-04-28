@@ -6,7 +6,9 @@ const makeDBConMiddleware =
   (getDBCon: () => Promise<PoolClient>) =>
     async (_: Request, res: Response, next: NextFunction) => {
       const con = await getDBCon();
+
       res.locals.con = con;
+
       next();
       con.release();
     };

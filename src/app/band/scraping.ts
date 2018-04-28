@@ -25,7 +25,7 @@ const getFromBandsPage =
           headers,
           timeout,
           pool,
-          transform: (body) => cheerio.load(body)
+          transform: (body) => cheerio.load(body),
         }) as CheerioStatic,
         bandElements = selectionFunction($);
 
@@ -37,7 +37,7 @@ const getFromBandsPage =
           }
           return {
             ...p,
-            [bandUrl]: { name: $(elem).text().trim() }
+            [bandUrl]: { name: $(elem).text().trim() },
           };
         },
         {}
@@ -109,6 +109,7 @@ const getAllBands = async (timeout: number, pool: http.Agent) => {
     ...await getFromVolume(8, timeout, pool),
     ...await getFromVolume(9, timeout, pool),
   };
+
   return Object.keys(bands)
     .map(url => ({ url, name: bands[url].name }))
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -116,9 +117,7 @@ const getAllBands = async (timeout: number, pool: http.Agent) => {
 
 
 const getNameFromBody = ($: CheerioStatic) => {
-  if ($('center').get().length === 0) {
-    return '';
-  }
+  if ($('center').get().length === 0) { return ''; }
 
   let name = '',
     parentNode = $('center').get(0);
@@ -140,10 +139,13 @@ const getBioFromBody = ($: CheerioStatic) => {
   let bio = '';
   if ($('table').get().length > 1) {
     const tables = $('table:nth-of-type(2) [bgcolor]').get();
+
     for (let k = 0; k < tables.length; k += 2) {
       const table = tables[k];
+
       for (let j = 0; j < $(table).contents().get().length; j++) {
         const childNode = $(table).contents().get(j);
+
         bio += childNode.name === 'br' ?
           '\n' :
           (childNode.name === 'p' ? '\n\n\n' : ' ')
@@ -155,11 +157,12 @@ const getBioFromBody = ($: CheerioStatic) => {
 };
 
 const getRelatedBandsFromBody = ($: CheerioStatic, band: IBand) => {
-  const relatedBands: IBand[] = [],
-    extractRelatedBandFromElement = (relatedBandElement: CheerioElement) => {
+  const relatedBands: IBand[] = [];
+  const extractRelatedBandFromElement =
+    (relatedBandElement: CheerioElement) => {
       const relatedBand = {
         name: $(relatedBandElement).text(),
-        url: ($(relatedBandElement).attr('href') || '').replace('../', '')
+        url: ($(relatedBandElement).attr('href') || '').replace('../', ''),
       };
 
       if (!relatedBand.name || !relatedBand.url) { return null; }
@@ -173,20 +176,23 @@ const getRelatedBandsFromBody = ($: CheerioStatic, band: IBand) => {
             : `vol${parseInt(band.url.charAt(3), 10)}/`
         ) + relatedBand.url;
 
-      const nameIsValid = !(/contact|contattami/.test(relatedBand.name)),
-        urlIsValid =
-          !(/mail|http|history|oldavant|index/.test(relatedBand.url))
-          && (relatedBand.url.match(/\//g) || []).length === 1
-          && relatedBand.url !== band.url;
+      const nameIsValid = !(/contact|contattami/.test(relatedBand.name));
+      const urlIsValid =
+        !(/mail|http|history|oldavant|index/.test(relatedBand.url))
+        && (relatedBand.url.match(/\//g) || []).length === 1
+        && relatedBand.url !== band.url;
+
       return urlIsValid && nameIsValid ? relatedBand : null;
     };
 
   if ($('table').get().length <= 1) { return relatedBands; }
-  return $('table:nth-of-type(2) [bgcolor]').get().map(
-    elem =>
-      [...Array($(elem).children('a').length).keys()]
-        .map(i => extractRelatedBandFromElement($(elem).children('a').get(i)))
-  )
+
+  return $('table:nth-of-type(2) [bgcolor]').get()
+    .map(
+      elem =>
+        [...Array($(elem).children('a').length).keys()]
+          .map(i => extractRelatedBandFromElement($(elem).children('a').get(i)))
+    )
     .reduce((p, c) => [...p, ...c], [])
     .filter(b => !!b) as IBand[];
 };
@@ -194,15 +200,16 @@ const getRelatedBandsFromBody = ($: CheerioStatic, band: IBand) => {
 const getInfo = async (
   band: IBand,
   timeout: number,
-  pool: http.Agent,
+  pool: http.Agent
 ): Promise<IBand> => {
   const $ = await request({
     uri: `http://scaruffi.com/${band.url}`,
     timeout,
     pool,
     headers,
-    transform: (body) => cheerio.load(body)
+    transform: (body) => cheerio.load(body),
   }) as CheerioStatic;
+
   return {
     name: getNameFromBody($),
     bio: getBioFromBody($).trim(),
@@ -216,9 +223,10 @@ const getInfo = async (
 const getPhotoUrl = async (
   band: IBand,
   timeout: number,
-  pool: http.Agent,
+  pool: http.Agent
 ) => {
   const res = await getLastFMBandData(band, timeout, pool);
+
   return isSuccessful(res)
     ? getBiggestImage(res.artist.image) || ''
     : '';

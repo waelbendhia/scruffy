@@ -9,18 +9,20 @@ const pool = new Pool({
   password: process.env.PG_PASSWORD,
   port: parseInt(process.env.PG_PORT as string, 10) || 5432,
   host: process.env.PG_HOST || 'localhost',
-}),
-  httpPool = new http.Agent({
-    maxSockets: 10,
-    keepAlive: true,
-  });
+});
+const httpPool = new http.Agent({
+  maxSockets: 10,
+  keepAlive: true,
+});
 
 (async () => {
   const con = await pool.connect();
+
   await Promise.all([
     await Band.updateEmptyPhotos(con, 5000, httpPool),
     await Album.updateEmptyPhotos(con, 5000, httpPool),
   ]);
+
   con.release();
   httpPool.destroy();
 })();

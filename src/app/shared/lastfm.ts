@@ -96,7 +96,7 @@ const getLastFMBandData = async (
     + '&format=json',
   timeout,
   pool,
-  json: true
+  json: true,
 }) as ILFMBandResponse;
 
 interface ILFMTagsResponse {
@@ -120,7 +120,7 @@ const getByTag = async (
     + '&format=json',
   timeout,
   pool,
-  json: true
+  json: true,
 }) as ILFMTagsResponse;
 
 const isSuccessful = (res: ILFMBandResponse): res is ILFMBandSuccess =>
@@ -159,7 +159,7 @@ const getAlbumsByTag = async (
     + '&format=json',
   timeout,
   pool,
-  json: true
+  json: true,
 }) as ILFMTagsAlbumResponse;
 
 export {

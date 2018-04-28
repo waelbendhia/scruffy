@@ -17,7 +17,9 @@ const pool = new Pool({
 (async () => {
   console.log('Reseting database');
   const con = await pool.connect();
+
   await resetDatabase(await pool.connect(), 5000, httpPool);
+
   con.release();
   httpPool.destroy();
 })();

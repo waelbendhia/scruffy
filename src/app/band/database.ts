@@ -5,16 +5,15 @@ import { getPhotoUrl } from './scraping';
 import http from 'http';
 import { ILFMArtistPartial } from '../shared/lastfm';
 
-const
-  createBandsQuery =
-    `CREATE TABLE bands(
+const createBandsQuery =
+  `CREATE TABLE bands(
     partialUrl TEXT NOT NULL PRIMARY KEY,
     name TEXT not null,
     bio TEXT,
     imageUrl TEXT
-  );`,
-  createBand2Bandquery =
-    `CREATE TABLE bands2bands(
+  );`;
+const createBand2Bandquery =
+  `CREATE TABLE bands2bands(
     urlOfBand TEXT NOT NULL,
     urlOfRelated TEXT NOT NULL,
     CONSTRAINT pk_b2bID PRIMARY KEY (urlOfBand, urlOfRelated),
@@ -26,7 +25,7 @@ const
 const createTables = (con: PoolClient) =>
   Promise.all(
     [createBandsQuery, createBand2Bandquery]
-      .map(query => con.query(query)),
+      .map(query => con.query(query))
   );
 
 
@@ -36,7 +35,7 @@ const insertPartial = (con: PoolClient, band: IBand) =>
       bands  (partialUrl, name, bio)
       VALUES ($1,         $2,   $3)
     ON CONFLICT DO NOTHING;`,
-    [band.url, band.name, band.bio],
+    [band.url, band.name, band.bio]
   );
 
 const insertRelation = (con: PoolClient, band: IBand, related: IBand) =>
@@ -82,6 +81,7 @@ const updateEmptyPhotos =
     const { rows } = await con.query(
       `SELECT * FROM bands WHERE imageUrl = '' OR imageUrl IS NULL;`
     );
+
     await Promise.all(
       rows
         .map(parseFromRow)
@@ -89,7 +89,7 @@ const updateEmptyPhotos =
           b => updatePhotoUrl(con, b, timeout, pool)
             .then(() => console.log(`Got photo for ${b.name}`))
             .catch(e => console.log(`Failed photo for ${b.name} with: ${e}`))
-        ),
+        )
     );
   };
 
@@ -110,14 +110,15 @@ const get =
       `SELECT * FROM bands WHERE partialUrl =$1`,
       [partialUrl]
     );
-    if (rows.length !== 1) {
-      return null;
-    }
+
+    if (rows.length !== 1) { return null; }
+
     const partialBand = parseFromRow(rows[0]);
+
     return {
       ...partialBand,
       albums: await Album.find(con, partialBand),
-      relatedBands: await getRelatedBands(con, partialBand)
+      relatedBands: await getRelatedBands(con, partialBand),
     };
   };
 
@@ -128,17 +129,18 @@ const getCount = (con: PoolClient) =>
 
 
 const getMostInfluential = (con: PoolClient) =>
-  con.query(
-    `SELECT
-          count(b2b.urlOfBand) as inf,
-          b.name,
-          b.partialUrl
-        FROM bands b
-          INNER JOIN bands2bands b2b
-          ON b.partialUrl = b2b.urlOfRelated
-        GROUP BY b.partialUrl
-        ORDER BY inf DESC LIMIT 21;`
-  )
+  con
+    .query(
+      `SELECT
+        count(b2b.urlOfBand) as inf,
+        b.name,
+        b.partialUrl
+      FROM bands b
+        INNER JOIN bands2bands b2b
+        ON b.partialUrl = b2b.urlOfRelated
+      GROUP BY b.partialUrl
+      ORDER BY inf DESC LIMIT 21;`
+    )
     .then(
       ({ rows }) => rows
         .map(
@@ -200,7 +202,7 @@ const mapLFMBands = (con: PoolClient, bands: ILFMArtistPartial[]) =>
 const search =
   async (con: PoolClient, req: ISearchRequest) => ({
     count: await searchCount(con, req),
-    result: await searchRows(con, req)
+    result: await searchRows(con, req),
   });
 
 

@@ -19,15 +19,19 @@ const createTables = (con: PoolClient) =>
 const updateDatabase =
   async (con: PoolClient, timeout: number, pool: http.Agent) => {
     const bands = await Band.getAllBands(timeout, pool);
+
     await Promise.all(
       bands.map(
         async (b) => {
           try {
             const band = await Band.getInfo(b, timeout, pool);
+
             console.log(band.name + ' ' + band.url);
+
             if (!band.bio) {
               console.log(`${band.url} has no bio.`);
             }
+
             if (!band.name) {
               console.log(`${band.url} has no name.`);
             } else {

@@ -15,17 +15,17 @@ const parseFromRow = (row: any): IAlbum =>
     year: row.year,
     rating: row.rating,
     imageUrl: row.imageurl,
-  }),
-  parseAlbumSearchRequest = (b: any): ISearchRequest => ({
-    ratingLower: parseFloat(b.ratingLower) || 0,
-    ratingHigher: parseFloat(b.ratingHigher) || 10,
-    yearLower: parseInt(b.yearLower, 10) || 0,
-    yearHigher: parseInt(b.yearHigher, 10) || 10000,
-    includeUnknown: b.includeUnknown === 'true',
-    sortBy: b.sortBy,
-    sortOrderAsc: b.sortOrderAsc === 'true',
-    ...parseBandSearchRequest(b)
   });
+const parseAlbumSearchRequest = (b: any): ISearchRequest => ({
+  ratingLower: parseFloat(b.ratingLower) || 0,
+  ratingHigher: parseFloat(b.ratingHigher) || 10,
+  yearLower: parseInt(b.yearLower, 10) || 0,
+  yearHigher: parseInt(b.yearHigher, 10) || 10000,
+  includeUnknown: b.includeUnknown === 'true',
+  sortBy: b.sortBy,
+  sortOrderAsc: b.sortOrderAsc === 'true',
+  ...parseBandSearchRequest(b),
+});
 
 export {
   IAlbum,

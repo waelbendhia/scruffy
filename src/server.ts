@@ -4,14 +4,12 @@ import bodyParser from 'body-parser';
 import { Pool } from 'pg';
 import { router } from './app';
 
-
 const port =
   parseInt(
     process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || '',
     10
   ) || 8001,
   ip = process.env.IP || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0';
-
 
 const pool = new Pool({
   user: process.env.PG_USER,
@@ -27,7 +25,7 @@ express()
   .use(morgan('combined'))
   .use('/', router(
     () => pool.connect(),
-    '/home/wael/node/Scaruffi2.0Node/Scaruffi2.0',
+    '/home/wael/node/Scaruffi2.0Node/Scaruffi2.0'
   ))
   .listen(
     port,
