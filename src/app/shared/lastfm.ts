@@ -153,9 +153,9 @@ const getAlbumsByTag = async (
 ) => await request({
   url:
     'http://ws.audioscrobbler.com/2.0/?method=tag.gettopalbums'
-    + '&tag=' + tag
-    + '&limit=' + limit
-    + '&api_key=' + LASTFM_API_KEY
+    + `&tag=${tag}`
+    + `&limit${limit}`
+    + `&api_key=${LASTFM_API_KEY}`
     + '&format=json',
   timeout,
   pool,

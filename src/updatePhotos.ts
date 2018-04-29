@@ -19,8 +19,8 @@ const httpPool = new http.Agent({
   const con = await pool.connect();
 
   await Promise.all([
-    await Band.updateEmptyPhotos(con, 5000, httpPool),
-    await Album.updateEmptyPhotos(con, 5000, httpPool),
+    Band.updateEmptyPhotos(con, 5000, httpPool),
+    Album.updateEmptyPhotos(con, 5000, httpPool),
   ]);
 
   con.release();

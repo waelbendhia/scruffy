@@ -94,14 +94,15 @@ const updateEmptyPhotos =
   };
 
 const getRelatedBands = (con: PoolClient, band: IBand) =>
-  con.query(
-    `SELECT *
-		FROM bands
-			INNER JOIN bands2bands
-			ON bands.partialUrl = bands2bands.urlOfRelated
-		WHERE bands2bands.urlOfBand =$1`,
-    [band.url]
-  )
+  con
+    .query(
+      `SELECT *
+      FROM bands
+        INNER JOIN bands2bands
+        ON bands.partialUrl = bands2bands.urlOfRelated
+      WHERE bands2bands.urlOfBand =$1`,
+      [band.url]
+    )
     .then(({ rows }) => rows.map(parseFromRow));
 
 const get =
@@ -114,17 +115,18 @@ const get =
     if (rows.length !== 1) { return null; }
 
     const partialBand = parseFromRow(rows[0]);
+    const [albums, relatedBands] = await Promise.all([
+      await Album.find(con, partialBand),
+      await getRelatedBands(con, partialBand),
+    ]);
 
-    return {
-      ...partialBand,
-      albums: await Album.find(con, partialBand),
-      relatedBands: await getRelatedBands(con, partialBand),
-    };
+    return { ...partialBand, albums, relatedBands };
   };
 
 
 const getCount = (con: PoolClient) =>
-  con.query(`SELECT count(*) AS count FROM bands;`)
+  con
+    .query(`SELECT count(*) AS count FROM bands;`)
     .then(({ rows }) => parseInt(rows[0].count, 10));
 
 
@@ -158,52 +160,54 @@ interface ISearchRequest {
 }
 
 const searchRows = (con: PoolClient, req: ISearchRequest) =>
-  con.query(
-    `SELECT
-          b.partialUrl AS partialUrl,
-          b.name AS name,
-          b.imageUrl AS imageUrl
-        FROM bands b
-        WHERE
-          lower(b.name) ~ lower($1)
-        ORDER BY b.name
-        LIMIT $2 OFFSET $3;`,
-    [
-      req.name,
-      req.numberOfResults,
-      req.page * req.numberOfResults,
-    ]
-  )
+  con
+    .query(
+      `SELECT
+        b.partialUrl AS partialUrl,
+        b.name AS name,
+        b.imageUrl AS imageUrl
+      FROM bands b
+      WHERE
+        lower(b.name) ~ lower($1)
+      ORDER BY b.name
+      LIMIT $2 OFFSET $3;`,
+      [
+        req.name.replace(/\(/g, '\\(').replace(/\)/g, '\\)'),
+        req.numberOfResults,
+        req.page * req.numberOfResults,
+      ]
+    )
     .then(({ rows }) => rows.map(parseFromRow));
 
 const searchCount =
   (con: PoolClient, req: ISearchRequest) =>
-    con.query(
-      `SELECT count(*) as count
+    con
+      .query(
+        `SELECT count(*) as count
         FROM bands b
         WHERE lower(b.name) ~ lower($1);`,
-      [req.name]
-    ).then(({ rows }) => parseInt(rows[0].count, 10));
+        [req.name.replace(/\(/g, '\\(').replace(/\)/g, '\\)')]
+      )
+      .then(({ rows }) => parseInt(rows[0].count, 10));
 
 const mapLFMBands = (con: PoolClient, bands: ILFMArtistPartial[]) =>
   Promise
-    .all(
-      bands
-        .map(
-          (a) => searchRows(con, { page: 0, numberOfResults: 1, name: a.name })
-        )
-    )
+    .all(bands.map(a =>
+      searchRows(
+        con,
+        { page: 0, numberOfResults: 1, name: a.name }
+      )
+    ))
     .then(rs =>
-      rs
-        .filter(r => r.length > 0)
+      rs.filter(r => r.length > 0)
         .map(([b, ..._]) => b)
     );
 
-const search =
-  async (con: PoolClient, req: ISearchRequest) => ({
-    count: await searchCount(con, req),
-    result: await searchRows(con, req),
-  });
+const search = (con: PoolClient, req: ISearchRequest) =>
+  Promise
+    .all([searchCount(con, req), searchRows(con, req)])
+    .then(([count, result]) => ({ count, result }));
+
 
 
 export {

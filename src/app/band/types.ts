@@ -20,12 +20,13 @@ const parseFromRow = (row: any): IBand =>
     fullUrl: `http://scaruffi.com/${row.partialurl}`,
     albums: [],
     relatedBands: [],
-  }),
-  parseBandSearchRequest = (b: any): ISearchRequest => ({
-    name: b.name || '',
-    page: parseInt(b.page, 10) || 0,
-    numberOfResults: Math.min(parseInt(b.numberOfResults, 10) || 10, 50),
   });
+
+const parseBandSearchRequest = (b: any): ISearchRequest => ({
+  name: b.name || '',
+  page: parseInt(b.page, 10) || 0,
+  numberOfResults: Math.min(parseInt(b.numberOfResults, 10) || 10, 50),
+});
 
 export {
   IBand,

@@ -22,7 +22,7 @@ const pool = new Pool({
 
 express()
   .use(bodyParser.json())
-  .use(morgan('combined'))
+  .use(morgan(':method :url :status :res[content-length] - :response-time ms'))
   .use('/', router(
     () => pool.connect(),
     '/home/wael/node/Scaruffi2.0Node/Scaruffi2.0'

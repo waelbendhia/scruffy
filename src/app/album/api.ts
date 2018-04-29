@@ -34,7 +34,7 @@ const router = () =>
       console.log('start');
       const start = new Date();
       const { timeout, pool } = getHTTPConFromRes(res);
-      const lfm = await getAlbumsByTag(req.params.tag, 500, timeout, pool);
+      const lfm = await getAlbumsByTag(req.params.tag, 50, timeout, pool);
 
       res.json(await mapLFMAlbums(getDBFromRes(res), lfm.albums.album));
 

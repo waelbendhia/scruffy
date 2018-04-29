@@ -4,9 +4,8 @@ import * as Band from './band';
 import * as Correction from './corrections';
 import http from 'http';
 
-const dropTables =
-  (con: PoolClient) =>
-    con.query(`DROP TABLE IF EXISTS bands2bands, albums, bands;`);
+const dropTables = (con: PoolClient) =>
+  con.query(`DROP TABLE IF EXISTS bands2bands, albums, bands;`);
 
 
 const createTables = (con: PoolClient) =>
@@ -45,8 +44,8 @@ const updateDatabase =
     );
 
     await Promise.all([
-      await Band.updateEmptyPhotos(con, timeout, pool),
-      await Album.updateEmptyPhotos(con, timeout, pool),
+      Band.updateEmptyPhotos(con, timeout, pool),
+      Album.updateEmptyPhotos(con, timeout, pool),
     ]);
   };
 

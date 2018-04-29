@@ -16,6 +16,7 @@ const parseFromRow = (row: any): IAlbum =>
     rating: row.rating,
     imageUrl: row.imageurl,
   });
+
 const parseAlbumSearchRequest = (b: any): ISearchRequest => ({
   ratingLower: parseFloat(b.ratingLower) || 0,
   ratingHigher: parseFloat(b.ratingHigher) || 10,

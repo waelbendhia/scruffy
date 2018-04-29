@@ -85,10 +85,7 @@ const updateEmptyPhotos =
     const albums: IAlbum[] = res.rows.map(
       r => ({
         ...parseFromRow(r),
-        band: {
-          name: r.bandname,
-          url: r.bandurl,
-        },
+        band: { name: r.bandname, url: r.bandurl },
       })
     );
 
@@ -171,7 +168,7 @@ const searchRows =
         req.yearLower,
         req.yearHigher,
         req.includeUnknown,
-        req.name,
+        req.name.replace(/\(/g, '\\(').replace(/\)/g, '\\)'),
         req.numberOfResults,
         req.page * req.numberOfResults,
       ]
@@ -192,8 +189,9 @@ const searchRows =
 
 const searchCount =
   (con: PoolClient, req: ISearchRequest) =>
-    con.query(
-      `SELECT
+    con
+      .query(
+        `SELECT
           count(*)
         FROM albums a INNER JOIN bands b ON b.partialUrl = a.band
         WHERE
@@ -204,22 +202,21 @@ const searchCount =
             lower(a.name) ~ lower($6) OR
             lower(b.name) ~ lower($6)
           );`,
-      [
-        req.ratingLower,
-        req.ratingHigher,
-        req.yearLower,
-        req.yearHigher,
-        req.includeUnknown,
-        req.name,
-      ]
-    ).then(({ rows }) => parseInt(rows[0].count, 10));
+        [
+          req.ratingLower,
+          req.ratingHigher,
+          req.yearLower,
+          req.yearHigher,
+          req.includeUnknown,
+          req.name.replace(/\(/g, '\\(').replace(/\)/g, '\\)'),
+        ]
+      )
+      .then(({ rows }) => parseInt(rows[0].count, 10));
 
-const search = async (con: PoolClient, req: ISearchRequest) => {
-  const [count, result] =
-    await Promise.all([searchCount(con, req), searchRows(con, req)]);
+const search = (con: PoolClient, req: ISearchRequest) =>
+  Promise.all([searchCount(con, req), searchRows(con, req)])
+    .then(([count, result]) => ({ count, result }));
 
-  return { count, result };
-};
 
 const getCount = (con: PoolClient) =>
   con.query(`SELECT count(*) AS count FROM albums;`)

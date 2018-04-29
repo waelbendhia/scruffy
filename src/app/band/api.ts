@@ -57,16 +57,11 @@ const router = () =>
       }
 
       const lfmBand = await getLastFMBandData(band, timeout, pool);
+      const relatedBands = isSuccessful(lfmBand)
+        ? await mapLFMBands(getDBFromRes(res), lfmBand.artist.similar.artist)
+        : [];
 
-      res.json({
-        ...band,
-        relatedBands: isSuccessful(lfmBand)
-          ? await mapLFMBands(
-            getDBFromRes(res),
-            lfmBand.artist.similar.artist
-          )
-          : [],
-      });
+      res.json({ ...band, relatedBands });
     })
     .get('/:volume/:url/lastfm', async (req, res) => {
       const { timeout, pool } = getHTTPConFromRes(res);
@@ -97,10 +92,7 @@ const router = () =>
       const lfmBand = await getLastFMBandData(band, timeout, pool);
 
       res.json(isSuccessful(lfmBand)
-        ? await mapLFMBands(
-          getDBFromRes(res),
-          lfmBand.artist.similar.artist
-        )
+        ? await mapLFMBands(getDBFromRes(res), lfmBand.artist.similar.artist)
         : []
       );
     })
