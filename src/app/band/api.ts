@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDBFromRes, getHTTPConFromRes } from '../shared';
+import { getDBFromRes, getHTTPConFromRes, wrapAsync } from '../shared';
 import {
   search,
   getMostInfluential,
@@ -19,32 +19,27 @@ import { isSuccessful, getByTag } from '../shared/lastfm';
 
 const router = () =>
   express.Router()
-    .use((_, res, next) => {
-      try {
-        next();
-      } catch (e) {
-        console.log(e);
-        res.status(500);
-      }
-    })
-    .get('/', async (req, res) =>
-      res.json(
-        await search(getDBFromRes(res), parseBandSearchRequest(req.query))
-      )
-    )
-    .get('/influential', async (_, res) =>
-      res.json(await getMostInfluential(getDBFromRes(res)))
-    )
-    .get('/total', async (_, res) =>
-      res.json(await getCount(getDBFromRes(res)))
-    )
-    .get('/tag/:tag', async (req, res) => {
+    .get('/', wrapAsync(async (req, res) => {
+      res.status(200).json(await search(
+        getDBFromRes(res),
+        parseBandSearchRequest(req.query)
+      ));
+    }))
+    .get('/influential', wrapAsync(async (_, res) =>
+      res.status(200).json(await getMostInfluential(getDBFromRes(res)))
+    ))
+    .get('/total', wrapAsync(async (_, res) =>
+      res.status(200).json(await getCount(getDBFromRes(res)))
+    ))
+    .get('/tag/:tag', wrapAsync(async (req, res) => {
       const { timeout, pool } = getHTTPConFromRes(res);
       const lfm = await getByTag(req.params.tag, 100, timeout, pool);
 
-      res.json(await mapLFMBands(getDBFromRes(res), lfm.topartists.artist));
-    })
-    .get('/:volume/:url', async (req, res) => {
+      res
+        .status(200)
+        .json(await mapLFMBands(getDBFromRes(res), lfm.topartists.artist));
+    }))
+    .get('/:volume/:url', wrapAsync(async (req, res) => {
       const { timeout, pool } = getHTTPConFromRes(res);
       const band = await get(
         getDBFromRes(res),
@@ -61,9 +56,9 @@ const router = () =>
         ? await mapLFMBands(getDBFromRes(res), lfmBand.artist.similar.artist)
         : [];
 
-      res.json({ ...band, relatedBands });
-    })
-    .get('/:volume/:url/lastfm', async (req, res) => {
+      res.status(200).json({ ...band, relatedBands });
+    }))
+    .get('/:volume/:url/lastfm', wrapAsync(async (req, res) => {
       const { timeout, pool } = getHTTPConFromRes(res);
       const band = await get(
         getDBFromRes(res),
@@ -75,9 +70,9 @@ const router = () =>
         return;
       }
 
-      res.json(await getLastFMBandData(band, timeout, pool));
-    })
-    .get('/:volume/:url/similar', async (req, res) => {
+      res.status(200).json(await getLastFMBandData(band, timeout, pool));
+    }))
+    .get('/:volume/:url/similar', wrapAsync(async (req, res) => {
       const { timeout, pool } = getHTTPConFromRes(res);
       const band = await get(
         getDBFromRes(res),
@@ -91,12 +86,12 @@ const router = () =>
 
       const lfmBand = await getLastFMBandData(band, timeout, pool);
 
-      res.json(isSuccessful(lfmBand)
+      res.status(200).json(isSuccessful(lfmBand)
         ? await mapLFMBands(getDBFromRes(res), lfmBand.artist.similar.artist)
         : []
       );
-    })
-    .post('/:volume/:url/corrections', async (req, res) => {
+    }))
+    .post('/:volume/:url/corrections', wrapAsync(async (req, res) => {
 
       const text = !!req.body && typeof req.body.text === 'string'
         ? req.body.text
@@ -107,23 +102,23 @@ const router = () =>
         return;
       }
 
-      res.json(
+      res.status(200).json(
         await submitCorrection(
           getDBFromRes(res),
           text,
           `${req.params.volume}/${req.params.url}.html`
         )
       );
-    })
-    .get('/:volume/:url/corrections', async (req, res) =>
-      res.json(
+    }))
+    .get('/:volume/:url/corrections', wrapAsync(async (req, res) =>
+      res.status(200).json(
         await getCorrections(
           getDBFromRes(res),
           `${req.params.volume}/${req.params.url}.html`
         )
       )
-    )
-    .post('/:volume/:url/corrections/:id', async (req, res) => {
+    ))
+    .post('/:volume/:url/corrections/:id', wrapAsync(async (req, res) => {
       const text = !!req.body && typeof req.body.text === 'string'
         ? req.body.text
         : '';
@@ -134,9 +129,11 @@ const router = () =>
         return;
       }
 
-      res.json(await submitRevision(getDBFromRes(res), text, correctionID));
-    })
-    .get('/:volume/:url/corrections/:id', async (req, res) => {
+      res
+        .status(200)
+        .json(await submitRevision(getDBFromRes(res), text, correctionID));
+    }))
+    .get('/:volume/:url/corrections/:id', wrapAsync(async (req, res) => {
       const correctionID = parseInt(req.params.id, 10);
 
       if (!correctionID) {
@@ -144,9 +141,9 @@ const router = () =>
         return;
       }
 
-      res.json(
+      res.status(200).json(
         await getRevisions(getDBFromRes(res), correctionID)
       );
-    });
+    }));
 
 export { router };

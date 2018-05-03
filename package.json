@@ -34,7 +34,8 @@
     "progress": "2.0.0",
     "request": "^2.85.0",
     "request-promise-native": "^1.0.5",
-    "typescript": "^2.8.0-dev.20180314"
+    "typescript": "^2.8.0-dev.20180314",
+    "uuid": "^3.2.1"
   },
   "repository": "https://github.com/WaelBenDhia/Scaruffi2.0Node.git",
   "devDependencies": {
@@ -44,6 +45,7 @@
     "@types/node": "^9.6.7",
     "@types/pg": "^7.4.5",
     "@types/request-promise-native": "^1.0.14",
+    "@types/uuid": "^3.4.3",
     "tslint": "^5.9.1"
   },
   "jshintConfig": {
