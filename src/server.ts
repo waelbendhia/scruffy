@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express from 'express';
 import morgan from 'morgan';
 import bodyParser from 'body-parser';
 import { Pool } from 'pg';
