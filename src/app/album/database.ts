@@ -12,23 +12,20 @@ enum SortBy {
   BAND_NAME = 'bandName',
 }
 
-const getSortByAsString = (
-  sortBy: SortBy,
-  albumSymbol: string,
-  bandSymbol: string
-) => {
-  switch (sortBy) {
-    case SortBy.RATING:
-      return albumSymbol + '.rating';
-    case SortBy.DATE:
-      return albumSymbol + '.year';
-    case SortBy.BAND_NAME:
-      return bandSymbol + '.name';
-    case SortBy.ALBUM_NAME:
-    default:
-      return albumSymbol + '.name';
-  }
-};
+const getSortByAsString =
+  (sortBy: SortBy, albumSymbol: string, bandSymbol: string) => {
+    switch (sortBy) {
+      case SortBy.RATING:
+        return albumSymbol + '.rating';
+      case SortBy.DATE:
+        return albumSymbol + '.year';
+      case SortBy.BAND_NAME:
+        return bandSymbol + '.name';
+      case SortBy.ALBUM_NAME:
+      default:
+        return albumSymbol + '.name';
+    }
+  };
 
 const createAlbumsQuery =
   `CREATE TABLE albums(
@@ -54,12 +51,7 @@ const insert = (con: PoolClient, band: IBand, album: IAlbum) =>
   );
 
 const insertPhotoUrl =
-  async (
-    con: PoolClient,
-    album: IAlbum,
-    timeout: number,
-    pool: http.Agent
-  ) =>
+  async (con: PoolClient, album: IAlbum, timeout: number, pool: http.Agent) =>
     await con.query(
       'UPDATE albums SET imageUrl = $1 WHERE name = $2 and band = $3',
       [
@@ -89,20 +81,17 @@ const updateEmptyPhotos =
       })
     );
 
-    await Promise.all(
-      albums
-        .map(
-          a => insertPhotoUrl(con, a, timeout, pool)
-            .then(() => console.log(`Got photo for ${a.name}`))
-            .catch(e => console.log(`Failed photo for ${a.name} with: ${e}`))
-        )
-    );
+    await Promise.all(albums.map(
+      a => insertPhotoUrl(con, a, timeout, pool)
+        .then(() => console.log(`Got photo for ${a.name}`))
+        .catch(e => console.log(`Failed photo for ${a.name} with: ${e}`))
+    ));
   };
 
 const find = (con: PoolClient, band: IBand) =>
   con
     .query(`SELECT * FROM albums where band =$1`, [band.url])
-    .then(({ rows }) => rows.map(parseFromRow));
+    .then(res => res.rows.map(parseFromRow));
 
 
 
@@ -115,11 +104,11 @@ const getRatingDistribution =
           count(*) as count
         FROM albums GROUP BY floor(albums.rating*2)/2;`
       )
-      .then(({ rows }) =>
-        rows.reduce(
-          (p, { rating, count }: { rating: number, count: string }) => ({
+      .then(res =>
+        res.rows.reduce(
+          (p, row: { rating: number, count: string }) => ({
             ...p,
-            [rating.toFixed(1)]: parseInt(count, 10),
+            [row.rating.toFixed(1)]: parseInt(row.count, 10),
           }),
           {}
         )
@@ -140,51 +129,50 @@ interface ISearchRequest {
 
 const searchRows =
   (con: PoolClient, req: ISearchRequest) =>
-    con.query(
-      `SELECT
-        a.name AS name,
-        a.imageUrl AS imageUrl,
-        a.year AS year,
-        a.rating AS rating,
-        b.name AS bandname,
-        b.partialUrl AS bandurl
-      FROM albums a INNER JOIN bands b ON b.partialUrl = a.band
-      WHERE
-        a.rating BETWEEN $1 AND $2 AND
-        (a.year BETWEEN $3 AND $4 AND a.year != 0 OR (a.year = 0 AND $5)) AND
-        (
-          $6 = '' OR
-          lower(a.name) ~ lower($6) OR
-          lower(b.name) ~ lower($6)
-        )
-      ORDER BY
-          ${getSortByAsString(req.sortBy, 'a', 'b')}
-          ${req.sortOrderAsc ? 'ASC' : 'DESC'},
-          a.name
-      LIMIT $7 OFFSET $8;`,
-      [
-        req.ratingLower,
-        req.ratingHigher,
-        req.yearLower,
-        req.yearHigher,
-        req.includeUnknown,
-        req.name.replace(/\(/g, '\\(').replace(/\)/g, '\\)'),
-        req.numberOfResults,
-        req.page * req.numberOfResults,
-      ]
-    )
-      .then(
-        ({ rows }) => rows.map(
-          r => ({
-            ...parseFromRow(r),
-            band: {
-              name: r.bandname,
-              url: r.bandurl,
-              fullurl: `http://scaruffi.com/${r.bandurl}`,
-            },
-          })
-        )
-      );
+    con
+      .query(
+        `SELECT
+          a.name AS name,
+          a.imageUrl AS imageUrl,
+          a.year AS year,
+          a.rating AS rating,
+          b.name AS bandname,
+          b.partialUrl AS bandurl
+        FROM albums a INNER JOIN bands b ON b.partialUrl = a.band
+        WHERE
+          a.rating BETWEEN $1 AND $2 AND
+          (a.year BETWEEN $3 AND $4 AND a.year != 0 OR (a.year = 0 AND $5)) AND
+          (
+            $6 = '' OR
+            lower(a.name) ~ lower($6) OR
+            lower(b.name) ~ lower($6)
+          )
+        ORDER BY
+            ${getSortByAsString(req.sortBy, 'a', 'b')}
+            ${req.sortOrderAsc ? 'ASC' : 'DESC'},
+            a.name
+        LIMIT $7 OFFSET $8;`,
+        [
+          req.ratingLower,
+          req.ratingHigher,
+          req.yearLower,
+          req.yearHigher,
+          req.includeUnknown,
+          req.name.replace(/\(/g, '\\(').replace(/\)/g, '\\)'),
+          req.numberOfResults,
+          req.page * req.numberOfResults,
+        ]
+      )
+      .then(res => res.rows.map(
+        r => ({
+          ...parseFromRow(r),
+          band: {
+            name: r.bandname,
+            url: r.bandurl,
+            fullurl: `http://scaruffi.com/${r.bandurl}`,
+          },
+        })
+      ));
 
 
 const searchCount =
@@ -211,16 +199,18 @@ const searchCount =
           req.name.replace(/\(/g, '\\(').replace(/\)/g, '\\)'),
         ]
       )
-      .then(({ rows }) => parseInt(rows[0].count, 10));
+      .then(res => parseInt(res.rows[0].count, 10));
 
 const search = (con: PoolClient, req: ISearchRequest) =>
-  Promise.all([searchCount(con, req), searchRows(con, req)])
+  Promise
+    .all([searchCount(con, req), searchRows(con, req)])
     .then(([count, result]) => ({ count, result }));
 
 
 const getCount = (con: PoolClient) =>
-  con.query(`SELECT count(*) AS count FROM albums;`)
-    .then(({ rows }) => parseInt(rows[0].count, 10));
+  con
+    .query(`SELECT count(*) AS count FROM albums;`)
+    .then(res => parseInt(res.rows[0].count, 10));
 
 const matchNames = (con: PoolClient, names: string[]) =>
   con
@@ -233,22 +223,19 @@ const matchNames = (con: PoolClient, names: string[]) =>
         b.name AS bandname,
         b.partialUrl AS bandurl
       FROM albums a INNER JOIN bands b ON b.partialUrl = a.band
-      WHERE
-        lower(a.name) = ANY ($1);`,
+      WHERE lower(a.name) = ANY ($1);`,
       [names.map(s => s.toLocaleLowerCase())]
     )
-    .then(
-      ({ rows }) => rows.map(
-        r => ({
-          ...parseFromRow(r),
-          band: {
-            name: r.bandname,
-            url: r.bandurl,
-            fullurl: `http://scaruffi.com/${r.bandurl}`,
-          },
-        })
-      )
-    );
+    .then(res => res.rows.map(
+      r => ({
+        ...parseFromRow(r),
+        band: {
+          name: r.bandname,
+          url: r.bandurl,
+          fullurl: `http://scaruffi.com/${r.bandurl}`,
+        },
+      })
+    ));
 
 const mapLFMAlbums = (con: PoolClient, albums: ILFMAlbum[]) =>
   matchNames(con, albums.map(a => a.name))

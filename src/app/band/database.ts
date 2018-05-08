@@ -103,7 +103,7 @@ const getRelatedBands = (con: PoolClient, band: IBand) =>
       WHERE bands2bands.urlOfBand =$1`,
       [band.url]
     )
-    .then(({ rows }) => rows.map(parseFromRow));
+    .then(res => res.rows.map(parseFromRow));
 
 const get =
   async (con: PoolClient, partialUrl: string): Promise<IBand | null> => {
@@ -127,7 +127,7 @@ const get =
 const getCount = (con: PoolClient) =>
   con
     .query(`SELECT count(*) AS count FROM bands;`)
-    .then(({ rows }) => parseInt(rows[0].count, 10));
+    .then(res => parseInt(res.rows[0].count, 10));
 
 
 const getMostInfluential = (con: PoolClient) =>
@@ -143,14 +143,11 @@ const getMostInfluential = (con: PoolClient) =>
       GROUP BY b.partialUrl
       ORDER BY inf DESC LIMIT 21;`
     )
-    .then(
-      ({ rows }) => rows
-        .map(
-          row => ({
-            ...parseFromRow(row),
-            influence: row.inf as number,
-          })
-        )
+    .then(res => res.rows
+      .map(row => ({
+        ...parseFromRow(row),
+        influence: row.inf as number,
+      }))
     );
 
 interface ISearchRequest {
@@ -177,7 +174,7 @@ const searchRows = (con: PoolClient, req: ISearchRequest) =>
         req.page * req.numberOfResults,
       ]
     )
-    .then(({ rows }) => rows.map(parseFromRow));
+    .then(res => res.rows.map(parseFromRow));
 
 const searchCount =
   (con: PoolClient, req: ISearchRequest) =>
@@ -188,7 +185,7 @@ const searchCount =
         WHERE lower(b.name) ~ lower($1);`,
         [req.name.replace(/\(/g, '\\(').replace(/\)/g, '\\)')]
       )
-      .then(({ rows }) => parseInt(rows[0].count, 10));
+      .then(res => parseInt(res.rows[0].count, 10));
 
 const mapLFMBands = (con: PoolClient, bands: ILFMArtistPartial[]) =>
   Promise

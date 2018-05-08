@@ -50,13 +50,13 @@ const submitRevision = (con: PoolClient, text: string, correctionID: number) =>
 const getCorrections = (con: PoolClient, bandURL: string) =>
   con
     .query('SELECT * FROM corrections WHERE band = $1;', [bandURL])
-    .then(({ rows }) => rows.map(parseCorrectionFromRow));
+    .then(res => res.rows.map(parseCorrectionFromRow));
 
 
 const getRevisions = (con: PoolClient, correctionID: number) =>
   con
     .query('SELECT * FROM revisions WHERE correction = $1;', [correctionID])
-    .then(({ rows }) => rows.map(parseRevisionFromRow));
+    .then(res => res.rows.map(parseRevisionFromRow));
 
 
 export {

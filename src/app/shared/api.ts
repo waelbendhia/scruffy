@@ -3,6 +3,9 @@ import { Request, Response, NextFunction } from 'express';
 import http from 'http';
 import { v4 } from 'uuid';
 
+type AsyncHandlerFunc<T> = (req: Request, res: Response, next: NextFunction) =>
+  Promise<T>;
+
 const uuidMiddleware = (_: Request, res: Response, next: NextFunction) => {
   const uuid = v4();
   res.locals.requestID = uuid;
@@ -41,9 +44,8 @@ const getHTTPConFromRes = (res: Response) => ({
   pool: res.locals.pool as http.Agent,
 });
 
-const wrapAsync = <T>(
-  fn: (req: Request, res: Response, next: NextFunction) => Promise<T>
-) => (req: Request, res: Response, next: NextFunction) =>
+const wrapAsync = <T>(fn: AsyncHandlerFunc<T>) =>
+  (req: Request, res: Response, next: NextFunction) =>
     fn(req, res, next).catch(next);
 
 const errorMiddleware =

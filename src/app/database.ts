@@ -59,4 +59,4 @@ const resetDatabase =
     await updateDatabase(con, timeout, pool);
   };
 
-export { updateDatabase, resetDatabase };
+export { updateDatabase, resetDatabase, createTables };
