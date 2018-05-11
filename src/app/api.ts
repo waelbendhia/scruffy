@@ -41,5 +41,4 @@ const router = (getDBCon: () => Promise<PoolClient>, publicDirectory: string) =>
     .use('/api/', api(getDBCon))
     .use('/', staticRoutes(publicDirectory));
 
-
 export { router };

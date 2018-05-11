@@ -7,7 +7,6 @@ import http from 'http';
 const dropTables = (con: PoolClient) =>
   con.query(`DROP TABLE IF EXISTS bands2bands, albums, bands;`);
 
-
 const createTables = (con: PoolClient) =>
   Promise.all([
     Band.createTables(con),

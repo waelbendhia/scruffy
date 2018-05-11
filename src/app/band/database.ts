@@ -21,13 +21,11 @@ const createBand2Bandquery =
     FOREIGN KEY (urlOfRelated) REFERENCES bands(partialUrl)
   );`;
 
-
 const createTables = (con: PoolClient) =>
   Promise.all(
     [createBandsQuery, createBand2Bandquery]
       .map(query => con.query(query))
   );
-
 
 const insertPartial = (con: PoolClient, band: IBand) =>
   con.query(
@@ -123,12 +121,10 @@ const get =
     return { ...partialBand, albums, relatedBands };
   };
 
-
 const getCount = (con: PoolClient) =>
   con
     .query(`SELECT count(*) AS count FROM bands;`)
     .then(res => parseInt(res.rows[0].count, 10));
-
 
 const getMostInfluential = (con: PoolClient) =>
   con
@@ -204,8 +200,6 @@ const search = (con: PoolClient, req: ISearchRequest) =>
   Promise
     .all([searchCount(con, req), searchRows(con, req)])
     .then(([count, result]) => ({ count, result }));
-
-
 
 export {
   createTables,

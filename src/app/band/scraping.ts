@@ -49,7 +49,6 @@ const getFromBandsPage =
     }
   };
 
-
 const getRock = (timeout: number, pool: http.Agent) =>
   getFromBandsPage(
     'http://scaruffi.com/music/groups.html',
@@ -58,7 +57,6 @@ const getRock = (timeout: number, pool: http.Agent) =>
     $ => $('table:nth-of-type(3) a').get()
   );
 
-
 const getJazz = (timeout: number, pool: http.Agent) =>
   getFromBandsPage(
     'http://scaruffi.com/jazz/musician.html',
@@ -66,7 +64,6 @@ const getJazz = (timeout: number, pool: http.Agent) =>
     pool,
     $ => $('[width="400"] a').get()
   );
-
 
 const getFromVolume = (volume: number, timeout: number, pool: http.Agent) =>
   getFromBandsPage(
@@ -114,7 +111,6 @@ const getAllBands = async (timeout: number, pool: http.Agent) => {
     .map(url => ({ url, name: bands[url].name }))
     .sort((a, b) => a.name.localeCompare(b.name));
 };
-
 
 const getNameFromBody = ($: CheerioStatic) => {
   if ($('center').get().length === 0) { return ''; }
@@ -218,7 +214,6 @@ const getInfo = async (
     url: band.url,
   };
 };
-
 
 const getPhotoUrl = async (
   band: IBand,

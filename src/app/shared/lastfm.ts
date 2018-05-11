@@ -53,13 +53,11 @@ interface ILFMBandSuccess {
   artist: ILFMArtist;
 }
 
-
 interface ILFMBandError {
   error: number;
   message: string;
   links: any[];
 }
-
 
 enum LFMSizes {
   SMALL = 'small',
@@ -104,7 +102,6 @@ interface ILFMTagsResponse {
     artist: ILFMArtist[];
   };
 }
-
 
 const getByTag = async (
   tag: string,

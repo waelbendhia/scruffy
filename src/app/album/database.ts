@@ -40,7 +40,6 @@ const createAlbumsQuery =
 
 const createTable = (con: PoolClient) => con.query(createAlbumsQuery);
 
-
 const insert = (con: PoolClient, band: IBand, album: IAlbum) =>
   con.query(
     `INSERT INTO
@@ -93,15 +92,12 @@ const find = (con: PoolClient, band: IBand) =>
     .query(`SELECT * FROM albums where band =$1`, [band.url])
     .then(res => res.rows.map(parseFromRow));
 
-
-
 const getRatingDistribution =
   (con: PoolClient): Promise<{ [rating: string]: number }> =>
     con
       .query(
         `SELECT
-          floor(albums.rating*2)/2 as rating,
-          count(*) as count
+          floor(albums.rating*2)/2 as rating, count(*) as count
         FROM albums GROUP BY floor(albums.rating*2)/2;`
       )
       .then(res =>
@@ -174,7 +170,6 @@ const searchRows =
         })
       ));
 
-
 const searchCount =
   (con: PoolClient, req: ISearchRequest) =>
     con
@@ -205,7 +200,6 @@ const search = (con: PoolClient, req: ISearchRequest) =>
   Promise
     .all([searchCount(con, req), searchRows(con, req)])
     .then(([count, result]) => ({ count, result }));
-
 
 const getCount = (con: PoolClient) =>
   con

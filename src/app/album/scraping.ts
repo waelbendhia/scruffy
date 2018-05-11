@@ -8,7 +8,6 @@ const lastfm_api_key = process.env.LASTFM_API_KEY;
 const withDefault = <T>(res: RegExpMatchArray | null, def: T) =>
   !!res && res.length > 0 ? res[0] : def;
 
-
 const findInBody = ($: CheerioStatic): IAlbum[] => {
   if ($('table').get().length === 0) {
     return [];

@@ -21,13 +21,11 @@ const createRevisionsQuery =
     FOREIGN KEY (correction) REFERENCES corrections(id)
   );`;
 
-
 const createTables = (con: PoolClient) =>
   Promise.all(
     [createCorrectionsQuery, createRevisionsQuery]
       .map(query => con.query(query))
   );
-
 
 const submitCorrection = (con: PoolClient, text: string, bandURL: string) =>
   con.query(
@@ -52,12 +50,10 @@ const getCorrections = (con: PoolClient, bandURL: string) =>
     .query('SELECT * FROM corrections WHERE band = $1;', [bandURL])
     .then(res => res.rows.map(parseCorrectionFromRow));
 
-
 const getRevisions = (con: PoolClient, correctionID: number) =>
   con
     .query('SELECT * FROM revisions WHERE correction = $1;', [correctionID])
     .then(res => res.rows.map(parseRevisionFromRow));
-
 
 export {
   createTables,
