@@ -6,10 +6,8 @@ import { router } from './app';
 import { uuidMiddleware, getUUID, errorMiddleware } from './app/shared';
 
 const port =
-  parseInt(
-    process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || '',
-    10
-  ) || 8001;
+  parseInt(process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || '', 10)
+  || 8001;
 const ip = process.env.IP || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0';
 
 const pool = new Pool({

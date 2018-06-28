@@ -80,22 +80,29 @@ const sizeToNum = (a: LFMSizes): number => {
 
 const compareSizes = (a: LFMSizes, b: LFMSizes) => sizeToNum(a) - sizeToNum(b);
 
-type ILFMBandResponse = ILFMBandSuccess | ILFMBandError;
+type ILFMBandResponse = ILFMBandSuccess | ILFMBandError | undefined;
 
 const getLastFMBandData = async (
   band: IBand,
   timeout: number,
   pool: http.Agent
-) => await request({
-  url:
-    'http://ws.audioscrobbler.com/2.0/?method=artist.getinfo'
-    + '&artist=' + band.name
-    + '&api_key=' + LASTFM_API_KEY
-    + '&format=json',
-  timeout,
-  pool,
-  json: true,
-}) as ILFMBandResponse;
+) => {
+  try {
+    return await request({
+      url:
+        'http://ws.audioscrobbler.com/2.0/?method=artist.getinfo'
+        + '&artist=' + band.name
+        + '&api_key=' + LASTFM_API_KEY
+        + '&format=json',
+      timeout,
+      pool,
+      json: true,
+    }) as ILFMBandResponse;
+  } catch (e) {
+    console.log(e);
+    return undefined;
+  }
+};
 
 interface ILFMTagsResponse {
   topartists: {
@@ -121,7 +128,7 @@ const getByTag = async (
 }) as ILFMTagsResponse;
 
 const isSuccessful = (res: ILFMBandResponse): res is ILFMBandSuccess =>
-  !!(<ILFMBandSuccess>res).artist;
+  !!res && !!(<ILFMBandSuccess>res).artist;
 
 const getBiggestImage = <T extends { size: LFMSizes }>(xs: T[]): T | null =>
   !!xs
