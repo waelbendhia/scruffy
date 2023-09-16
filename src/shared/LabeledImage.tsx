@@ -2,8 +2,8 @@ import * as React from 'react';
 import { definitions } from '../shared';
 import { StyleSheet, css } from 'aphrodite/no-important';
 import { Link, LinkProps } from 'react-router-dom';
-
-const defaultImage = require('../albums/albumDefault.svg') as string;
+// @ts-ignore
+import defaultImage from '../albums/albumDefault.svg';
 
 interface IProps {
   imageUrl: string;
@@ -26,9 +26,7 @@ const HLabeledImage = ({ url, imageUrl, children, whiteText }: IProps) => {
         width: '100%',
       },
       ':hover > div::after': { opacity: 1 },
-      color: whiteText
-        ? definitions.colors.white
-        : definitions.colors.black,
+      color: whiteText ? definitions.colors.white : definitions.colors.black,
     },
     label: {
       display: 'flex',
@@ -104,9 +102,11 @@ const HLabeledImage = ({ url, imageUrl, children, whiteText }: IProps) => {
     },
   });
   const Elem = (props: Partial<LinkProps>) =>
-    !!url
-      ? <Link {...props} to={`/bands/${url.split('.')[0]}`} />
-      : <span {...props} />;
+    !!url ? (
+      <Link {...props} to={`/bands/${url.split('.')[0]}`} />
+    ) : (
+      <span {...props} />
+    );
 
   return (
     <Elem className={css(styles.container)}>

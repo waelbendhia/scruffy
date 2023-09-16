@@ -9,10 +9,11 @@ import { ConnectedRouter } from 'connected-react-router';
 
 ReactDOM.render(
   <Provider store={store}>
+    {/* @ts-ignore */}
     <ConnectedRouter history={history}>
       <App />
     </ConnectedRouter>
   </Provider>,
-  document.getElementById('root') as HTMLElement,
+  document.getElementById('root') as HTMLElement
 );
 registerServiceWorker();

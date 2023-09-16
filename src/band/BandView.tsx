@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Band, AlbumView, definitions, Album, SmallCard } from '../shared';
 import { StyleSheet, css } from 'aphrodite/no-important';
-
-const defaultBandImage = require('../bands/bandDefault.svg') as string;
+// @ts-ignore
+import defaultBandImage from '../bands/bandDefault.svg';
 
 const styles = StyleSheet.create({
   header: {
@@ -134,7 +134,7 @@ const Bio = ({ bio }: { bio: string }) => (
   <div className={css(styles.bio)}>
     {bio
       .split('\n')
-      .filter(t => t.trim() !== '')
+      .filter((t) => t.trim() !== '')
       .map((text, i) => (
         <p key={i} className={css(styles.bioParagraph)}>
           {text}
@@ -167,9 +167,9 @@ const Albums = ({ albums }: { albums: Album[] }) => {
             ? (b.year || 0) - (a.year || 0) === 0
               ? b.name.localeCompare(a.name)
               : (b.year || 0) - (a.year || 0)
-            : b.rating - a.rating,
+            : b.rating - a.rating
         )
-        .map(a => (
+        .map((a) => (
           <AlbumView key={(a.band ? a.band.url : '') + a.name} {...a} />
         ))}
       <div className={css(styles.borderBottom, styles.albumBorder)} />
@@ -197,7 +197,7 @@ const Related = ({ bands }: { bands: Band[] }) => {
     <div className={css(relStyles.container)}>
       <h1 style={{ marginLeft: '5%' }}>Similar Artists</h1>
       <div className={css(relStyles.bandsContainer)}>
-        {(bands || []).map(b => (
+        {(bands || []).map((b) => (
           <SmallCard key={b.url} bgUrl={b.imageUrl || defaultBandImage} {...b}>
             {b.name}
           </SmallCard>

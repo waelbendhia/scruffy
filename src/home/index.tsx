@@ -4,4 +4,4 @@ export {
   initialState as homeInitialState,
   reducer as homeReducer,
 } from './state';
-export { State as HomeState } from './types';
+export type { State as HomeState } from './types';

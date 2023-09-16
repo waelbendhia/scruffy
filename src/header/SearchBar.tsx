@@ -6,8 +6,8 @@ import { makeSearchAction, makeToggleSearchAction, Action } from './types';
 import HLabeledImage from '../shared/LabeledImage';
 import { connect } from 'react-redux';
 import { Dispatch } from 'redux';
-
-const defaultBandImage = require('../bands/bandDefault.svg') as string;
+// @ts-ignore
+import defaultBandImage from '../bands/bandDefault.svg';
 
 const mapStateToProps = ({ header }: IState) => ({
   open: header.open,
@@ -89,7 +89,7 @@ const SearchBar = (props: MergedProps) => {
           onChange={search}
         />
         <div className={css(styles.resultGrid)}>
-          {bands.map(b => (
+          {bands.map((b) => (
             <HLabeledImage
               key={b.name}
               url={b.url}
@@ -101,7 +101,7 @@ const SearchBar = (props: MergedProps) => {
           ))}
         </div>
         <div className={css(styles.resultGrid)}>
-          {albums.map(a => (
+          {albums.map((a) => (
             <HLabeledImage
               key={a.name}
               url={a.band ? a.band.url : ''}
@@ -123,7 +123,4 @@ const SearchBar = (props: MergedProps) => {
   );
 };
 
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps,
-)(SearchBar);
+export default connect(mapStateToProps, mapDispatchToProps)(SearchBar);

@@ -1,12 +1,12 @@
-import { Album, get } from '../shared';
+import { album, get } from '../shared';
 import { SearchRequest } from './types';
-import * as t from 'io-ts';
+import z from 'zod';
 
-export const SearchResult = t.type({ count: t.number, data: t.array(Album) });
-export type SearchResult = t.TypeOf<typeof SearchResult>;
+export const searchResult = z.object({ count: z.number(), data: z.array(album) });
+export type SearchResult = z.infer<typeof searchResult>;
 
 export const searchAlbums = (req: Partial<SearchRequest>) =>
-  get('/api/albums', SearchResult, {
+  get('/api/albums', searchResult, {
     ...req,
     sortBy: `${req.sortBy},${req.sortOrderAsc ? 'asc' : 'desc'}`,
   });

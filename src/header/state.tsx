@@ -23,12 +23,9 @@ function* fetchBands(action: Search) {
   try {
     const res: Unpack<typeof searchBandsAndAlbums> = yield call(
       searchBandsAndAlbums,
-      action.payload,
+      action.payload
     );
-    if (res.isLeft()) {
-      console.log(res);
-    }
-    const [bands, albums] = res.getOrElse([[], []]);
+    const [bands, albums] = res;
     yield put(makeSearchResultSuccess({ bands, albums }));
   } catch (e) {
     yield put(makeSearchResultFailed(e));
@@ -45,8 +42,8 @@ const reducer = nextState<Action, IState>(initialState, {
   '[Header] Search': (a, s) => ({ ...s, search: a.payload }),
   '[Header] Search result': (a, s) => ({
     ...s,
-    bands: a.payload.map(p => p.bands).withDefault([]),
-    albums: a.payload.map(p => p.albums).withDefault([]),
+    bands: a.payload.tag === 'ok' ? a.payload.data.bands : [],
+    albums: a.payload.tag === 'ok' ? a.payload.data.albums : [],
   }),
 });
 

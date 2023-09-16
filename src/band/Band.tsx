@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Band, Loading, definitions, Loadable } from '../shared';
+import { Band, Loading, definitions, Loadable, caseOf } from '../shared';
 import { TransitionGroup, CSSTransition } from 'react-transition-group';
 import { css, StyleSheet } from 'aphrodite/no-important';
 import BandView from './BandView';
@@ -36,16 +36,14 @@ const styles = StyleSheet.create({
 const mapStateToProps = (state: IState) => state.band;
 
 const View = (band: Loadable<Band>) => (
-  <DocumentTitle
-    title={`Scaruffi2.0: ${band.map(b => b.name).withDefault('')}`}
-  >
+  <DocumentTitle title={`Scaruffi2.0: ${band.data?.name ?? ''}`}>
     <TransitionGroup className={css(styles.container)}>
       <CSSTransition
-        key={band.caseOf({
-          Error: () => 'error',
-          Loading: () => 'loading',
-          Ok: () => 'bands',
-          NotRequested: () => 'not requested',
+        key={caseOf(band, {
+          error: () => 'error',
+          loading: () => 'loading',
+          ok: () => 'bands',
+          notRequested: () => 'not requested',
         })}
         timeout={150}
         classNames={{
@@ -57,13 +55,13 @@ const View = (band: Loadable<Band>) => (
           exitActive: css(styles.in),
         }}
       >
-        {band.caseOf({
-          Ok: (b: Band) => <BandView {...b} />,
-          Error: (e: unknown) => <div>{JSON.stringify(e)}</div>,
-          Loading: () => (
+        {caseOf(band,{
+          ok: (b: Band) => <BandView {...b} />,
+          error: (e: unknown) => <div>{JSON.stringify(e)}</div>,
+          loading: () => (
             <Loading className={css(styles.loading, styles.position)} />
           ),
-          NotRequested: () => <div>Not Requested</div>,
+          notRequested: () => <div>Not Requested</div>,
         })}
       </CSSTransition>
     </TransitionGroup>

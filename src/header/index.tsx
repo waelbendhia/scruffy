@@ -1,5 +1,5 @@
 export { default } from './Header';
-export { IState as HeaderState } from './types';
+export type { IState as HeaderState } from './types';
 export {
   effects as headerEffects,
   initialState as headerInitialState,

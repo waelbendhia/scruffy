@@ -3,7 +3,7 @@ import { TransitionGroup, CSSTransition } from 'react-transition-group';
 import Loading from './Loading';
 import { definitions } from './style';
 import { StyleSheet, css } from 'aphrodite/no-important';
-import { Loadable } from './types';
+import { Loadable, caseOf } from './types';
 
 interface IGridProps<T> {
   data: Loadable<T[]>;
@@ -56,11 +56,11 @@ function Grid<T>(props: IGridProps<T>) {
     >
       {
         <CSSTransition
-          key={data.caseOf({
-            Error: () => 'error',
-            Loading: () => 'loading',
-            Ok: () => 'bands',
-            NotRequested: () => 'not requested',
+          key={caseOf(data, {
+            error: () => 'error',
+            loading: () => 'loading',
+            ok: () => 'bands',
+            notRequested: () => 'not requested',
           })}
           timeout={150}
           classNames={{
@@ -72,11 +72,11 @@ function Grid<T>(props: IGridProps<T>) {
             exitActive: css(styles.in),
           }}
         >
-          {data.caseOf({
-            Ok: xs => <div className={css(styles.grid)}>{xs.map(cell)}</div>,
-            Error: _ => <h1>Damn...</h1>,
-            NotRequested: () => <h1>Nothing</h1>,
-            Loading: () => <Loading className={css(styles.loading)} />,
+          {caseOf(data, {
+            ok: (xs) => <div className={css(styles.grid)}>{xs.map(cell)}</div>,
+            error: () => <h1>Damn...</h1>,
+            notRequested: () => <h1>Nothing</h1>,
+            loading: () => <Loading className={css(styles.loading)} />,
           })}
         </CSSTransition>
       }

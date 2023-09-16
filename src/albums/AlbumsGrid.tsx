@@ -6,8 +6,8 @@ import { Dispatch } from 'redux';
 import { Action, makeGetAlbumsAction } from './types';
 import { bound } from '../shared/types/Other';
 import { connect } from 'react-redux';
-
-const defaultImage = require('./albumDefault.svg') as string;
+// @ts-ignore
+import defaultImage from './albumDefault.svg';
 
 const styles = StyleSheet.create({
   band: { fontSize: '0.8em', overflow: 'hidden', textOverflow: 'ellipsis' },
@@ -29,7 +29,7 @@ const mapDispatchToProps = (dispatch: Dispatch<Action>) => ({
     dispatch(
       makeGetAlbumsAction({
         page: bound(0, maxPage - 1, page + delta),
-      }),
+      })
     ),
 });
 
@@ -40,7 +40,7 @@ const View = (props: MergedProps) => (
     className={css(styles.grid)}
     {...props}
     data={props.albums}
-    cell={a => (
+    cell={(a) => (
       <SmallCard
         key={(a.band ? a.band.url : '') + a.name}
         bgUrl={a.imageUrl || defaultImage}
@@ -66,5 +66,5 @@ export default connect(
   (stateProps, dispatchProps) => ({
     ...stateProps,
     changePage: dispatchProps.changePage(stateProps.maxPage, stateProps.page),
-  }),
+  })
 )(View);

@@ -1,15 +1,15 @@
-import { BandWithInfluence } from './types';
+import { bandWithInfluence } from './types';
 import { get } from '../shared';
-import * as t from 'io-ts';
+import z from 'zod';
 
 export const getInfluential = () =>
-  get<BandWithInfluence>('/api/band/influential', BandWithInfluence);
+  get('/api/band/influential', z.array(bandWithInfluence));
 
-const Distribution = t.array(t.number);
+const distribution = z.record(z.number());
 
 export const getDistribution = () =>
-  get<number[]>('/api/album/distribution', Distribution);
+  get('/api/album/distribution', distribution);
 
-export const getBandCount = () => get('/api/band/total', t.number);
+export const getBandCount = () => get('/api/band/total', z.number());
 
-export const getAlbumCount = () => get('/api/album/total', t.number);
+export const getAlbumCount = () => get('/api/album/total', z.number());

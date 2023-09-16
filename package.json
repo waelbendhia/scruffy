@@ -6,25 +6,24 @@
     "aphrodite": "^2.3.1",
     "axios": "^0.18.0",
     "connected-react-router": "^6.4.0",
-    "fp-ts": "^1.18.2",
     "history": "^4.9.0",
-    "io-ts": "^1.8.6",
     "react": "^16.8.6",
     "react-document-title": "^2.0.3",
     "react-dom": "^16.8.6",
     "react-redux": "^7.0.3",
     "react-router": "^5.0.0",
     "react-router-dom": "^5.0.0",
-    "react-scripts-ts": "3.1.0",
+    "react-scripts": "^5.0.1",
     "react-transition-group": "^4.0.1",
     "redux": "^4.0.1",
-    "redux-saga": "^1.0.2"
+    "redux-saga": "^1.0.2",
+    "zod": "^3.22.2"
   },
   "scripts": {
-    "start": "react-scripts-ts start",
-    "build": "react-scripts-ts build",
-    "test": "react-scripts-ts test --env=jsdom",
-    "eject": "react-scripts-ts eject"
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject"
   },
   "devDependencies": {
     "@babel/runtime": "^7.4.5",
@@ -45,5 +44,17 @@
     "tslint": "^5.16.0",
     "typescript": "^3.4.5"
   },
-  "proxy": "http://localhost:8001"
+  "proxy": "http://localhost:8001",
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
 }

@@ -1,23 +1,20 @@
-import { Band, Album, get } from '../shared';
+import { band, album, get } from '../shared';
 import { SortBy } from '../albums';
-import { either } from 'fp-ts';
-import * as t from 'io-ts';
+import z from 'zod';
 
-const BandSearchResult = t.type({ data: t.array(Band) });
+const bandSearchResult = z.object({ data: z.array(band) });
 
-export type BandSearchResult = t.TypeOf<typeof BandSearchResult>;
+export type BandSearchResult = z.infer<typeof bandSearchResult>;
 
-const AlbumSearchResult = t.type({ data: t.array(Album) });
+const albumSearchResult = z.object({ data: z.array(album) });
 
-export type AlbumSearchResult = t.TypeOf<typeof AlbumSearchResult>;
+export type AlbumSearchResult = z.infer<typeof albumSearchResult>;
 
-const searchBandsAndAlbums = async (
-  term: string,
-): Promise<either.Either<t.Errors, [Band[], Album[]]>> => {
+const searchBandsAndAlbums = async (term: string): Promise<any> => {
   term = term.trim();
 
   if (!term) {
-    return new either.Right([[], []]);
+    return [[], []];
   }
 
   const params = {
@@ -27,11 +24,12 @@ const searchBandsAndAlbums = async (
     includeUnknown: true,
   };
 
-  const [bands, albums] = await Promise.all([
-    get('/api/bands', BandSearchResult, params),
-    get('/api/albums', AlbumSearchResult, params),
+  const x = await Promise.all([
+    get('/api/bands', bandSearchResult, params),
+    get('/api/albums', albumSearchResult, params),
   ]);
-  return bands.chain(bs => albums.map(as => [bs.data, as.data]));
+
+  return x;
 };
 
 export { searchBandsAndAlbums };

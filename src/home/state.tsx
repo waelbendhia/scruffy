@@ -6,7 +6,7 @@ import {
   makeGetDataSuccess,
   makeGetDataFailed,
 } from './types';
-import { call, put, takeEvery, all } from 'redux-saga/effects';
+import { call, put, takeEvery, all, Effect } from 'redux-saga/effects';
 import {
   getInfluential,
   getDistribution,
@@ -14,19 +14,34 @@ import {
   getAlbumCount,
 } from './api';
 import { LOCATION_CHANGE, LocationChangeAction } from 'connected-react-router';
-import { Loading, NotRequested } from '../shared/types';
 import { nextState } from '../shared/types/actions';
 
-const initialState: State = new NotRequested();
+const initialState: State = { tag: 'not requested' };
 
-function* fetchData() {
+type Unwrap<T extends (...args: any) => any> = ReturnType<T> extends Promise<
+  infer R
+>
+  ? R
+  : ReturnType<T>;
+
+function* fetchData(): Generator<Effect, void, any> {
   try {
-    const [influential, ratings, bandCount, albumCount] = yield Promise.all(
-      [getInfluential, getDistribution, getBandCount, getAlbumCount].map(call),
+    const [influential, ratings, bandCount, albumCount]: [
+      Unwrap<typeof getInfluential>,
+      Unwrap<typeof getDistribution>,
+      Unwrap<typeof getBandCount>,
+      Unwrap<typeof getAlbumCount>
+    ] = yield call(() =>
+      Promise.all([
+        getInfluential(),
+        getDistribution(),
+        getBandCount(),
+        getAlbumCount(),
+      ])
     );
 
     yield put(
-      makeGetDataSuccess({ influential, ratings, bandCount, albumCount }),
+      makeGetDataSuccess({ influential, ratings, bandCount, albumCount })
     );
   } catch (e) {
     yield put(makeGetDataFailed(e));
@@ -44,13 +59,13 @@ function* effects() {
       (action: LocationChangeAction) =>
         action.type === LOCATION_CHANGE &&
         action.payload.location.pathname === '/',
-      dispatchGetData,
+      dispatchGetData
     ),
   ]);
 }
 
 const reducer = nextState<Action, State>(initialState, {
-  '[Home] Get data': (_a, _s) => new Loading(),
+  '[Home] Get data': (_a, _s) => ({ tag: 'loading' }),
   '[Home] Get data done': (a, _) => a.payload,
 });
 

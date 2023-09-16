@@ -9,7 +9,6 @@ import {
 } from './types';
 import { call, put, takeEvery, all } from 'redux-saga/effects';
 import { LocationChangeAction, LOCATION_CHANGE } from 'connected-react-router';
-import { Loading, NotRequested } from '../shared/types';
 import { searchBands } from './api';
 import { select, takeLatest } from 'redux-saga/effects';
 import { IState as AppState } from '../store';
@@ -17,7 +16,7 @@ import { nextState } from '../shared/types/actions';
 import { Unpack } from 'shared/types/Other';
 
 const initialState: State = {
-  bands: new NotRequested(),
+  bands: { tag: 'not requested' },
   count: 0,
   request: {
     page: 0,
@@ -36,9 +35,9 @@ function* fetchBands(action: GetBandsAction) {
     });
     yield put(
       makeGetBandsSuccess({
-        bands: res.map(x => x.data).getOrElse([]),
-        count: res.map(x => x.count).getOrElse(0),
-      }),
+        bands: res.data,
+        count: res.count,
+      })
     );
   } catch (e) {
     yield put(makeGetBandsFailed(e));
@@ -57,7 +56,7 @@ function* effects() {
       (action: LocationChangeAction) =>
         action.type === LOCATION_CHANGE &&
         action.payload.location.pathname === '/bands',
-      dispatchGetBands,
+      dispatchGetBands
     ),
   ]);
 }
@@ -66,12 +65,15 @@ const reducer = nextState<Action, State>(initialState, {
   '[Bands] Get bands': (a, s) => ({
     ...s,
     request: { ...s.request, ...a.payload },
-    bands: new Loading(),
+    bands: { tag: 'loading' },
   }),
   '[Bands] Get bands done': (a, s) => ({
     ...s,
-    count: a.payload.map(x => x.count).withDefault(0),
-    bands: a.payload.map(x => x.bands),
+    count: a.payload.data?.count ?? 0,
+    bands:
+      a.payload.tag === 'ok'
+        ? { tag: 'ok', data: a.payload.data.bands }
+        : a.payload,
   }),
   '[Bands] Toggle filters': (_, s) => ({ ...s, filtersOpen: !s.filtersOpen }),
 });

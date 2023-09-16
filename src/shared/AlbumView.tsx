@@ -2,8 +2,9 @@ import * as React from 'react';
 import { definitions, Album } from '../shared';
 import { StyleSheet, css } from 'aphrodite/no-important';
 import LabeledImage from './LabeledImage';
+// @ts-ignore
+import defaultImage from '../albums/albumDefault.svg';
 
-const defaultImage = require('../albums/albumDefault.svg') as string;
 const styles = StyleSheet.create({
   ellipsis: {
     whiteSpace: 'nowrap',

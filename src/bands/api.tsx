@@ -1,9 +1,9 @@
-import { Band, get } from '../shared';
+import { band, get } from '../shared';
 import { SearchRequest } from './types';
-import * as t from 'io-ts';
+import z from 'zod';
 
-const SearchResult = t.type({ count: t.number, data: t.array(Band) });
-export type SearchResult = t.TypeOf<typeof SearchResult>;
+const searchResult = z.object({ count: z.number(), data: z.array(band) });
+export type SearchResult = z.infer<typeof searchResult>;
 
-export const searchBands = async (req: SearchRequest) =>
-  get('/api/bands', SearchResult, req);
+export const searchBands = (req: SearchRequest) =>
+  get('/api/bands', searchResult, req);

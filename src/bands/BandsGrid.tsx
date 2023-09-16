@@ -6,12 +6,12 @@ import { Dispatch } from 'redux';
 import { Action, makeGetBandsAction } from './types';
 import { bound, Band } from '../shared/types/Other';
 import { connect } from 'react-redux';
+// @ts-ignore
+import defaultImage from './bandDefault.svg';
 
 const styles = StyleSheet.create({
   grid: { gridArea: 'grid', position: 'relative' },
 });
-
-const defaultImage = require('./bandDefault.svg') as string;
 
 const mapStateToProps = ({ bands }: IState) => ({
   bands: bands.bands,
@@ -26,7 +26,7 @@ const mapDispatchToProps = (dispath: Dispatch<Action>) => ({
     dispath(
       makeGetBandsAction({
         page: bound(0, maxPage - 1, page + delta),
-      }),
+      })
     ),
 });
 
@@ -54,5 +54,5 @@ export default connect(
   (stateProps, dispatchProps) => ({
     ...stateProps,
     changePage: dispatchProps.changePage(stateProps.maxPage, stateProps.page),
-  }),
+  })
 )(View);

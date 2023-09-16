@@ -4,4 +4,5 @@ export {
   reducer as albumsReducer,
   initialState as albumsInitialState,
 } from './state';
-export { State as AlbumsState, SortBy } from './types';
+export type { State as AlbumsState } from './types';
+export { SortBy } from './types';

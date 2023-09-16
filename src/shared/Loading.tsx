@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { StyleSheet, css } from 'aphrodite/no-important';
 import { definitions } from '.';
-const loadingImage = require('./ScruffFace.png');
+// @ts-ignore
+import loadingImage from './ScruffFace.png';
 
 const styles = StyleSheet.create({
   container: {
@@ -17,14 +18,17 @@ const styles = StyleSheet.create({
   spinner: {
     width: '100px',
     height: '100px',
-    animationName: [{
-      from: { transform: 'rotate(0deg)' },
-      to: { transform: 'rotate(360deg)' },
-    }],
+    animationName: [
+      {
+        from: { transform: 'rotate(0deg)' },
+        to: { transform: 'rotate(360deg)' },
+      },
+    ],
     animationDuration: '2s',
     animationIterationCount: 'infinite',
     animationTimingFunction: 'linear',
-    filter: 'drop-shadow(0 2px 1px black)' +
+    filter:
+      'drop-shadow(0 2px 1px black)' +
       'drop-shadow(0 -2px 1px black)' +
       'drop-shadow(2px 0 1px black)' +
       'drop-shadow(-2px 0 1px black)',

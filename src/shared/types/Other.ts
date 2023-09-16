@@ -1,42 +1,65 @@
-import * as t from 'io-ts';
+import z from 'zod';
 
-export type Album = {
-  name: string;
-  year: null | number;
-  rating: number;
-  imageUrl: null | string;
-  band: null | Band;
+const baseAlbumSchema = z.object({
+  name: z.string(),
+  year: z.number().optional(),
+  rating: z.number(),
+  imageUrl: z.string().optional(),
+});
+
+export type Album = z.infer<typeof baseAlbumSchema> & {
+  band?: Band;
 };
 
-export const Album: t.Type<Album> = t.recursion('Album', () =>
-  t.type({
-    name: t.string,
-    year: t.union([t.null, t.number]),
-    rating: t.number,
-    imageUrl: t.union([t.null, t.string]),
-    band: t.union([t.null, Band]),
-  }),
-);
+type AlbumRawShape = {
+  name: z.ZodString;
+  year: z.ZodOptional<z.ZodNumber>;
+  rating: z.ZodNumber;
+  imageUrl: z.ZodOptional<z.ZodString>;
+  band: z.ZodLazy<z.ZodOptional<z.ZodType<Band>>>;
+};
 
-export type Band = {
-  url: string;
-  name: string;
-  bio: null | string;
+export const album: z.ZodObject<
+  AlbumRawShape,
+  z.UnknownKeysParam,
+  z.ZodTypeAny,
+  Album,
+  Album
+> = baseAlbumSchema.extend({
+  band: z.lazy(() => band.optional()),
+});
+
+const baseBandSchema = z.object({
+  url: z.string(),
+  name: z.string(),
+  bio: z.string(),
+  imageUrl: z.string().optional(),
+});
+
+export type Band = z.infer<typeof baseBandSchema> & {
   relatedBands: Band[];
   albums: Album[];
-  imageUrl: string | null;
 };
 
-export const Band: t.Type<Band> = t.recursion('Band', () =>
-  t.type({
-    url: t.string,
-    name: t.string,
-    bio: t.union([t.null, t.string]),
-    relatedBands: t.array(Band),
-    albums: t.array(Album),
-    imageUrl: t.union([t.null, t.string]),
-  }),
-);
+type BandRawShape = {
+  url: z.ZodString;
+  name: z.ZodString;
+  bio: z.ZodString;
+  imageUrl: z.ZodOptional<z.ZodString>;
+  relatedBands: z.ZodLazy<z.ZodArray<z.ZodType<Band>>>;
+  albums: z.ZodLazy<z.ZodArray<z.ZodType<Album>>>;
+};
+
+export const band: z.ZodObject<
+  BandRawShape,
+  z.UnknownKeysParam,
+  z.ZodTypeAny,
+  Band,
+  Band
+> = baseBandSchema.extend({
+  relatedBands: z.lazy(() => z.array(band)),
+  albums: z.lazy(() => z.array(album)),
+});
 
 export const callIfFunc = <T1, T2>(f: T2 | ((_: T1) => T2), arg: T1) =>
   f instanceof Function ? f(arg) : f;

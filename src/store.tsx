@@ -4,7 +4,7 @@ import {
   routerMiddleware,
   connectRouter,
 } from 'connected-react-router';
-import createHistory from 'history/createBrowserHistory';
+import { createBrowserHistory } from 'history';
 import createSagaMiddleware from 'redux-saga';
 import { HomeState, homeReducer, homeEffects } from './home';
 import { BandsState, bandsReducer, bandsEffects } from './bands';
@@ -17,7 +17,7 @@ import {
 import { IState as HeaderState } from './header/types';
 
 const sagaMiddleware = createSagaMiddleware();
-const history = createHistory();
+const history = createBrowserHistory();
 
 interface IState {
   router: RouterState;
@@ -42,7 +42,7 @@ const store = createStore(
     header: headerReducer,
   }),
   undefined,
-  composeEnhancers(applyMiddleware(routerMiddleware(history), sagaMiddleware)),
+  composeEnhancers(applyMiddleware(routerMiddleware(history), sagaMiddleware))
 );
 
 sagaMiddleware.run(homeEffects);
