@@ -1,35 +1,19 @@
-import express from 'express';
-import { getDBFromRes, getHTTPConFromRes, wrapAsync } from '../shared';
-import {
-  search,
-  getRatingDistribution,
-  getCount,
-  mapLFMAlbums,
-} from './database';
-import { parseAlbumSearchRequest } from './types';
-import { getAlbumsByTag } from '../shared/lastfm';
+import { search, getCount, SearchRequest } from "./database";
+import { RouteHandlerMethod } from "fastify";
+import { QueryValidationError } from "../errors";
+import { Router } from "../routing";
 
-const router = () =>
-  express.Router()
-    .get('/', wrapAsync(async (req, res) =>
-      res.status(200).json(await search(
-        getDBFromRes(res),
-        parseAlbumSearchRequest(req.query)
-      ))
-    ))
-    .get('/total', wrapAsync(async (_, res) =>
-      res.status(200).json(await getCount(getDBFromRes(res)))
-    ))
-    .get('/tag/:tag', wrapAsync(async (req, res) => {
-      const { timeout, pool } = getHTTPConFromRes(res);
-      const lfm = await getAlbumsByTag(req.params.tag, 50, timeout, pool);
+export const api = {
+  domain: "album",
+  routes: {
+    "/": (async (req, _) => {
+      const eitherRequest = SearchRequest.safeParse(req.query);
+      if (!eitherRequest.success) {
+        throw new QueryValidationError(eitherRequest.error);
+      }
 
-      res
-        .status(200)
-        .json(await mapLFMAlbums(getDBFromRes(res), lfm.albums.album));
-    }))
-    .get('/distribution', wrapAsync(async (_, res) =>
-      res.status(200).json(await getRatingDistribution(getDBFromRes(res)))
-    ));
-
-export { router };
+      return await search(eitherRequest.data);
+    }) satisfies RouteHandlerMethod,
+    "/total": ((_, _reply) => getCount()) satisfies RouteHandlerMethod,
+  },
+} satisfies Router<"album">;

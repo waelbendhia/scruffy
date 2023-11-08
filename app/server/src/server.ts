@@ -1,33 +1,36 @@
-import express, { Response } from "express";
-import morgan from "morgan";
-import bodyParser from "body-parser";
-import { router } from "./app";
-import { uuidMiddleware, getUUID, errorMiddleware } from "./app/shared";
+import { api } from "./app";
+import Fastify, { RouteOptions } from "fastify";
 
-const port =
-  parseInt(process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || "", 10) ||
-  8001;
-const ip = process.env.IP || process.env.OPENSHIFT_NODEJS_IP || "0.0.0.0";
+const fastify = Fastify({ logger: true });
 
-morgan.token("request-id", (_, res: Response) => getUUID(res) ?? "");
+Object.entries(api.routes).forEach(([prefix, router]) => {
+  const routes: RouteOptions<any, any, any, any>[] =
+    router.domain === "album"
+      ? Object.entries(router.routes).map(([url, handler]) => ({
+          method: "GET",
+          url,
+          handler,
+        }))
+      : Object.entries(router.routes).map(([url, handler]) => ({
+          method: "GET",
+          url,
+          handler,
+        }));
+  fastify.register(
+    (app, _, done) => {
+      routes.forEach((route) => app.route(route));
+      done();
+    },
+    { prefix },
+  );
+});
 
-express()
-  .use(uuidMiddleware)
-  .use(bodyParser.json())
-  .use(
-    morgan((tokens, req, res) =>
-      [
-        tokens.method(req, res),
-        tokens["request-id"](req, res),
-        tokens.url(req, res),
-        tokens.status(req, res),
-        tokens.res(req, res, "content-length"),
-        "-",
-        tokens["response-time"](req, res),
-        "ms",
-      ].join(" "),
-    ),
-  )
-  .use("/", router)
-  .use(errorMiddleware)
-  .listen(port, ip, () => console.log("Listening on " + ip + ", port " + port));
+const port = parseInt(process.env.SERVER_PORT || "", 10) || 8001;
+const host = process.env.SERVER_HOST || "0.0.0.0";
+
+fastify.listen({ port, host }, (err) => {
+  if (err) {
+    fastify.log.error(err);
+    process.exit(1);
+  }
+});

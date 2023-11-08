@@ -1,8 +1,10 @@
-import { Album, Artist, Prisma, prisma } from "@scruffy/database";
-import { getPhotoUrl } from "./scraping";
-import http from "http";
+import { prisma } from "@scruffy/database";
+import type { Album, Artist, Prisma } from "@scruffy/database";
+import { z } from "zod";
+import { ItemsPerPage, Page } from "../validation";
 
-type SortBy = "rating" | "year" | "name" | "artist";
+const SortBy = z.enum(["rating", "year", "name", "artist"]);
+type SortBy = z.TypeOf<typeof SortBy>;
 
 export const insert = (artist: Artist, album: Album) => {
   const insertData: Prisma.AlbumCreateInput = {
@@ -17,7 +19,11 @@ export const insert = (artist: Artist, album: Album) => {
   });
 };
 
-export const updateEmptyPhotos = async (timeout: number, pool: http.Agent) =>
+const getPhotoUrl = (_: string, _1: string) =>
+  // TODO: this logic should not live here
+  Promise.resolve<string | undefined>(undefined);
+
+export const updateEmptyPhotos = async () =>
   prisma.$transaction(async (tx) => {
     const albums = await tx.album.findMany({
       where: { imageUrl: null },
@@ -26,9 +32,10 @@ export const updateEmptyPhotos = async (timeout: number, pool: http.Agent) =>
 
     const albumCovers = await Promise.all(
       albums.map((album) =>
-        getPhotoUrl(album.name, album.artist.name, timeout, pool).then(
-          (imageUrl) => ({ ...album, imageUrl }),
-        ),
+        getPhotoUrl(album.name, album.artist.name).then((imageUrl) => ({
+          ...album,
+          imageUrl,
+        })),
       ),
     );
 
@@ -49,54 +56,63 @@ export const find = (artist: Artist) =>
     where: { artist: { url: artist.url } },
   });
 
-export type SearchRequest = {
-  ratingLower?: number;
-  ratingHigher?: number;
-  yearLower?: number;
-  yearHigher?: number;
-  includeUnknown?: boolean;
-  name?: string;
-  sortBy?: SortBy;
-  sortOrder?: "asc" | "desc";
-  page: number;
-  numberOfResults: number;
-};
+const Rating = z.string().pipe(z.coerce.number().min(0).max(10));
 
-export const search = (req: SearchRequest) =>
+export const SearchRequest = z.object({
+  ratingMin: Rating.optional(),
+  ratingMax: Rating.optional(),
+  yearMin: z.string().pipe(z.coerce.number()).optional(),
+  yearMax: z.string().pipe(z.coerce.number()).optional(),
+  includeUnknown: z
+    .enum(["true", "false"])
+    .transform((v) => v === "true")
+    .optional(),
+  name: z.string().optional(),
+  sortBy: SortBy.optional(),
+  sortOrder: z.enum(["asc", "desc"]).optional(),
+
+  itemsPerPage: ItemsPerPage.optional(),
+  page: Page.optional(),
+});
+
+export type SearchRequest = z.TypeOf<typeof SearchRequest>;
+
+export const search = ({
+  itemsPerPage = 10,
+  page = 0,
+  sortOrder = "desc",
+  sortBy = "year",
+  name,
+  yearMin,
+  yearMax,
+  includeUnknown,
+  ratingMin,
+  ratingMax,
+}: SearchRequest) =>
   prisma.$transaction(async (tx) => {
     const nameFilter: Prisma.StringFilter | undefined =
-      req.name !== undefined ? { contains: req.name } : undefined;
+      name !== undefined ? { contains: name } : undefined;
     const whereQuery: Prisma.AlbumWhereInput = {
-      OR: [
-        {
-          year: {
-            gte: req.yearLower,
-            lte: req.yearLower,
-          },
-        },
-        {
-          year: req.includeUnknown === false ? { not: null } : undefined,
-        },
+      AND: [
+        { year: { gte: yearMin, lte: yearMax } },
+        { year: includeUnknown === false ? { not: null } : undefined },
       ],
-      rating: { gte: req.ratingLower, lte: req.ratingHigher },
+      rating: { gte: ratingMin, lte: ratingMax },
       name: nameFilter,
       artist: { name: nameFilter },
     };
 
-    const sortOrder = req.sortOrder ?? "desc";
     const orderBy: Prisma.AlbumOrderByWithRelationInput =
-      req.sortBy === undefined
-        ? { year: sortOrder }
-        : req.sortBy === "artist"
+      sortBy === "artist"
         ? { artist: { name: sortOrder } }
-        : { [req.sortBy]: sortOrder };
+        : { [sortBy]: sortOrder };
 
     const data = await tx.album.findMany({
       where: whereQuery,
-      include: { artist: true },
+      include: { artist: { select: { name: true, url: true } } },
       orderBy,
-      take: req.numberOfResults,
-      skip: req.numberOfResults * req.page,
+      take: itemsPerPage,
+      skip: itemsPerPage * page,
     });
     const count = await tx.album.count({ where: whereQuery });
 

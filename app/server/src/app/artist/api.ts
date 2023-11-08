@@ -1,33 +1,38 @@
-import express from "express";
-import { wrapAsync } from "../shared";
-import { getCount, get, search } from "./database";
-import { parseBandSearchRequest } from "./types";
+import { getCount, get, search, SearchRequest } from "./database";
+import { NotFoundError, QueryValidationError } from "../errors";
+import {
+  RawReplyDefaultExpression,
+  RawRequestDefaultExpression,
+  RawServerDefault,
+  RouteHandlerMethod,
+} from "fastify";
+import { Router } from "../routing";
 
-const router = () =>
-  express
-    .Router()
-    .get(
-      "/",
-      wrapAsync(async (req, res) => {
-        res.status(200).json(await search(parseBandSearchRequest(req.query)));
-      }),
-    )
-    .get(
-      "/total",
-      wrapAsync(async (_, res) => res.status(200).json(await getCount())),
-    )
-    .get(
-      "/:volume/:url",
-      wrapAsync(async (req, res) => {
-        const band = await get(`${req.params.volume}/${req.params.url}.html`);
+export const api = {
+  domain: "artist",
+  routes: {
+    "/": (async (req, _reply) => {
+      const eitherRequest = SearchRequest.safeParse(req.query);
+      if (!eitherRequest.success) {
+        throw new QueryValidationError(eitherRequest.error);
+      }
 
-        if (!band) {
-          res.status(404).json("Whoopsie");
-          return;
-        }
+      return await search(eitherRequest.data);
+    }) satisfies RouteHandlerMethod,
+    "/total": ((_, __reply) => getCount()) satisfies RouteHandlerMethod,
+    "/:volume/:url": (async (req, _reply) => {
+      const band = await get(`${req.params.volume}/${req.params.url}.html`);
 
-        res.status(200).json({ ...band });
-      }),
-    );
+      if (!band) {
+        throw new NotFoundError("artist");
+      }
 
-export { router };
+      return band;
+    }) satisfies RouteHandlerMethod<
+      RawServerDefault,
+      RawRequestDefaultExpression<RawServerDefault>,
+      RawReplyDefaultExpression<RawServerDefault>,
+      { Params: { volume: string; url: string } }
+    >,
+  },
+} satisfies Router<"artist">;

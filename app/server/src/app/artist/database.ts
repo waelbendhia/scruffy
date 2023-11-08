@@ -1,4 +1,6 @@
 import { Artist, Prisma, Album, prisma } from "@scruffy/database";
+import { z } from "zod";
+import { ItemsPerPage, Page } from "../validation";
 
 type Tx = typeof prisma.$transaction extends (lm: (tx: infer Tx) => any) => any
   ? Tx
@@ -72,27 +74,30 @@ export const get = (artistUrl: string) =>
 
 export const getCount = () => prisma.artist.count();
 
-export type SearchRequest = {
-  name: string;
-  numberOfResults: number;
-  page: number;
-};
+export const SearchRequest = z.object({
+  name: z.string().optional(),
+  itemsPerPage: ItemsPerPage.optional(),
+  page: Page.optional(),
+});
+
+export type SearchRequest = z.TypeOf<typeof SearchRequest>;
 
 export const search = async ({
   name,
-  numberOfResults,
-  page,
+  itemsPerPage = 10,
+  page = 0,
 }: SearchRequest) =>
   prisma.$transaction(async (tx) => {
     const data = await tx.artist.findMany({
-      where: {
-        name: {
-          contains: name,
-        },
+      where: { name: { contains: name } },
+      select: {
+        name: true,
+        url: true,
+        imageUrl: true,
       },
       orderBy: { name: "asc" },
-      take: numberOfResults,
-      skip: numberOfResults * page,
+      take: itemsPerPage,
+      skip: itemsPerPage * page,
     });
     const total = await tx.artist.count({
       where: { name: { contains: name } },

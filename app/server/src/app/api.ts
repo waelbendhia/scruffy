@@ -1,25 +1,13 @@
-import express from "express";
 import * as artist from "./artist";
 import * as album from "./album";
-import { makeHTTPConMiddleware } from "./shared";
-import http from "http";
+import { Router, RouterType } from "./routing";
 
-const api = express
-  .Router()
-  .use("/artist", artist.router())
-  .use("/album", album.router());
+export type API = RouterType<typeof api>;
 
-const router = express
-  .Router()
-  .use(
-    makeHTTPConMiddleware(
-      500,
-      new http.Agent({
-        maxSockets: 10,
-        keepAlive: true,
-      }),
-    ),
-  )
-  .use("/api/", api);
-
-export { router };
+export const api = {
+  domain: "scruffy",
+  routes: {
+    "/artist": artist.api,
+    "/album": album.api,
+  },
+} satisfies Router<"scruffy">;
