@@ -1,5 +1,4 @@
-export * from './database';
-export * from './api';
-import * as Band from './band';
-import * as Album from './album';
-export { Band, Album };
+export * from "./api";
+import * as artist from "./artist";
+import * as album from "./album";
+export { artist, album };

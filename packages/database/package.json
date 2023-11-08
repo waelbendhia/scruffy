@@ -1,0 +1,31 @@
+{
+  "name": "@scruffy/database",
+  "version": "0.0.0",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "module": "./dist/index.d.ts",
+  "files": [
+    "dist/**"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "clean": "rimraf node_modules dist",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "dev": "tsup --watch",
+    "format": "prisma format",
+    "generate": "prisma generate",
+    "lint": "eslint \"src/**/*.ts\"",
+    "prebuild": "yarn run generate",
+    "predev": "yarn run generate",
+    "studio": "prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.5.2"
+  },
+  "devDependencies": {
+    "prisma": "^5.5.2",
+    "tsup": "^7.2.0"
+  }
+}

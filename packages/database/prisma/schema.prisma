@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Artist {
+  url                String   @id
+  name               String
+  bio                String?
+  imageUrl           String?
+  fromRelatedArtists Artist[] @relation("RelatedArtists")
+  toRelatedArtists   Artist[] @relation("RelatedArtists")
+  albums             Album[]
+}
+
+model Album {
+  name      String
+  year      Int?
+  rating    Decimal
+  artist    Artist  @relation(fields: [artistUrl], references: [url])
+  artistUrl String
+  imageUrl  String?
+
+  @@id([artistUrl, name])
+}

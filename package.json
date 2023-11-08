@@ -1,0 +1,20 @@
+{
+  "name": "@scruffy/monorepo",
+  "private": true,
+  "workspaces": [
+    "app/server",
+    "app/web-app",
+    "packages/database",
+    "packages/scraper"
+  ],
+  "prisma": {
+    "schema": "packages/database/prisma/schema.prisma"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@prisma/nextjs-monorepo-workaround-plugin": "^5.5.2",
+    "@types/node": "^20.8.10",
+    "lerna": "^7.4.2",
+    "typescript": "^5.2.2"
+  }
+}
