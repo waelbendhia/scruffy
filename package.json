@@ -4,6 +4,7 @@
   "workspaces": [
     "app/server",
     "app/web-app",
+    "app/next-app",
     "packages/database",
     "packages/scraper"
   ],
@@ -12,7 +13,6 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@prisma/nextjs-monorepo-workaround-plugin": "^5.5.2",
     "@types/node": "^20.8.10",
     "lerna": "^7.4.2",
     "typescript": "^5.2.2"

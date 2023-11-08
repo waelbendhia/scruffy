@@ -1,9 +1,10 @@
 import axios, { AxiosRequestConfig } from "axios";
 import { findInBody } from "./album";
 import * as cheerio from "cheerio";
-import * as path from "node:path";
 
 const basePath = "http://scaruffi.com";
+
+const path = (pathname: string) => new URL(pathname, basePath).href;
 
 const readArtistsFromPage = (
   content: string | Buffer,
@@ -35,7 +36,7 @@ const readArtistsFromPage = (
 
 export const getPage = (pagePath: string, config?: AxiosRequestConfig) =>
   axios
-    .get<string>(path.join(basePath, pagePath), {
+    .get<string>(path(pagePath), {
       ...config,
       responseType: "document",
     })
@@ -80,7 +81,7 @@ export const readArtistsFromVolumePage = (
         return;
       }
 
-      const pathname = new URL(href, path.join(basePath, `vol${vol}`)).pathname;
+      const pathname = new URL(href, path(`vol${vol}`)).pathname;
       $(entry).attr("href", pathname);
     });
     return elems;
@@ -200,6 +201,6 @@ export const getArtistFrompage = (
   artistUrl: string,
   config?: AxiosRequestConfig,
 ) =>
-  getPage(path.join(basePath, artistUrl), config).then((content) =>
+  getPage(path(artistUrl), config).then((content) =>
     readArtistFromArtistPage(artistUrl, content),
   );
