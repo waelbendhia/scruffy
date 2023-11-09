@@ -15,40 +15,42 @@ const View = ({ text, link, options }: Props) => {
   const pathname = usePathname();
 
   return (
-    <div className={"relative h-header w-32 mr-4"}>
+    <div
+      className={
+        "relative h-header w-36 mr-4 [&>div>div]:hover:translate-y-0 [&>a]:hover:border-b-4"
+      }
+    >
       <Link
         className={
-          "block w-full h-header text-3xl text-center font-light text-white"
+          "block w-full h-header text-3xl text-center font-light text-white " +
+          "leading-header border-b-red " +
+          ([link, ...options.map((o) => o.link)].some((l) => l === pathname)
+            ? "border-b-red border-b-4"
+            : "")
         }
         href={link}
       >
         {text}
       </Link>
-      <span
-        className={
-          "absolute l-1/2 bottom-0 w-0 h-0.5 -translate-x-1/2 bg-red " +
-          [link, ...options.map((o) => o.link)].some((l) => l === pathname)
-            ? "w-full"
-            : ""
-        }
-      />
-      <div
-        className={
-          "absolute h-0 t-header w-full bg-super-dark-grey z-10 overflow-hidden"
-        }
-      >
-        {options.map((o) => (
-          <Link
-            key={o.link}
-            className={
-              "block w-full h-header text-3xl text-center font-light text-white " +
-              "text-2xl h-header"
-            }
-            href={o.link}
-          >
-            {o.text}
-          </Link>
-        ))}
+      <div className={"h-2-header overflow-hidden relative"}>
+        <div
+          className={
+            "absolute -translate-y-full t-header w-full bg-super-dark-grey z-10 overflow-hidden transition-all"
+          }
+        >
+          {options.map((o) => (
+            <Link
+              key={o.link}
+              className={
+                "block w-full h-header text-3xl text-center font-light text-white " +
+                "text-2xl h-header leading-header"
+              }
+              href={o.link}
+            >
+              {o.text}
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );

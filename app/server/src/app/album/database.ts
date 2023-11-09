@@ -114,9 +114,9 @@ export const search = ({
       take: itemsPerPage,
       skip: itemsPerPage * page,
     });
-    const count = await tx.album.count({ where: whereQuery });
+    const total = await tx.album.count({ where: whereQuery });
 
-    return { data, count };
+    return { data, total };
   });
 
 export const getCount = () => prisma.album.count({});

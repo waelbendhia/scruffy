@@ -3,10 +3,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
 import HeaderLink from "./HeaderLink";
+import SearchBar from "./SearchBar";
 
-const Header = ({ toggleSearch = () => {} }) => {
+const Header = () => {
   const [open, setOpen] = React.useState(false);
   const pathname = usePathname();
+  const toggleSearch = (open?: boolean) => {
+    setOpen((o) => (open !== undefined ? open : !o));
+  };
 
   return (
     <div
@@ -17,7 +21,6 @@ const Header = ({ toggleSearch = () => {} }) => {
       <Link
         className={
           "left-1/2 absolute h-header-height font-display font-bold text-5xl -translate-x-1/2 " +
-          "hover:text-red " +
           (pathname === "/" || open ? "opacity-0" : "opacity-1") +
           " " +
           (pathname === "/" || open
@@ -61,10 +64,11 @@ const Header = ({ toggleSearch = () => {} }) => {
             }
             key={x.text}
           >
-            <HeaderLink {...x} location={pathname?.substring(1)} />
+            <HeaderLink {...x} />
           </div>
         ))}
       </div>
+      <SearchBar open={open} toggleSearch={toggleSearch} />
     </div>
   );
 };

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Background from "@/components/Background";
 import Header from "@/components/Header";
+import Providers from "@/components/Providers";
 
 export const metadata: Metadata = {
   title: "Scruffy2.0",
@@ -17,8 +18,10 @@ export default function RootLayout({
     <html lang="en">
       <body className="font-body">
         <Background />
-        <Header/>
-        {children}
+        <Providers>
+          <Header />
+          {children}
+        </Providers>
       </body>
     </html>
   );

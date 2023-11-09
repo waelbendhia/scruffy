@@ -5,11 +5,13 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-}
-
-a {
-  text-decoration: none;
-  transition-property: color, opacity, display;
-  transition: linear 0.15s;
+@layer base {
+  a {
+    text-decoration: none;
+    transition-property: color, opacity, display;
+    transition: linear 0.15s;
+  }
+  a:hover{
+    @apply text-red
+  }
 }
