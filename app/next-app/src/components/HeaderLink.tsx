@@ -35,7 +35,7 @@ const View = ({ text, link, options }: Props) => {
       <div className={"h-2-header overflow-hidden relative"}>
         <div
           className={
-            "absolute -translate-y-full t-header w-full bg-super-dark-grey z-10 overflow-hidden transition-all"
+            "absolute -translate-y-full t-header w-full bg-super-dark-gray z-10 overflow-hidden transition-all"
           }
         >
           {options.map((o) => (

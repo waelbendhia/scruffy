@@ -1,7 +1,10 @@
-import { searchArtists } from "@/api";
+import { client } from "@/api";
+import { API } from "@scruffy/server";
 
 export async function getData() {
-  return await searchArtists({});
+  return await client
+    .get<API["/artist"]["/"]>(`/artist`, { params: {} })
+    .then((resp) => resp.data);
 }
 
 export default async function Artists() {

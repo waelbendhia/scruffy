@@ -31,7 +31,7 @@ const Header = () => {
       >
         Scaruffi2.0
       </Link>
-      <a onClick={toggleSearch}>
+      <a onClick={() => toggleSearch()}>
         <i className="text-white text-3xl hover:text-red material-icons cursor-pointer">
           {open ? "close" : "search"}
         </i>
@@ -58,9 +58,9 @@ const Header = () => {
         ].map((x) => (
           <div
             className={
-              (open ? "opacity-0" : "opacity-1") +
-              " " +
-              (open ? "pointer-events-none" : "pointer-events-auto")
+              open
+                ? "pointer-events-none opacity-0"
+                : "pointer-events-auto opacity-1"
             }
             key={x.text}
           >
