@@ -15,24 +15,25 @@ const Header = () => {
   return (
     <div
       className={
-        "sticky top-0 flex items-center flex-row h-header bg-black text-white px-half-header z-10"
+        `sticky top-0 flex items-center flex-row h-header bg-gradient-to-b ` +
+        `from-white to-transparent text-black px-half-header z-10`
       }
     >
       <Link
         className={
-          "left-1/2 absolute h-header-height font-display font-bold text-5xl -translate-x-1/2 " +
-          (pathname === "/" || open ? "opacity-0" : "opacity-1") +
-          " " +
-          (pathname === "/" || open
-            ? "pointer-events-none"
-            : "pointer-events-auto")
+          `left-1/2 absolute h-header-height font-display font-bold text-header-title ` +
+          `-translate-x-1/2 ${
+            pathname === "/" || open
+              ? "pointer-events-none opacity-0"
+              : "pointer-events-auto opacity-100"
+          }`
         }
         href="/"
       >
         Scaruffi2.0
       </Link>
       <a onClick={() => toggleSearch()}>
-        <i className="text-white text-3xl hover:text-red material-icons cursor-pointer">
+        <i className="text-header hover:text-red material-icons cursor-pointer">
           {open ? "close" : "search"}
         </i>
       </a>
@@ -60,7 +61,7 @@ const Header = () => {
             className={
               open
                 ? "pointer-events-none opacity-0"
-                : "pointer-events-auto opacity-1"
+                : "pointer-events-auto opacity-100"
             }
             key={x.text}
           >

@@ -11,6 +11,9 @@
     transition-property: color, opacity, display;
     transition: linear 0.15s;
   }
+  h1 {
+    @apply font-display
+  }
   a:hover{
     @apply text-red
   }

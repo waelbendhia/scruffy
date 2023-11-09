@@ -47,65 +47,55 @@ const SearchBar = ({
 
   return (
     <div
-      style={{
-        transition: "height 0s linear",
-      }}
       className={
-        `flex left-0 absolute flex-col items-center ${
-          open ? "h-minus-header opacity-1" : "h-0 opacity-0"
-        } top-header w-full bg-black-transparent overflow-hidden focus:outline-none ` +
-        `transition-all`
+        `px-8 pt-4 w-almost-full absolute left-8 h-[70vh] top-header ${
+          open
+            ? "translate-y-0 opacity-100 visible"
+            : "translate-y-8 opacity-0 invisible"
+        } bg-white-transparent backdrop-blur-sm transition-all grid grid-cols-2 ` +
+        `grid-rows-fixed-10 gap-w`
       }
     >
-      <div
-        className={`px-8 w-almost-full left-2 ${
-          open ? "h-7/10" : "h-0"
-        } bg-black transition-all grid grid-cols-2 grid-rows-fixed-10 gap-w`}
-      >
-        <Input
-          ref={inputRef}
-          whiteText={true}
-          className={`text-white col-span-2 transition-opacity ${
-            open ? "" : "pointer-events-none opacity-0"
-          }`}
-          icon="search"
-          type="text"
-          value={search}
-          onChange={setSearch}
-        />
-        <div className={"grid grid-cols-1 grid-rows-3"}>
-          {artistQueryResult.data?.data?.map((b) => (
-            <LabeledImage
-              key={b.name}
-              url={b.url}
-              imageUrl={b.imageUrl ?? "/artist-default.svg"}
-              whiteText={true}
-            >
-              <div className={"overflow-hidden text-ellipsis"}>{b.name}</div>
-            </LabeledImage>
-          ))}
-        </div>
-        <div className={"grid grid-cols-1 grid-rows-3"}>
-          {albumQueryResult.data?.data.map((a) => (
-            <LabeledImage
-              key={a.name}
-              url={a.artist.url}
-              imageUrl={a.imageUrl ?? "/album-default.svg"}
-              whiteText={true}
-            >
-              <div className={"overflow-hidden"}>
-                <div className="overflow-hidden text-ellipsis">
-                  {a.artist.name}
-                </div>
-                <div className="overflow-hidden text-ellipsis">
-                  <b>{a.name}</b>
-                </div>
-              </div>
-            </LabeledImage>
-          ))}
-        </div>
+      <Input
+        ref={inputRef}
+        whiteText={true}
+        className={`col-span-2 transition-opacity ${
+          open ? "" : "pointer-events-none opacity-0"
+        }`}
+        icon="search"
+        type="text"
+        value={search}
+        onChange={setSearch}
+      />
+      <div className={"grid grid-cols-1 grid-rows-3"}>
+        {artistQueryResult.data?.data?.map((b) => (
+          <LabeledImage
+            key={b.name}
+            url={b.url}
+            imageUrl={b.imageUrl ?? "/artist-default.svg"}
+          >
+            <div className={"overflow-hidden text-ellipsis"}>{b.name}</div>
+          </LabeledImage>
+        ))}
       </div>
-      <div className={"flex-1"} onClick={() => toggleSearch()} />
+      <div className={"grid grid-cols-1 grid-rows-3"}>
+        {albumQueryResult.data?.data.map((a) => (
+          <LabeledImage
+            key={a.name}
+            url={a.artist.url}
+            imageUrl={a.imageUrl ?? "/album-default.svg"}
+          >
+            <div className={"overflow-hidden"}>
+              <div className="overflow-hidden text-ellipsis">
+                {a.artist.name}
+              </div>
+              <div className="overflow-hidden text-ellipsis">
+                <b>{a.name}</b>
+              </div>
+            </div>
+          </LabeledImage>
+        ))}
+      </div>
     </div>
   );
 };
