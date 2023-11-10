@@ -7,6 +7,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model UpdateHistory {
+  checkedOn DateTime @default(now())
+  hash      String   @id
+}
+
 model Artist {
   url                String   @id
   name               String
@@ -15,6 +20,9 @@ model Artist {
   fromRelatedArtists Artist[] @relation("RelatedArtists")
   toRelatedArtists   Artist[] @relation("RelatedArtists")
   albums             Album[]
+  lastUpdated        DateTime
+  firstRetrieved     DateTime
+  lastRetrieved      DateTime
 }
 
 model Album {
@@ -24,6 +32,8 @@ model Album {
   artist    Artist  @relation(fields: [artistUrl], references: [url])
   artistUrl String
   imageUrl  String?
+
+  retrieved DateTime
 
   @@id([artistUrl, name])
 }

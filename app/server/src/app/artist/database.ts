@@ -6,13 +6,16 @@ type Tx = typeof prisma.$transaction extends (lm: (tx: infer Tx) => any) => any
   ? Tx
   : never;
 
-type FullArtist = Artist & { albums?: Album[]; relatedArtists?: Artist[] };
+type FullArtist = Artist & {
+  albums?: Album[];
+  relatedArtists?: { url: string }[];
+};
 
 export const upsert = (
   { albums, relatedArtists, ...artist }: FullArtist,
   con: Tx = prisma,
 ) => {
-  const statement: Prisma.ArtistCreateInput = {
+  const createInput: Prisma.ArtistCreateInput = {
     ...artist,
     albums: {
       connectOrCreate: albums?.map((album) => ({
@@ -23,15 +26,26 @@ export const upsert = (
     toRelatedArtists: {
       connectOrCreate: relatedArtists?.map((related) => ({
         where: { url: related.url },
-        create: related,
+        create: {
+          ...related,
+          name: "",
+          firstRetrieved: artist.firstRetrieved,
+          lastRetrieved: artist.lastRetrieved,
+          lastUpdated: artist.lastUpdated,
+        },
       })),
     },
   };
 
+  const updateInput: Prisma.ArtistUpdateInput = {
+    ...createInput,
+    firstRetrieved: undefined,
+  };
+
   return con.artist.upsert({
     where: { url: artist.url },
-    update: statement,
-    create: statement,
+    update: updateInput,
+    create: createInput,
   });
 };
 

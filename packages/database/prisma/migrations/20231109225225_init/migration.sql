@@ -1,18 +1,28 @@
 -- CreateTable
+CREATE TABLE "UpdateHistory" (
+    "checkedOn" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "hash" TEXT NOT NULL PRIMARY KEY
+);
+
+-- CreateTable
 CREATE TABLE "Artist" (
     "url" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
-    "bio" TEXT NOT NULL,
-    "imageUrl" TEXT NOT NULL
+    "bio" TEXT,
+    "imageUrl" TEXT,
+    "lastUpdated" DATETIME NOT NULL,
+    "firstRetrieved" DATETIME NOT NULL,
+    "lastRetrieved" DATETIME NOT NULL
 );
 
 -- CreateTable
 CREATE TABLE "Album" (
     "name" TEXT NOT NULL,
-    "yarn" INTEGER NOT NULL,
+    "year" INTEGER,
     "rating" DECIMAL NOT NULL,
     "artistUrl" TEXT NOT NULL,
-    "imageUrl" TEXT NOT NULL,
+    "imageUrl" TEXT,
+    "retrieved" DATETIME NOT NULL,
 
     PRIMARY KEY ("artistUrl", "name"),
     CONSTRAINT "Album_artistUrl_fkey" FOREIGN KEY ("artistUrl") REFERENCES "Artist" ("url") ON DELETE RESTRICT ON UPDATE CASCADE

@@ -3,6 +3,7 @@
   "private": true,
   "workspaces": [
     "app/server",
+    "app/updater",
     "app/web-app",
     "app/next-app",
     "packages/database",

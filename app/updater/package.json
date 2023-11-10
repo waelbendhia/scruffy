@@ -1,0 +1,32 @@
+{
+  "name": "@scruffy/updater",
+  "version": "0.0.0",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "yarn start",
+    "serve": "ts-node src/server.ts",
+    "start": "nodemon"
+  },
+  "author": "Wael Ben Dhia",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.1",
+    "global": "^4.3.2",
+    "nodemon": "^1.17.2",
+    "progress": "2.0.0",
+    "uuid": "^3.2.1",
+    "zod": "^3.22.4"
+  },
+  "repository": "https://github.com/WaelBenDhia/Scaruffi2.0Node.git",
+  "devDependencies": {
+    "@scruffy/database": "*",
+    "@scruffy/scraper": "*",
+    "@types/node": "^9.6.7",
+    "ts-node": "^10.9.1",
+    "tslint": "^5.9.1",
+    "tsup": "^7.2.0"
+  }
+}
