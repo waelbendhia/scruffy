@@ -78,21 +78,32 @@ const readFileRel = (filepath: string) =>
   fs.readFile(path.resolve(__dirname, filepath));
 
 test("testing artist scraping", async () => {
-  const [beatles, mingus] = await Promise.all([
+  const [beatles, mingus, richards, cdreview2018] = await Promise.all([
     readFileRel("./beatles.html").then((content) =>
       readArtistFromArtistPage("vol1/beatles.html", content),
     ),
     readFileRel("./mingus.html").then((content) =>
       readArtistFromArtistPage("jazz/mingus.html", content),
     ),
+    readFileRel("./richards.html").then((content) =>
+      readArtistFromArtistPage("avant/richards.html", content),
+    ),
+    readFileRel("./2018.html").then((content) =>
+      readArtistFromArtistPage("cdreview/2018.html", content),
+    ),
   ]);
-  expect(beatles.name).toBe("Beatles");
-  expect(beatles.bio).toMatch(/^The fact that/);
-  expect(beatles.albums).toStrictEqual(beatleAlbums);
+  expect(beatles?.name).toBe("Beatles");
+  expect(beatles?.bio).toMatch(/^The fact that/);
+  expect(beatles?.albums).toStrictEqual(beatleAlbums);
 
-  expect(mingus.name).toBe("Charles Mingus");
-  expect(mingus.bio).toMatch(/^The art of double bass/);
-  expect(mingus.albums).toStrictEqual(mingusAlbums);
+  expect(mingus?.name).toBe("Charles Mingus");
+  expect(mingus?.bio).toMatch(/^The art of double bass/);
+  expect(mingus?.albums).toStrictEqual(mingusAlbums);
+
+  expect(richards?.name).toBe("Vicki Richards");
+  expect(richards?.bio).toMatch(/^Violini virtuosa/);
+
+  expect(cdreview2018).toBeNull();
 });
 
 test("testing page readers", async () => {
@@ -110,6 +121,8 @@ test("testing page readers", async () => {
   Object.entries(jazz).forEach(([url]) => expect(url).toMatch(/\.html$/));
   expect(Object.keys(vol6).length).toBeGreaterThanOrEqual(926);
 
-  Object.entries(newReviews).forEach(([url]) => expect(url).toMatch(/\.html$/));
-  expect(Object.keys(newReviews).length).toBeGreaterThanOrEqual(352);
+  Object.entries(newReviews).forEach(([url]) =>
+    expect(url).toMatch(/(avant|jazz|vol).*\.html$/),
+  );
+  expect(Object.keys(newReviews).length).toBeGreaterThanOrEqual(347);
 });

@@ -28,7 +28,7 @@ const Input = React.forwardRef<HTMLInputElement, Props>(function Input(
   ref,
 ) {
   return (
-    <div className={` flex items-center ${className}`}>
+    <div className={`flex items-center ${className ?? ""}`}>
       {!!icon && <i className={`material-icons text-3xl mr-2`}>{icon}</i>}
       <div className={"flex-1 relative h-10 my-[5px]"}>
         <input

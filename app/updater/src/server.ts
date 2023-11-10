@@ -1,16 +1,17 @@
 import { prisma, artistDB, Prisma } from "@scruffy/database";
-import * as stream from "stream";
 import * as crypto from "crypto";
 import {
-  getArtistFrompage,
+  getArtistPage,
   getArtistsFromJazzPage,
   getArtistsFromRockPage,
   getArtistsFromVolumePage,
   getNewPage,
+  readArtistFromArtistPage,
   readArtistsFromNewPage,
 } from "@scruffy/scraper";
-import { AxiosRequestConfig } from "axios";
+import { AxiosRequestConfig, isAxiosError } from "axios";
 import { Agent } from "http";
+import * as rxjs from "rxjs";
 
 const parseIntFromEnv = (key: string) => {
   const env = process.env[key];
@@ -19,15 +20,14 @@ const parseIntFromEnv = (key: string) => {
 };
 
 const conncurentConnections = parseIntFromEnv("CONCURRENT_CONNECTIONS") ?? 20;
-const recheckDelay = parseIntFromEnv("RECHECK_DELAY") ?? 300_000;
+const recheckDelay = parseIntFromEnv("RECHECK_DELAY") ?? 300;
 
-const sleep = async (secs: number) => {
+const sleep = (secs: number) =>
   new Promise<void>((res) => {
     setTimeout(() => {
       res(undefined);
     }, secs * 1_000);
   });
-};
 
 const backoff = async <T>(
   req: () => Promise<T>,
@@ -52,128 +52,170 @@ const backoff = async <T>(
       }
     }
 
-    sleepTime = Math.min(60, sleepTime * 1.2);
+    attempts++;
+
+    sleepTime = Math.min(60, sleepTime * 1.5);
   }
 
   throw es;
 };
 
 const config: AxiosRequestConfig = {
-  httpAgent: new Agent({ keepAlive: true, maxSockets: conncurentConnections }),
+  timeout: 5_000,
+  httpAgent: new Agent({
+    keepAlive: true,
+    maxSockets: conncurentConnections,
+  }),
 };
 
 type MakeKeyNotNull<O extends object, Key extends keyof O> = {
   [k in keyof O]: k extends Key ? Exclude<O[k], undefined | null> : O[k];
 };
 
-const loadAllArtists = async () => {
-  console.debug("detected first run reading all artists");
+const loadAllArtists = () =>
+  rxjs
+    .from([
+      () => getArtistsFromRockPage(config),
+      () => getArtistsFromJazzPage(config),
+      () => getArtistsFromVolumePage(1, config),
+      () => getArtistsFromVolumePage(2, config),
+      () => getArtistsFromVolumePage(3, config),
+      () => getArtistsFromVolumePage(4, config),
+      () => getArtistsFromVolumePage(5, config),
+      () => getArtistsFromVolumePage(6, config),
+      () => getArtistsFromVolumePage(7, config),
+      () => getArtistsFromVolumePage(8, config),
+    ])
+    .pipe(
+      rxjs.mergeMap((f) => backoff(f), conncurentConnections),
+      rxjs.reduce(
+        (prev, cur) => ({ ...prev, ...cur }),
+        {} as Record<string, { name: string }>,
+      ),
+      rxjs.concatMap((as) => Object.entries(as)),
+      rxjs.mergeMap(async ([url, name]) => {
+        const count = await prisma.artist.count({ where: { url } });
+        return { url, name, exists: count > 0 };
+      }, 2),
+      rxjs.filter((v) => v.exists),
+      rxjs.map(({ exists, ...rest }) => rest),
+    );
 
-  const pageData = await Promise.all([
-    backoff(() => getArtistsFromRockPage(config)),
-    backoff(() => getArtistsFromJazzPage(config)),
-    backoff(() => getArtistsFromVolumePage(1, config)),
-    backoff(() => getArtistsFromVolumePage(2, config)),
-    backoff(() => getArtistsFromVolumePage(3, config)),
-    backoff(() => getArtistsFromVolumePage(4, config)),
-    backoff(() => getArtistsFromVolumePage(5, config)),
-    backoff(() => getArtistsFromVolumePage(6, config)),
-    backoff(() => getArtistsFromVolumePage(7, config)),
-    backoff(() => getArtistsFromVolumePage(8, config)),
-  ]);
-
-  const artistMap = pageData.reduce<Record<string, { name: string }>>(
-    (prev, cur) => ({ ...prev, ...cur }),
-    {},
+const insertNewArtists = (prevHash?: string) =>
+  rxjs.from(backoff(() => getNewPage(config))).pipe(
+    rxjs.map(({ data, lastModified }) => ({
+      hash: crypto.createHash("md5").update(data).digest("hex"),
+      lastModified,
+      data,
+    })),
+    rxjs.filter(({ hash }) => {
+      if (prevHash === hash) {
+        console.debug(`no new artists found`);
+        return false;
+      }
+      return true;
+    }),
+    rxjs.concatMap(({ data, hash }) =>
+      rxjs.from(Object.entries(readArtistsFromNewPage(data))).pipe(
+        rxjs.map(([url, { name }]) => ({ url, name })),
+        insertArtists,
+        rxjs.last(),
+        rxjs.map(() => hash),
+      ),
+    ),
   );
 
-  await insertArtists(artistMap);
-};
+const shouldRetryFetch = (e: unknown) =>
+  !isAxiosError(e) || (e.response?.status !== 404 && !(e instanceof TypeError));
 
-const insertNewArtists = async (hash?: string) => {
-  const page = await getNewPage(config);
-  const newHash = crypto.createHash("md5").update(page).digest("hex");
-  if (newHash === hash) {
-    console.debug("no new artists found");
-    return;
-  }
-  const artists = readArtistsFromNewPage(page);
-  await insertArtists(artists);
-  return newHash;
-};
-
-type WithTS = Awaited<ReturnType<typeof getArtistFrompage>> & { ts: Date };
-
-const insertArtists = async (artists: Record<string, { name: string }>) => {
-  const allArtists = Object.entries(artists);
-
-  console.debug(`Found ${allArtists.length} artists.`);
-
-  const str = new stream.Readable({ objectMode: true, read() {} });
-
-  const retrievePromises = allArtists.map(async ([url, { name }]) => {
-    try {
-      backoff(async () => {
-        const artist = await getArtistFrompage(url, config);
+const insertArtists = (
+  artists: rxjs.Observable<{ url: string; name: string }>,
+) =>
+  artists.pipe(
+    rxjs.mergeMap(async ({ url, name }) => {
+      const result = await backoff(async () => {
+        const { data, lastModified } = await getArtistPage(url, config);
         const now = new Date();
-        str.push({ ...artist, name, ts: now });
-        return;
+        const artist = readArtistFromArtistPage(url, data);
+        if (!artist) {
+          return null;
+        }
+
+        return { ...artist, name, ts: now, lastModified };
+      }, shouldRetryFetch).catch(() => null);
+      return result;
+    }, conncurentConnections),
+    rxjs.mergeMap(async (res) => {
+      if (!res) {
+        return res;
+      }
+
+      const { name, ts, lastModified, ...artist } = res;
+
+      return await artistDB.upsert({
+        ...artist,
+        lastUpdated: lastModified,
+        name,
+        firstRetrieved: ts,
+        imageUrl: null,
+        relatedArtists: [],
+        albums: artist.albums
+          .filter(
+            (a): a is MakeKeyNotNull<typeof a, "rating"> =>
+              a.rating !== undefined,
+          )
+          .map((a) => ({
+            ...a,
+            year: a.year ?? null,
+            rating: new Prisma.Decimal(a.rating),
+            imageUrl: null,
+            retrieved: ts,
+          })),
+        lastRetrieved: ts,
       });
-    } catch (e) {
-      console.error(`could not read artist '${name}' from '${url}'`, e);
-    }
-  });
+    }, 2),
+    rxjs.reduce((counter, artist) => {
+      if (!!artist) {
+        console.debug(`inserted ${artist?.url}:${artist?.name}`);
+      } else {
+        console.debug(`found skipped insert.`);
+      }
+      console.debug(`inserted ${counter} artists`);
 
-  // @ts-ignore
-  for await (const val of str) {
-    const { name, ts, ...artist }: WithTS = val;
-    await artistDB.upsert({
-      ...artist,
-      name,
-      firstRetrieved: ts,
-      imageUrl: null,
-      relatedArtists: [],
-      albums: artist.albums
-        .filter(
-          (a): a is MakeKeyNotNull<typeof a, "rating"> =>
-            a.rating !== undefined,
-        )
-        .map((a) => ({
-          ...a,
-          year: a.year ?? null,
-          rating: new Prisma.Decimal(a.rating),
-          imageUrl: null,
-          retrieved: ts,
-        })),
-      // TODO: should use the last date the page was changed
-      lastUpdated: ts,
-      lastRetrieved: ts,
-    });
-  }
+      return counter + 1;
+    }, 0),
+  );
 
-  await Promise.all(retrievePromises);
-};
-
-const checkAndLoad = async () => {
-  const lastCheck = await prisma.updateHistory.findFirst({
-    orderBy: { checkedOn: "desc" },
-  });
-  if (!lastCheck) {
-    await loadAllArtists();
-  }
-
-  const newHash = await insertNewArtists(lastCheck?.hash);
-  if (!!newHash) {
-    await prisma.updateHistory.create({
-      data: { hash: newHash, checkedOn: new Date() },
-    });
-  }
-};
+const checkAndLoad = () =>
+  rxjs
+    .from(
+      prisma.updateHistory.findFirst({
+        orderBy: { checkedOn: "desc" },
+      }),
+    )
+    .pipe(
+      rxjs.concatMap((lastCheck) =>
+        !lastCheck
+          ? loadAllArtists().pipe(
+              rxjs.last(),
+              rxjs.map(() => lastCheck),
+            )
+          : rxjs.of(lastCheck),
+      ),
+      rxjs.concatMap((lastCheck) => insertNewArtists(lastCheck?.hash)),
+      rxjs.concatMap((newHash) =>
+        prisma.updateHistory.create({
+          data: { hash: newHash, checkedOn: new Date() },
+        }),
+      ),
+    );
 
 (async () => {
-  await checkAndLoad();
+  await rxjs.lastValueFrom(checkAndLoad(), { defaultValue: null });
+
+  console.log("first check complete");
 
   setInterval(async () => {
-    await checkAndLoad();
-  }, recheckDelay);
+    await rxjs.lastValueFrom(checkAndLoad(), { defaultValue: null });
+  }, recheckDelay * 1000);
 })();

@@ -17,4 +17,14 @@
   a:hover{
     @apply text-red
   }
+  html {
+    @apply min-h-full;
+    @apply h-full;
+  }
+  body {
+    @apply min-h-full;
+    @apply h-full;
+    @apply flex;
+    @apply flex-col;
+  }
 }

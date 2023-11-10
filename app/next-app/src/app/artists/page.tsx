@@ -1,6 +1,7 @@
 import { client } from "@/api";
 import ArtistSearch from "@/components/ArtistSearch";
 import { API, ArtistSearchRequest } from "@scruffy/server";
+import Loading from "@/components/Loading";
 
 export async function getData(params: ArtistSearchRequest) {
   return await client
@@ -25,7 +26,7 @@ export default async function Artists({
   });
 
   return (
-    <main>
+    <main className="flex-1">
       artists
       <ArtistSearch />
       {JSON.stringify(searchParams)}

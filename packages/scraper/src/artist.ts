@@ -8,6 +8,7 @@ const path = (pathname: string) => new URL(pathname, basePath).href;
 
 const readArtistsFromPage = (
   content: string | Buffer,
+  pagePath: string,
   selectionFunction: (_: cheerio.Root) => string[],
 ) => {
   try {
@@ -15,17 +16,16 @@ const readArtistsFromPage = (
     const artistElements = selectionFunction($);
 
     return artistElements.reduce((p, elem) => {
-      let artistUrl = $(elem).attr("href")?.substring(3);
+      const artistUrl = $(elem).attr("href");
       if (!artistUrl) {
         return p;
       }
 
-      if (artistUrl?.indexOf("#") !== -1) {
-        artistUrl = artistUrl.substring(0, artistUrl.indexOf("#"));
-      }
       return {
         ...p,
-        [artistUrl]: { name: $(elem).text().trim() },
+        [new URL(artistUrl, path(pagePath)).pathname]: {
+          name: $(elem).text().trim(),
+        },
       };
     }, {}) as { [url: string]: { name: string } };
   } catch (e) {
@@ -40,36 +40,43 @@ export const getPage = (pagePath: string, config?: AxiosRequestConfig) =>
       ...config,
       responseType: "document",
     })
-    .then((resp) => resp.data);
+    .then((resp) => ({
+      lastModified: new Date(resp.headers["last-modified"] as string),
+      data: resp.data,
+    }));
 
 export const getRockPage = (config?: AxiosRequestConfig) =>
   getPage("music/groups.html", config);
 
 export const readArtistsFromRockPage = (content: string | Buffer) =>
-  readArtistsFromPage(content, ($) => $("table:nth-of-type(3) a").get());
+  readArtistsFromPage(content, "music/groups.html", ($) =>
+    $("table:nth-of-type(3) a").get(),
+  );
 
 export const getArtistsFromRockPage = (config?: AxiosRequestConfig) =>
-  getRockPage(config).then(readArtistsFromRockPage);
+  getRockPage(config).then(({ data }) => readArtistsFromRockPage(data));
 
 export const getJazzPage = (config?: AxiosRequestConfig) =>
   getPage("jazz/musician.html", config);
 
 export const readArtistsFromJazzPage = (content: string | Buffer) =>
-  readArtistsFromPage(content, ($) => $('[width="400"] a').get());
+  readArtistsFromPage(content, "jazz/musician.html", ($) =>
+    $('[width="400"] a').get(),
+  );
 
 export const getArtistsFromJazzPage = (config?: AxiosRequestConfig) =>
-  getJazzPage(config).then(readArtistsFromJazzPage);
+  getJazzPage(config).then(({ data }) => readArtistsFromJazzPage(data));
 
 type Volume = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 export const getVolumePage = (vol: Volume, config?: AxiosRequestConfig) =>
-  getPage(`vol${vol}`, config);
+  getPage(`vol${vol}/`, config);
 
 export const readArtistsFromVolumePage = (
   vol: Volume,
   content: string | Buffer,
 ) =>
-  readArtistsFromPage(content, ($) => {
+  readArtistsFromPage(content, `vol${vol}/`, ($) => {
     let elems: string[] = [];
     $("select").each(
       (_, elem) =>
@@ -81,7 +88,7 @@ export const readArtistsFromVolumePage = (
         return;
       }
 
-      const pathname = new URL(href, path(`vol${vol}`)).pathname;
+      const pathname = new URL(href, path(`vol${vol}/`)).pathname;
       $(entry).attr("href", pathname);
     });
     return elems;
@@ -91,38 +98,28 @@ export const getArtistsFromVolumePage = (
   vol: Volume,
   config?: AxiosRequestConfig,
 ) =>
-  getVolumePage(vol, config).then((content) =>
-    readArtistsFromVolumePage(vol, content),
+  getVolumePage(vol, config).then(({ data }) =>
+    readArtistsFromVolumePage(vol, data),
   );
 
 export const getNewPage = (config?: AxiosRequestConfig) =>
   getPage("cdreview/new.html", config);
 
 export const readArtistsFromNewPage = (content: string | Buffer) =>
-  readArtistsFromPage(content, ($) => $("table td[bgcolor=000aaa] a").get());
+  readArtistsFromPage(content, "cdreview/new.html", ($) =>
+    $("table[bgcolor=ffa000]:first td[bgcolor=000aaa] a").get(),
+  );
 
 export const getArtistsFromNewPage = (config?: AxiosRequestConfig) =>
-  getNewPage(config).then(readArtistsFromNewPage);
+  getNewPage(config).then(({ data }) => readArtistsFromNewPage(data));
 
 const getNameFromBody = ($: cheerio.Root) => {
-  if ($("center").get().length === 0) {
-    return "";
+  const header = $("center h1");
+  if (header.length > 0) {
+    return header.text();
   }
 
-  let name = "",
-    parentNode = $("center").get(0);
-
-  while ($(parentNode).children().length > 0) {
-    for (let i = 0; i < $(parentNode).children().length; i++) {
-      name = $($(parentNode).children().get(i)).text().trim();
-      if (!!name) {
-        parentNode = $(parentNode).children().get(i);
-        break;
-      }
-    }
-  }
-
-  return name;
+  return $("center font").first().text();
 };
 
 const getBioFromBody = ($: cheerio.Root) => {
@@ -179,28 +176,39 @@ const getRelatedArtistsFromBody = (
   return [...new Set(hrefs)].filter((href) => href !== artistUrl);
 };
 
+const artistUrlRegex = /(avant|jazz|vol).*\.html$/;
+
 export const readArtistFromArtistPage = (
   artistUrl: string,
   content: string | Buffer,
 ) => {
+  if (!artistUrlRegex.test(artistUrl)) {
+    return null;
+  }
+
   const $ = cheerio.load(content);
 
   return {
     name: getNameFromBody($).trim(),
     bio: getBioFromBody($).trim(),
     albums: findInBody($),
-    relatedArtists: getRelatedArtistsFromBody(
-      $,
-      `http://scaruffi.com/${artistUrl}`,
-    ),
+    relatedArtists: getRelatedArtistsFromBody($, path(artistUrl)),
     url: artistUrl,
   };
 };
 
-export const getArtistFrompage = (
+export const getArtistPage = (artistUrl: string, config?: AxiosRequestConfig) =>
+  getPage(path(artistUrl), config);
+
+export const getArtistFromPage = (
   artistUrl: string,
   config?: AxiosRequestConfig,
 ) =>
-  getPage(path(artistUrl), config).then((content) =>
-    readArtistFromArtistPage(artistUrl, content),
-  );
+  getPage(path(artistUrl), config).then(({ data, lastModified }) => {
+    const artist = readArtistFromArtistPage(artistUrl, data);
+    if (artist) {
+      return { ...artist, lastUpdate: lastModified };
+    }
+
+    return artist;
+  });

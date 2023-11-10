@@ -16,7 +16,7 @@ const Header = () => {
     <div
       className={
         `sticky top-0 flex items-center flex-row h-header bg-gradient-to-b ` +
-        `from-white to-transparent text-black px-half-header z-10`
+        `from-white to-transparent text-black px-half-header z-20`
       }
     >
       <Link
