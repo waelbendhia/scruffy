@@ -1,6 +1,7 @@
 import React from "react";
 import Input from "./Input";
-import LabeledImage from "./LabeledImage";
+import ArtistCard from "@/components/ArtistCard";
+import AlbumCard from "@/components/AlbumCard";
 import { useQuery } from "react-query";
 import { searchAlbums, searchArtists } from "@/api";
 import Loading from "./Loading";
@@ -55,17 +56,23 @@ const SearchBar = ({
     return () => document.removeEventListener("keydown", listener);
   }, [toggleSearch, open]);
 
+  const colClass = "grid grid-cols-1 grid-rows-3 gap-y-2 py-2";
+
   return (
     <div
-      className={`px-8 pt-4 w-almost-full absolute left-8 h-[70vh] top-header ${
-        open
-          ? "translate-y-0 opacity-100 visible"
-          : "translate-y-8 opacity-0 invisible"
-      } bg-white-transparent backdrop-blur-sm flex flex-col`}
+      className={
+        `px-8 pt-4 w-almost-full absolute left-8 h-[688px] top-12 shadow-md ` +
+        `bg-white-transparent backdrop-blur-sm flex flex-col transition-all z-10 ` +
+        `rounded mb-4 ${
+          open
+            ? "translate-y-0 opacity-100 visible"
+            : "translate-y-8 opacity-0 invisible"
+        }`
+      }
     >
       <Input
         ref={inputRef}
-        className="h-10"
+        className="h-10 mr-9"
         whiteText={true}
         icon="search"
         type="text"
@@ -79,35 +86,16 @@ const SearchBar = ({
           albumQueryResult.isLoading ||
           albumQueryResult.isFetching
         }
-        className="flex-1 grid grid-cols-2"
+        className="flex-1 grid grid-cols-2 gap-x-2"
       >
-        <div className={"grid grid-cols-1 grid-rows-3"}>
+        <div className={colClass}>
           {artistQueryResult.data?.data?.map((b) => (
-            <LabeledImage
-              key={b.name}
-              url={b.url}
-              imageUrl={b.imageUrl ?? "/artist-default.svg"}
-            >
-              <div className={"overflow-hidden text-ellipsis"}>{b.name}</div>
-            </LabeledImage>
+            <ArtistCard key={b.url} {...b} />
           ))}
         </div>
-        <div className={"grid grid-cols-1 grid-rows-3"}>
+        <div className={colClass}>
           {albumQueryResult.data?.data.map((a) => (
-            <LabeledImage
-              key={a.name}
-              url={a.artist.url}
-              imageUrl={a.imageUrl ?? "/album-default.svg"}
-            >
-              <div className={"overflow-hidden"}>
-                <div className="overflow-hidden text-ellipsis">
-                  {a.artist.name}
-                </div>
-                <div className="overflow-hidden text-ellipsis">
-                  <b>{a.name}</b>
-                </div>
-              </div>
-            </LabeledImage>
+            <AlbumCard key={`${a.artist.url}-${a.name}`} {...a} />
           ))}
         </div>
       </Loading>

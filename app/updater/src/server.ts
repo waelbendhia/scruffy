@@ -72,7 +72,7 @@ type MakeKeyNotNull<O extends object, Key extends keyof O> = {
   [k in keyof O]: k extends Key ? Exclude<O[k], undefined | null> : O[k];
 };
 
-const loadAllArtists = () =>
+const insertAllArtists = () =>
   rxjs
     .from([
       () => getArtistsFromRockPage(config),
@@ -93,12 +93,13 @@ const loadAllArtists = () =>
         {} as Record<string, { name: string }>,
       ),
       rxjs.concatMap((as) => Object.entries(as)),
-      rxjs.mergeMap(async ([url, name]) => {
+      rxjs.mergeMap(async ([url, { name }]) => {
         const count = await prisma.artist.count({ where: { url } });
         return { url, name, exists: count > 0 };
       }, 2),
-      rxjs.filter((v) => v.exists),
+      rxjs.filter((v) => !v.exists),
       rxjs.map(({ exists, ...rest }) => rest),
+      insertArtists,
     );
 
 const insertNewArtists = (prevHash?: string) =>
@@ -188,15 +189,11 @@ const insertArtists = (
 
 const checkAndLoad = () =>
   rxjs
-    .from(
-      prisma.updateHistory.findFirst({
-        orderBy: { checkedOn: "desc" },
-      }),
-    )
+    .from(prisma.updateHistory.findFirst({ orderBy: { checkedOn: "desc" } }))
     .pipe(
       rxjs.concatMap((lastCheck) =>
         !lastCheck
-          ? loadAllArtists().pipe(
+          ? insertAllArtists().pipe(
               rxjs.last(),
               rxjs.map(() => lastCheck),
             )

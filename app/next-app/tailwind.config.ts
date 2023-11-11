@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
-
-const headerHeight = 40;
+//   background-position-x: 100%;
+//   background-position-y: 130%;
 
 const config: Config = {
   content: [
@@ -13,22 +13,25 @@ const config: Config = {
       animation: {
         "spin-slow": "spin 2s linear infinite",
       },
+      backgroundPosition: {
+        "scruff-offset": "100% 130%",
+      },
+      backgroundSize: {
+        "1/2": "110px",
+      },
       fontFamily: {
         body: "Work Sans",
         display: "Libre Baskerville",
       },
       height: {
-        header: `${headerHeight}px`,
-        "2-header": `${headerHeight * 2}px`,
-        "minus-header": `calc(100vh - ${headerHeight}px)`,
-        "7/10": "70%",
+        "4/5": "80%",
         "almost-full": "calc(100% - 16px)",
       },
       gridTemplateRows: {
         "fixed-10": "2.5rem",
       },
       gridTemplateColumns: {
-        labeled: "minmax(60px, 180px) minmax(120px, 1fr)",
+        labeled: "minmax(60px, 200px) minmax(120px, 1fr)",
       },
       minWidth: { px: "1px" },
       width: {
@@ -36,20 +39,15 @@ const config: Config = {
         "almost-4/10": "calc(40% - 16px)",
         "6/10": "60%",
       },
-      lineHeight: {
-        header: `${headerHeight}px`,
-      },
+      lineHeight: {},
       inset: {
-        header: `${headerHeight}px`,
         "4/10": "40%",
         "7/10": "70%",
       },
-      fontSize: {
-        header: [`${headerHeight / 2}px`, `${headerHeight}px`],
-        "header-title": [`${(2 * headerHeight) / 3}px`, `${headerHeight}px`],
-      },
-      padding: {
-        "half-header": `${headerHeight / 2}px`,
+      fontSize: {},
+      padding: {},
+      backgroundImage: {
+        scruff: "url('/ScruffFace.png')",
       },
       colors: {
         "dark-white": "#eee",

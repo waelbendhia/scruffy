@@ -27,4 +27,7 @@
     @apply flex;
     @apply flex-col;
   }
+  main {
+    @apply z-0;
+  }
 }

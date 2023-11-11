@@ -15,29 +15,21 @@ const Header = () => {
   return (
     <div
       className={
-        `sticky top-0 flex items-center flex-row h-header bg-gradient-to-b ` +
-        `from-white to-transparent text-black px-half-header z-20`
+        `sticky top-0 flex items-end flex-row h-10 bg-gradient-to-b ` +
+        `bg-white-transparent backdrop-blur-sm text-black px-5 z-20 shadow-md`
       }
     >
       <Link
-        className={
-          `left-1/2 absolute h-header-height font-display font-bold text-header-title ` +
-          `-translate-x-1/2 ${
-            pathname === "/" || open
-              ? "pointer-events-none opacity-0"
-              : "pointer-events-auto opacity-100"
-          }`
-        }
+        className={`text-xl h-8 leading-8 font-display font-bold ${
+          pathname === "/" || open
+            ? "pointer-events-none"
+            : "pointer-events-auto"
+        }`}
         href="/"
       >
         Scaruffi2.0
       </Link>
-      <a onClick={() => toggleSearch()}>
-        <i className="text-header hover:text-red material-icons cursor-pointer">
-          {open ? "close" : "search"}
-        </i>
-      </a>
-      <div className="flex-1" />
+      <div className="flex-1 h-10" />
       <div className="overflow-visible flex flex-row">
         {[
           {
@@ -69,6 +61,14 @@ const Header = () => {
           </div>
         ))}
       </div>
+      <a
+        className={`w-8 h-6 text-center leading-8`}
+        onClick={() => toggleSearch()}
+      >
+        <i className="text-6 h-6 w-8 leading-6 text-lg hover:text-red material-icons cursor-pointer">
+          {open ? "close" : "search"}
+        </i>
+      </a>
       <SearchBar open={open} toggleSearch={toggleSearch} />
     </div>
   );

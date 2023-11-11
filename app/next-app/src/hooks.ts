@@ -28,24 +28,34 @@ export const useQueryParams = (): [
   ];
 };
 
+type SetArtistSearchDispatch = React.Dispatch<
+  React.SetStateAction<ArtistSearchRequest>
+>;
+
 export const useArtistSearchParams = (): [
   ArtistSearchRequest,
-  React.Dispatch<React.SetStateAction<ArtistSearchRequest>>,
+  SetArtistSearchDispatch,
 ] => {
   const [params, setParams] = useQueryParams();
-  const prev = {
-    page: parseIntMaybe(params?.get("page")),
-    itemsPerPage: parseIntMaybe(params?.get("itemsPerPage")),
-    name: params?.get("name") ?? undefined,
-  };
 
-  return [
-    prev,
-    (req) => {
+  const page = parseIntMaybe(params?.get("page"));
+  const itemsPerPage = parseIntMaybe(params?.get("itemsPerPage"));
+  const name = params?.get("name") ?? undefined;
+
+  const prev = React.useMemo(
+    () => ({ page, itemsPerPage, name }),
+    [page, itemsPerPage, name],
+  );
+
+  const setArtistSearch = React.useCallback(
+    (req: React.SetStateAction<ArtistSearchRequest>) => {
       const updated = typeof req === "function" ? req(prev) : req;
-      const searchParams = Object.entries(updated).reduce(
+      const corrected = { name: "", ...updated };
+      console.log(prev, corrected);
+
+      const searchParams = Object.entries(corrected).reduce(
         (prev, [key, val]) => {
-          if (!!val) {
+          if (val !== undefined) {
             prev.set(key, typeof val === "number" ? `${val}` : val);
           }
           return prev;
@@ -55,18 +65,27 @@ export const useArtistSearchParams = (): [
 
       setParams(searchParams);
     },
-  ];
+    [prev, setParams],
+  );
+
+  return [prev, setArtistSearch];
 };
 
-export const useDebounced = <T>(value: T, debounce = 150) => {
-  const [debouncedValue, setDebouncedValue] = React.useState(value);
-
+export const useDebouncedEffect = <T>(
+  value: T,
+  callback: (_: T) => void,
+  debounce = 200,
+) => {
   React.useEffect(() => {
     const timeout = setTimeout(() => {
-      setDebouncedValue(value);
+      callback(value);
     }, debounce);
     return () => clearTimeout(timeout);
-  }, [value, debounce]);
+  }, [value, callback, debounce]);
+};
 
+export const useDebounced = <T>(value: T, debounce = 200) => {
+  const [debouncedValue, setDebouncedValue] = React.useState(value);
+  useDebouncedEffect(value, setDebouncedValue, debounce);
   return debouncedValue;
 };

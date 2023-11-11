@@ -98,8 +98,7 @@ export const search = ({
         { year: includeUnknown === false ? { not: null } : undefined },
       ],
       rating: { gte: ratingMin, lte: ratingMax },
-      name: nameFilter,
-      artist: { name: nameFilter },
+      OR: [{ name: nameFilter }, { artist: { name: nameFilter } }],
     };
 
     const orderBy: Prisma.AlbumOrderByWithRelationInput =
