@@ -1,10 +1,13 @@
 "use client";
 
+// TODO: since we're using this for artist and search rename this component
+
 import { useArtistSearchParams, useDebouncedEffect } from "@/hooks";
 import Input from "@/components/Input";
 import React from "react";
 
-const ArtistSearch = () => {
+const ArtistSearch = ({ className = "" }) => {
+  const inputRef = React.useRef<HTMLInputElement>(null);
   const [search, setSearch] = useArtistSearchParams();
   const [name, setName] = React.useState(search.name);
   const cbSearch = React.useCallback(
@@ -17,9 +20,20 @@ const ArtistSearch = () => {
     [setSearch, search],
   );
   useDebouncedEffect(name, cbSearch);
+  React.useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   return (
-    <Input type="text" value={name ?? ""} onChange={(name) => setName(name)} />
+    <Input
+      className={className}
+      ref={inputRef}
+      icon="search"
+      placeHolder="Search"
+      type="text"
+      value={name ?? ""}
+      onChange={(name) => setName(name)}
+    />
   );
 };
 

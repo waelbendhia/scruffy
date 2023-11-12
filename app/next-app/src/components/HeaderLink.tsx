@@ -24,6 +24,7 @@ const View = ({ text, link, options }: Props) => {
           selected ? "border-b-red" : "border-b-transparent"
         }`}
         href={link}
+        prefetch
       >
         {text}
       </Link>
@@ -45,6 +46,7 @@ const View = ({ text, link, options }: Props) => {
               key={o.link}
               className={`h-8 leading-8 ${linkBase}`}
               href={o.link}
+              prefetch
             >
               {o.text}
             </Link>

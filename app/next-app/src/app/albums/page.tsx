@@ -1,24 +1,24 @@
 import { client } from "@/api";
-import { API, ArtistSearchRequest } from "@scruffy/server";
-import ArtistCard from "@/components/ArtistCard";
+import { API, AlbumSearchRequest } from "@scruffy/server";
 import { RedirectType, redirect } from "next/navigation";
 import SearchLayout from "@/components/SearchLayout";
+import AlbumCard from "@/components/AlbumCard";
 import SortSelect from "@/components/SortSelect";
 
-const getData = async (params: Omit<ArtistSearchRequest, "itemsPerPage">) => {
+const getData = async (params: Omit<AlbumSearchRequest, "itemsPerPage">) => {
   const { data, total } = await client
-    .get<API["/artist"]["/"]>(`/artist`, {
+    .get<API["/album"]["/"]>(`/album`, {
       params: { ...params, itemsPerPage: 12 },
     })
     .then((resp) => resp.data);
-  const maxPage = Math.ceil(total / 12) - 1;
+  const maxPage = Math.max(Math.ceil(total / 12) - 1, 0);
   if ((params.page ?? 0) > maxPage) {
     const redirectParams = new URLSearchParams();
     Object.entries(params).forEach(([key, val]) => {
       redirectParams.set(key, typeof val === "number" ? `${val}` : val);
     });
-    redirectParams.set("page", `${Math.max(maxPage, 0)}`);
-    return redirect(`/artists?${redirectParams}`, RedirectType.replace);
+    redirectParams.set("page", `${maxPage}`);
+    return redirect(`/albums?${redirectParams}`, RedirectType.replace);
   }
 
   return { data, total, params };
@@ -33,9 +33,21 @@ type Props = {
   searchParams: Record<string, string>;
 };
 
+type SortColumn = Exclude<AlbumSearchRequest["sort"], undefined>;
+
+const asSortColumn = (x: unknown): SortColumn =>
+  x === "rating" || x === "name" || x === "artist" ? x : "year";
+
+const labels: Record<SortColumn, string> = {
+  rating: "Rating",
+  name: "Name",
+  artist: "Artist",
+  year: "Newest",
+};
+
 export default async function Artists({ searchParams }: Props) {
   const page = Math.max(parseIntMaybe(searchParams.page) ?? 0, 0);
-  const sort = searchParams.sort === "lastUpdated" ? "lastUpdated" : "name";
+  const sort = asSortColumn(searchParams.sort);
   const { data, total } = await getData({
     page,
     sort,
@@ -48,12 +60,18 @@ export default async function Artists({ searchParams }: Props) {
         data={data}
         total={total}
         page={page ?? 0}
-        renderRow={(a) => <ArtistCard key={a.url} className="h-48" {...a} />}
+        renderRow={(a) => (
+          <AlbumCard
+            key={`${a.artist.url}-${a.name}`}
+            className="h-48"
+            {...a}
+          />
+        )}
         filters={
           <SortSelect
-            labels={{ name: "Name", lastUpdated: "Last updated" }}
+            labels={labels}
             searchParams={searchParams}
-            coerceString={(v) => (v === "name" ? "name" : "lastUpdated")}
+            coerceString={asSortColumn}
           />
         }
       />

@@ -1,8 +1,8 @@
 import { ZodError } from "zod";
 
 export interface ScruffyError {
-  getCode(): number;
-  getBody(): object;
+  code: number;
+  body: object;
 }
 
 export class QueryValidationError<T = any> implements ScruffyError {
@@ -11,10 +11,11 @@ export class QueryValidationError<T = any> implements ScruffyError {
     this.error = error;
   }
 
-  getCode() {
+  get code() {
     return 400;
   }
-  getBody() {
+
+  get body() {
     return {
       message: "Could not read query parameters",
       errors: this.error.errors.map((err) => ({
@@ -31,10 +32,11 @@ export class NotFoundError implements ScruffyError {
     this.entity = entity;
   }
 
-  getCode() {
+  get code() {
     return 404;
   }
-  getBody() {
+
+  get body() {
     return { message: `${this.entity} not found` };
   }
 }

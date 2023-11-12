@@ -1,5 +1,6 @@
 import { api } from "./app";
 import Fastify, { RouteOptions } from "fastify";
+import { NotFoundError, QueryValidationError } from "./app/errors";
 
 const fastify = Fastify({ logger: true });
 
@@ -27,6 +28,15 @@ Object.entries(api.routes).forEach(([prefix, router]) => {
 
 const port = parseInt(process.env.SERVER_PORT || "", 10) || 8001;
 const host = process.env.SERVER_HOST || "0.0.0.0";
+
+fastify.setErrorHandler((err, _req, reply) => {
+  if (err instanceof QueryValidationError || err instanceof NotFoundError) {
+    reply.status(err.code).send(err.body);
+  } else {
+    console.error("unknown error", err);
+    reply.status(500).send({ error: "Internal server error" });
+  }
+});
 
 fastify.listen({ port, host }, (err) => {
   if (err) {

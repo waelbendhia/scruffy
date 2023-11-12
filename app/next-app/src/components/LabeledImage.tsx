@@ -8,9 +8,16 @@ type Props = {
   children: React.ReactNode;
   whiteText?: boolean;
   imageClassName?: string;
+  layout?: "horizontal" | "vertical";
 };
 
-const Content = ({ imageUrl, children, whiteText, imageClassName }: Props) => (
+const Content = ({
+  imageUrl,
+  children,
+  whiteText,
+  imageClassName,
+  layout = "horizontal",
+}: Props) => (
   <>
     <div
       className={
@@ -27,34 +34,45 @@ const Content = ({ imageUrl, children, whiteText, imageClassName }: Props) => (
     />
     <div
       className={
-        `flex flex-row justify-start items-center  h-full ` +
-        `whitespace-nowrap text-ellipsis overflow-hidden text-xl bottom-0`
+        `flex justify-start items-center  h-full whitespace-nowrap ` +
+        `text-ellipsis overflow-hidden text-xl bottom-0 ${
+          layout === "horizontal" ? "flex-row" : "flex-col"
+        }`
       }
     >
       <div
-        className={`h-4/5 w-px min-w-px ml-3 mr-4 ${
-          whiteText ? "bg-white" : "bg-black"
-        } group-hover:bg-red`}
+        className={`${
+          layout === "horizontal"
+            ? `h-4/5 w-px min-w-px ml-3 mr-4`
+            : `w-4/5 h-px min-h-px mt-3 mb-4`
+        } ${whiteText ? "bg-white" : "bg-black"} group-hover:bg-red`}
       />
       {children}
     </div>
   </>
 );
 
-const LabeledImage = ({ url, className: classNameProp, ...props }: Props) => {
+const LabeledImage = ({
+  url,
+  className: classNameProp,
+  layout = "horizontal",
+  ...props
+}: Props) => {
   const className = `${
     classNameProp ?? ""
-  } grid grid-cols-labeled items-center relative w-full group ${
-    !url ? "pointer-events-none" : "pointer-events-auto"
-  } ${props.whiteText ? "text-white" : "text-black"}`;
+  } grid items-center relative w-full group ${
+    layout === "horizontal" ? "grid-cols-labeled" : "grid-rows-labeled"
+  } ${!url ? "pointer-events-none" : "pointer-events-auto"} ${
+    props.whiteText ? "text-white" : "text-black"
+  }`;
 
   return !!url ? (
     <Link className={className} href={`/artists${url.split(".")[0]}`}>
-      <Content {...props} />
+      <Content layout={layout} {...props} />
     </Link>
   ) : (
     <span className={className}>
-      <Content {...props} />
+      <Content layout={layout} {...props} />
     </span>
   );
 };

@@ -28,8 +28,31 @@ export const useQueryParams = (): [
   ];
 };
 
+type SetPageDispatch = React.Dispatch<React.SetStateAction<number>>;
+
+const getPage = (urlParams: URLSearchParams): number =>
+  Math.max(parseIntMaybe(urlParams?.get("page")) ?? 0, 0);
+
+export const usePagination = (): [number, SetPageDispatch] => {
+  const [params, setParams] = useQueryParams();
+  const prev = getPage(params);
+
+  const setPage = React.useCallback(
+    (req: React.SetStateAction<number>) => {
+      const updated = typeof req === "function" ? req(prev) : req;
+      const searchParams = new URLSearchParams();
+      searchParams.set("page", `${updated}`);
+
+      setParams(searchParams);
+    },
+    [prev, setParams],
+  );
+
+  return [prev, setPage];
+};
+
 type SetArtistSearchDispatch = React.Dispatch<
-  React.SetStateAction<ArtistSearchRequest>
+  React.SetStateAction<Omit<ArtistSearchRequest, "itemsPerPage">>
 >;
 
 export const useArtistSearchParams = (): [
@@ -38,13 +61,15 @@ export const useArtistSearchParams = (): [
 ] => {
   const [params, setParams] = useQueryParams();
 
-  const page = parseIntMaybe(params?.get("page"));
-  const itemsPerPage = parseIntMaybe(params?.get("itemsPerPage"));
   const name = params?.get("name") ?? undefined;
+  const sort =
+    params?.get("sort") === "lastUpdated"
+      ? ("lastUpdated" as const)
+      : ("name" as const);
 
   const prev = React.useMemo(
-    () => ({ page, itemsPerPage, name }),
-    [page, itemsPerPage, name],
+    () => ({ page: getPage(params), name, sort }),
+    [params, name, sort],
   );
 
   const setArtistSearch = React.useCallback(

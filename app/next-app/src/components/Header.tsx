@@ -16,7 +16,7 @@ const Header = () => {
     <div
       className={
         `sticky top-0 flex items-end flex-row h-10 bg-gradient-to-b ` +
-        `bg-white-transparent backdrop-blur-sm text-black px-5 z-20 shadow-md`
+        `bg-white-transparent backdrop-blur-sm text-black px-8 z-20 shadow-md`
       }
     >
       <Link
@@ -26,6 +26,7 @@ const Header = () => {
             : "pointer-events-auto"
         }`}
         href="/"
+        prefetch
       >
         Scaruffi2.0
       </Link>
@@ -62,10 +63,10 @@ const Header = () => {
         ))}
       </div>
       <a
-        className={`w-8 h-6 text-center leading-8`}
+        className={`w-8 h-8 text-center leading-8`}
         onClick={() => toggleSearch()}
       >
-        <i className="text-6 h-6 w-8 leading-6 text-lg hover:text-red material-icons cursor-pointer">
+        <i className="text-6 h-8 w-8 leading-8 text-lg hover:text-red material-icons cursor-pointer">
           {open ? "close" : "search"}
         </i>
       </a>

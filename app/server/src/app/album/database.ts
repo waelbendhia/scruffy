@@ -63,13 +63,8 @@ export const SearchRequest = z.object({
   ratingMax: Rating.optional(),
   yearMin: z.string().pipe(z.coerce.number()).optional(),
   yearMax: z.string().pipe(z.coerce.number()).optional(),
-  includeUnknown: z
-    .enum(["true", "false"])
-    .transform((v) => v === "true")
-    .optional(),
   name: z.string().optional(),
-  sortBy: SortBy.optional(),
-  sortOrder: z.enum(["asc", "desc"]).optional(),
+  sort: SortBy.optional().default("year"),
 
   itemsPerPage: ItemsPerPage.optional(),
   page: Page.optional(),
@@ -77,45 +72,68 @@ export const SearchRequest = z.object({
 
 export type SearchRequest = z.TypeOf<typeof SearchRequest>;
 
+type AlbumQueryResult = {
+  name: string;
+  year?: number;
+  rating: bigint;
+  imageUrl?: string;
+  artistUrl: string;
+  artistName: string;
+};
+
 export const search = ({
   itemsPerPage = 10,
   page = 0,
-  sortOrder = "desc",
-  sortBy = "year",
+  sort = "year",
   name,
   yearMin,
   yearMax,
-  includeUnknown,
   ratingMin,
   ratingMax,
 }: SearchRequest) =>
   prisma.$transaction(async (tx) => {
-    const nameFilter: Prisma.StringFilter | undefined =
-      name !== undefined ? { contains: name } : undefined;
-    const whereQuery: Prisma.AlbumWhereInput = {
-      AND: [
-        { year: { gte: yearMin, lte: yearMax } },
-        { year: includeUnknown === false ? { not: null } : undefined },
-      ],
-      rating: { gte: ratingMin, lte: ratingMax },
-      OR: [{ name: nameFilter }, { artist: { name: nameFilter } }],
+    const data = await tx.$queryRaw<AlbumQueryResult[]>`
+      SELECT al.name     AS name,
+             al.year     AS year,
+             al.rating   AS rating,
+             al.imageUrl AS imageUrl,
+             ar.url      AS artistUrl,
+             ar.name     AS artistName
+      FROM Album al INNER JOIN Artist ar ON al.artistUrl = ar.url
+      WHERE (${name} ISNULL OR al.name LIKE '%' || ${name} || '%'
+                            OR ar.name LIKE '%' || ${name} || '%')
+        AND (${yearMin} ISNULL OR al.year >= ${yearMin})
+        AND (${yearMax} ISNULL OR al.year <= ${yearMax})
+        AND (${ratingMin} ISNULL OR al.rating >= ${ratingMin})
+        AND (${ratingMax} ISNULL OR al.rating <= ${ratingMax})
+        ORDER BY
+          (CASE WHEN al.name = ${name} OR ar.name = ${name} THEN 1
+                WHEN (al.name LIKE ${name} || '%') OR (ar.name LIKE ${name} || '%') THEN 2
+                ELSE 3 END),
+          (CASE WHEN ${sort} = 'artist' THEN ar.name COLLATE NOCASE
+                WHEN ${sort} = 'name'   THEN al.name COLLATE NOCASE
+                WHEN ${sort} = 'year'   THEN -IFNULL(al.year, 0)
+                ELSE -rating END) asc
+        LIMIT ${itemsPerPage} OFFSET ${itemsPerPage * page}`;
+    const [total] = await tx.$queryRaw<{ count: bigint }[]>`
+      SELECT COUNT(*) AS count
+      FROM Album al INNER JOIN Artist ar ON al.artistUrl = ar.url
+      WHERE (${name} ISNULL OR al.name LIKE '%' || ${name ?? ""} || '%'
+                            OR ar.name LIKE '%' || ${name ?? ""} || '%')
+        AND (${yearMin} ISNULL OR al.year >= ${yearMin})
+        AND (${yearMax} ISNULL OR al.year <= ${yearMax})
+        AND (${ratingMin} ISNULL OR al.rating >= ${ratingMin})
+        AND (${ratingMax} ISNULL OR al.rating <= ${ratingMax})`;
+
+    return {
+      data: data.map(({ artistUrl, artistName, rating, year, ...album }) => ({
+        ...album,
+        year: year,
+        rating: Number(rating),
+        artist: { url: artistUrl, name: artistName },
+      })),
+      total: Number(total.count),
     };
-
-    const orderBy: Prisma.AlbumOrderByWithRelationInput =
-      sortBy === "artist"
-        ? { artist: { name: sortOrder } }
-        : { [sortBy]: sortOrder };
-
-    const data = await tx.album.findMany({
-      where: whereQuery,
-      include: { artist: { select: { name: true, url: true } } },
-      orderBy,
-      take: itemsPerPage,
-      skip: itemsPerPage * page,
-    });
-    const total = await tx.album.count({ where: whereQuery });
-
-    return { data, total };
   });
 
 export const getCount = () => prisma.album.count({});

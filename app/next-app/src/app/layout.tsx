@@ -3,6 +3,21 @@ import "./globals.css";
 import Background from "@/components/Background";
 import Header from "@/components/Header";
 import Providers from "@/components/Providers";
+import { Libre_Baskerville, Work_Sans } from "next/font/google";
+
+const libreBaskerville = Libre_Baskerville({
+  display: "swap",
+  weight: ["400", "700"],
+  subsets: ["latin-ext"],
+  variable: "--font-libre-baskerville",
+});
+
+const workSans = Work_Sans({
+  display: "swap",
+  weight: ["300", "400", "700"],
+  subsets: ["latin-ext"],
+  variable: "--font-work-sans",
+});
 
 export const metadata: Metadata = {
   title: "Scruffy2.0",
@@ -15,7 +30,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      className={`${workSans.variable} ${libreBaskerville.variable}`}
+    >
       <body className="font-body">
         <Background />
         <Providers>

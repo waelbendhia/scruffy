@@ -133,7 +133,7 @@ const insertArtists = (
   artists: rxjs.Observable<{ url: string; name: string }>,
 ) =>
   artists.pipe(
-    rxjs.mergeMap(async ({ url, name }) => {
+    rxjs.mergeMap(async ({ url }) => {
       const result = await backoff(async () => {
         const { data, lastModified } = await getArtistPage(url, config);
         const now = new Date();
@@ -142,7 +142,7 @@ const insertArtists = (
           return null;
         }
 
-        return { ...artist, name, ts: now, lastModified };
+        return { ...artist, ts: now, lastModified };
       }, shouldRetryFetch).catch(() => null);
       return result;
     }, conncurentConnections),

@@ -7,6 +7,10 @@ export type Album = {
   rating?: number;
 };
 
+type MakeKeyNotNull<O extends object, Key extends keyof O> = {
+  [k in keyof O]: k extends Key ? Exclude<O[k], undefined | null> : O[k];
+};
+
 export const findInBody = ($: cheerio.Root) => {
   if ($("table").get().length === 0) {
     return [];
@@ -24,16 +28,18 @@ export const findInBody = ($: cheerio.Root) => {
   const yearPattern = /[0-9]{4}(?=\))/;
   const ratingPattern = /(([0-9].[0-9])|[0-9])(?=\/10)/;
 
-  return albumStrings.map((str) => {
-    const matchedYear = str.match(yearPattern)?.[0];
-    const matchedRating = str.match(ratingPattern)?.[0];
+  return albumStrings
+    .map((str) => {
+      const matchedYear = str.match(yearPattern)?.[0];
+      const matchedRating = str.match(ratingPattern)?.[0];
 
-    return {
-      name: str.match(albumNamePattern)?.[0]?.trim() ?? "",
-      year: matchedYear ? parseInt(matchedYear, 10) : undefined,
-      rating: matchedRating ? parseFloat(matchedRating) : undefined,
-    };
-  });
+      return {
+        name: str.match(albumNamePattern)?.[0]?.trim(),
+        year: matchedYear ? parseInt(matchedYear, 10) : undefined,
+        rating: matchedRating ? parseFloat(matchedRating) : undefined,
+      };
+    })
+    .filter((a): a is MakeKeyNotNull<typeof a, "name"> => a.name !== undefined);
 };
 
 const getBestAllTimeDates = async (config?: AxiosRequestConfig) => {

@@ -1,24 +1,8 @@
 import * as React from "react";
 
-// const styles = StyleSheet.create({
-//   background: {
-//     position: 'fixed',
-//     top: 0,
-//     left: 0,
-//     minWidth: '100%',
-//     minHeight: '100vh',
-//     fontSize: '6vh',
-//     backgroundColor: definitions.colors.darkWhite,
-//     color: definitions.colors.lessDarkWhite,
-//     filter: 'blur(1px)',
-//     zIndex: -1,
-//     userSelect: 'none',
-//   },
-// });
 
 const Background = () => (
   <div
-    // className={css(styles.background)}
     className={
       "fixed top-0 left-0 min-w-screen min-h-screen text-[6vh] text-less-dark-white " +
       "bg-dark-white blur-sm -z-10 select-none"

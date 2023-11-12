@@ -22,7 +22,11 @@ const SearchBar = ({
     async () =>
       !debouncedSearch
         ? { data: [], total: 0 }
-        : await searchArtists({ name: debouncedSearch, itemsPerPage: 3 }),
+        : await searchArtists({
+            name: debouncedSearch,
+            itemsPerPage: 3,
+            sort: "name",
+          }),
     { keepPreviousData: true },
   );
 
@@ -61,44 +65,53 @@ const SearchBar = ({
   return (
     <div
       className={
-        `px-8 pt-4 w-almost-full absolute left-8 h-[688px] top-12 shadow-md ` +
-        `bg-white-transparent backdrop-blur-sm flex flex-col transition-all z-10 ` +
-        `rounded mb-4 ${
-          open
-            ? "translate-y-0 opacity-100 visible"
-            : "translate-y-8 opacity-0 invisible"
+        `bg-transparent absolute left-0 top-10 z-0 w-full ` +
+        `h-headless-screen transition-opacity ${
+          open ? `visible opacity-100` : `invisible opacity-0`
         }`
       }
+      onClick={() => toggleSearch()}
     >
-      <Input
-        ref={inputRef}
-        className="h-10 mr-9"
-        whiteText={true}
-        icon="search"
-        type="text"
-        value={search}
-        onChange={setSearch}
-      />
-      <Loading
-        loading={
-          artistQueryResult.isLoading ||
-          artistQueryResult.isFetching ||
-          albumQueryResult.isLoading ||
-          albumQueryResult.isFetching
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
+        className={
+          `px-8 pt-4 w-almost-full absolute left-8 h-[43rem] top-2 shadow-md ` +
+          `bg-white-transparent backdrop-blur-sm flex flex-col transition-all z-10 ` +
+          `rounded mb-4 ${open ? "translate-y-0" : "translate-y-8"}`
         }
-        className="flex-1 grid grid-cols-2 gap-x-2"
       >
-        <div className={colClass}>
-          {artistQueryResult.data?.data?.map((b) => (
-            <ArtistCard key={b.url} {...b} />
-          ))}
-        </div>
-        <div className={colClass}>
-          {albumQueryResult.data?.data.map((a) => (
-            <AlbumCard key={`${a.artist.url}-${a.name}`} {...a} />
-          ))}
-        </div>
-      </Loading>
+        <Input
+          ref={inputRef}
+          className="h-10 mr-9"
+          whiteText={true}
+          icon="search"
+          type="text"
+          value={search}
+          onChange={setSearch}
+        />
+        <Loading
+          loading={
+            artistQueryResult.isLoading ||
+            artistQueryResult.isFetching ||
+            albumQueryResult.isLoading ||
+            albumQueryResult.isFetching
+          }
+          className="flex-1 grid grid-cols-2 gap-x-2"
+        >
+          <div className={colClass}>
+            {artistQueryResult.data?.data?.map((b) => (
+              <ArtistCard key={b.url} {...b} />
+            ))}
+          </div>
+          <div className={colClass}>
+            {albumQueryResult.data?.data.map((a) => (
+              <AlbumCard key={`${a.artist.url}-${a.name}`} {...a} />
+            ))}
+          </div>
+        </Loading>
+      </div>
     </div>
   );
 };

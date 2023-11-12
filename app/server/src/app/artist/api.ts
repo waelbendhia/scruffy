@@ -21,7 +21,8 @@ export const api = {
     }) satisfies RouteHandlerMethod,
     "/total": ((_, __reply) => getCount()) satisfies RouteHandlerMethod,
     "/:volume/:url": (async (req, _reply) => {
-      const band = await get(`${req.params.volume}/${req.params.url}.html`);
+      const band = await get(`/${req.params.volume}/${req.params.url}.html`);
+      console.log(`${req.params.volume}/${req.params.url}.html`)
 
       if (!band) {
         throw new NotFoundError("artist");

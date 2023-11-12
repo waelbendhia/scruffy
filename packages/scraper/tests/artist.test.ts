@@ -74,16 +74,31 @@ const mingusAlbums = [
   { name: "Jazz in Detroit", year: 1973, rating: 5 },
 ];
 
+const stonesAlbums = [
+  { name: "Rolling Stones", rating: 5, year: undefined },
+  { name: "Out Of Our Heads", rating: 6, year: undefined },
+  { name: "Aftermath", year: 1966, rating: 7 },
+  { name: "Between The Buttons", year: 1967, rating: 7.5 },
+  { name: "Their Satanic Majesties Request", year: 1967, rating: 6.5 },
+  { name: "Beggar's Banquet", year: 1968, rating: 7 },
+  { name: "Let It Bleed", year: 1969, rating: 6.5 },
+  { name: "Sticky Fingers", year: 1971, rating: 7 },
+  { name: "Exile On Main Street", year: 1972, rating: 8 },
+];
+
 const readFileRel = (filepath: string) =>
   fs.readFile(path.resolve(__dirname, filepath));
 
 test("testing artist scraping", async () => {
-  const [beatles, mingus, richards, cdreview2018] = await Promise.all([
+  const [beatles, mingus, stones, richards, cdreview2018] = await Promise.all([
     readFileRel("./beatles.html").then((content) =>
       readArtistFromArtistPage("vol1/beatles.html", content),
     ),
     readFileRel("./mingus.html").then((content) =>
       readArtistFromArtistPage("jazz/mingus.html", content),
+    ),
+    readFileRel("./stones.html").then((content) =>
+      readArtistFromArtistPage("vol1/stones.html", content),
     ),
     readFileRel("./richards.html").then((content) =>
       readArtistFromArtistPage("avant/richards.html", content),
@@ -99,6 +114,9 @@ test("testing artist scraping", async () => {
   expect(mingus?.name).toBe("Charles Mingus");
   expect(mingus?.bio).toMatch(/^The art of double bass/);
   expect(mingus?.albums).toStrictEqual(mingusAlbums);
+
+  expect(stones?.name).toBe("Rolling Stones");
+  expect(stones?.albums).toStrictEqual(stonesAlbums);
 
   expect(richards?.name).toBe("Vicki Richards");
   expect(richards?.bio).toMatch(/^Violini virtuosa/);

@@ -80,9 +80,13 @@ export const get = (artistUrl: string) =>
   prisma.artist.findUnique({
     where: { url: artistUrl },
     select: {
-      toRelatedArtists: { include: {} },
-      fromRelatedArtists: { include: {} },
-      albums: { include: {} },
+      url: true,
+      imageUrl: true,
+      bio: true,
+      name: true,
+      toRelatedArtists: { select: { url: true, name: true } },
+      fromRelatedArtists: { select: { url: true, name: true } },
+      albums: { include: {}, orderBy: { year: "asc" } },
     },
   });
 
@@ -92,6 +96,7 @@ export const SearchRequest = z.object({
   name: z.string().optional(),
   itemsPerPage: ItemsPerPage.optional(),
   page: Page.optional(),
+  sort: z.enum(["name", "lastUpdated"]).default("name"),
 });
 
 export type SearchRequest = z.TypeOf<typeof SearchRequest>;
@@ -100,22 +105,20 @@ export const search = async ({
   name,
   itemsPerPage = 10,
   page = 0,
+  sort,
 }: SearchRequest) =>
   prisma.$transaction(async (tx) => {
-    const data = await tx.artist.findMany({
-      where: { name: { contains: name } },
-      select: {
-        name: true,
-        url: true,
-        imageUrl: true,
-        lastUpdated: true,
-        firstRetrieved: true,
-        lastRetrieved: true,
-      },
-      orderBy: { name: "asc" },
-      take: itemsPerPage,
-      skip: itemsPerPage * page,
-    });
+    console.log("sort", sort);
+    const data = await tx.$queryRaw<
+      Omit<Artist, "bio">[]
+    >`SELECT name, url, imageUrl, lastUpdated, firstRetrieved, lastRetrieved
+      FROM Artist
+      WHERE ${name} ISNULL OR name LIKE "%" || ${name ?? ""} || "%"
+      ORDER BY
+        (CASE WHEN name = ${name} THEN 1 WHEN name LIKE ${name} || "%" THEN 2 ELSE 3 END),
+        (CASE WHEN ${sort} = 'lastUpdated' THEN -lastUpdated ELSE name COLLATE NOCASE END) ASC
+      LIMIT ${itemsPerPage} OFFSET ${itemsPerPage * page}`;
+
     const total = await tx.artist.count({
       where: { name: { contains: name } },
     });
