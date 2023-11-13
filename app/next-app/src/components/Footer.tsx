@@ -36,7 +36,7 @@ const Footer = () => {
         <div className="text-sm">
           <div className="mb-2">
             All artist biographies and album ratings are the property of{" "}
-            <FooterLink href="https://wbd.tn">Piero Scaruffi</FooterLink>
+            <FooterLink href="https://www.scaruffi.com">Piero Scaruffi</FooterLink>
           </div>
           <div>
             Some release dates, artist images and album covers are from{" "}
