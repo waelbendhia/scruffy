@@ -22,10 +22,9 @@
   body {
     @apply min-h-full;
     @apply h-full;
-    @apply flex;
-    @apply flex-col;
   }
   main {
     @apply z-0;
+    @apply relative;
   }
 }

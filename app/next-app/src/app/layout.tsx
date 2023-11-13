@@ -4,6 +4,7 @@ import Background from "@/components/Background";
 import Header from "@/components/Header";
 import Providers from "@/components/Providers";
 import { Libre_Baskerville, Work_Sans } from "next/font/google";
+import Footer from "@/components/Footer";
 
 const libreBaskerville = Libre_Baskerville({
   display: "swap",
@@ -40,6 +41,7 @@ export default function RootLayout({
           <Header />
           {children}
         </Providers>
+        <Footer />
       </body>
     </html>
   );

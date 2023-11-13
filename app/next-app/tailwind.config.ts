@@ -17,7 +17,7 @@ const config: Config = {
         "scruff-offset": "100% 130%",
       },
       backgroundSize: {
-        "1/2": "6.25rem",
+        "1/2": "50%",
       },
       fontFamily: {
         body: "var(--font-work-sans)",
@@ -28,9 +28,12 @@ const config: Config = {
         "headless-screen": "calc(100vh - 2.5rem)",
         "almost-full": "calc(100% - 1rem)",
       },
+      minHeight: {
+        fullscreen: "calc(100vh - 2.5rem)",
+      },
       gridTemplateRows: {
         "fixed-10": "2.5rem",
-        labeled: "minmax(3.75rem, 12.5rem) minmax(7.5rem, 1fr)",
+        labeled: "minmax(3.75rem, 12.5rem) 4rem",
       },
       gridTemplateColumns: {
         labeled: "minmax(3.75rem, 12.5rem) minmax(7.5rem, 1fr)",

@@ -21,7 +21,7 @@ const Content = ({
   <>
     <div
       className={
-        `ml-2 bg-dark-gray h-full bg-center bg-no-repeat bg-cover ` +
+        `bg-dark-gray h-full bg-center bg-no-repeat bg-cover ` +
         `overflow-hidden after:content-[''] after:mix-blend-color after:absolute ` +
         `after:opacity-0 after:w-full after:h-full after:bg-red relative ` +
         `after:transition-opacity group-hover:after:opacity-100 after:z-20 ${
@@ -58,13 +58,11 @@ const LabeledImage = ({
   layout = "horizontal",
   ...props
 }: Props) => {
-  const className = `${
-    classNameProp ?? ""
-  } grid items-center relative w-full group ${
-    layout === "horizontal" ? "grid-cols-labeled" : "grid-rows-labeled"
+  const className = `grid items-center relative w-full group ${
+    layout === "horizontal" ? "grid-cols-labeled" : "grid-rows-labeled h-64"
   } ${!url ? "pointer-events-none" : "pointer-events-auto"} ${
     props.whiteText ? "text-white" : "text-black"
-  }`;
+  } ${classNameProp ?? ""}`;
 
   return !!url ? (
     <Link className={className} href={`/artists${url.split(".")[0]}`}>

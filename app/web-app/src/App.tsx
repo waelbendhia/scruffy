@@ -11,7 +11,7 @@ import { Router } from 'react-router';
 const App = () => (
   <Provider store={store}>
     <Router history={history}>
-      <DocumentTitle title='Scaruffi2.0'>
+      <DocumentTitle title='Scruffy2.0'>
         <div>
           <link
             href='https://fonts.googleapis.com/icon?family=Material+Icons'

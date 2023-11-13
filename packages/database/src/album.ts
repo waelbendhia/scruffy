@@ -1,20 +1,7 @@
 import { prisma } from "./client";
-import { Artist, Prisma, Album } from "@prisma/client";
+import { Artist, Prisma } from "@prisma/client";
 
 type SortBy = "rating" | "year" | "name" | "artist";
-
-export const insert = (artist: Artist, album: Album) => {
-  const insertData: Prisma.AlbumCreateInput = {
-    ...album,
-    artist: { connect: { url: artist.url } },
-  };
-
-  return prisma.album.upsert({
-    where: { artistUrl_name: { name: album.name, artistUrl: artist.url } },
-    update: insertData,
-    create: insertData,
-  });
-};
 
 export const find = (artist: Artist) =>
   prisma.album.findMany({

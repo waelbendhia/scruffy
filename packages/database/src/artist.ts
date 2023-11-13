@@ -1,41 +1,4 @@
 import { prisma } from "./client";
-import { Artist, Prisma, Album } from "@prisma/client";
-
-type Tx = typeof prisma.$transaction extends (lm: (tx: infer Tx) => any) => any
-  ? Tx
-  : never;
-
-type FullArtist = Artist & {
-  albums?: Omit<Album, "artistUrl">[];
-  relatedArtists?: Artist[];
-};
-
-export const upsert = (
-  { albums, relatedArtists, ...artist }: FullArtist,
-  con: Tx = prisma,
-) => {
-  const statement: Prisma.ArtistCreateInput = {
-    ...artist,
-    albums: {
-      connectOrCreate: albums?.map((album) => ({
-        where: { artistUrl_name: { name: album.name, artistUrl: artist.url } },
-        create: album,
-      })),
-    },
-    toRelatedArtists: {
-      connectOrCreate: relatedArtists?.map((related) => ({
-        where: { url: related.url },
-        create: related,
-      })),
-    },
-  };
-
-  return con.artist.upsert({
-    where: { url: artist.url },
-    update: statement,
-    create: statement,
-  });
-};
 
 export const get = (artistUrl: string) =>
   prisma.artist.findUnique({

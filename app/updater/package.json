@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "yarn start",
-    "serve": "ts-node src/server.ts",
+    "serve": "ts-node src/main.ts",
     "start": "nodemon"
   },
   "author": "Wael Ben Dhia",

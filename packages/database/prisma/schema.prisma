@@ -9,31 +9,36 @@ datasource db {
 
 model UpdateHistory {
   checkedOn DateTime @default(now())
-  hash      String   @id
+  hash      String
+  pageURL   String   @id
+  Artist    Artist[]
+  Album     Album[]
 }
 
 model Artist {
-  url                String   @id
+  fromUpdate         UpdateHistory @relation(fields: [url], references: [pageURL])
+  url                String        @id
   name               String
   bio                String?
   imageUrl           String?
-  fromRelatedArtists Artist[] @relation("RelatedArtists")
-  toRelatedArtists   Artist[] @relation("RelatedArtists")
+  fromRelatedArtists Artist[]      @relation("RelatedArtists")
+  toRelatedArtists   Artist[]      @relation("RelatedArtists")
   albums             Album[]
-  lastUpdated        DateTime
-  firstRetrieved     DateTime
-  lastRetrieved      DateTime
+  lastModified       DateTime
 }
 
 model Album {
-  name      String
-  year      Int?
-  rating    Decimal
-  artist    Artist  @relation(fields: [artistUrl], references: [url])
-  artistUrl String
-  imageUrl  String?
+  name   String
+  year   Int?
+  rating Decimal
 
-  retrieved DateTime
+  artist    Artist @relation(fields: [artistUrl], references: [url])
+  artistUrl String
+
+  imageUrl String?
+
+  fromUpdate UpdateHistory @relation(fields: [pageURL], references: [pageURL])
+  pageURL    String
 
   @@id([artistUrl, name])
 }

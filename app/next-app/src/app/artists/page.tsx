@@ -35,7 +35,7 @@ type Props = {
 
 export default async function Artists({ searchParams }: Props) {
   const page = Math.max(parseIntMaybe(searchParams.page) ?? 0, 0);
-  const sort = searchParams.sort === "lastUpdated" ? "lastUpdated" : "name";
+  const sort = searchParams.sort === "lastModified" ? "lastModified" : "name";
   const { data, total } = await getData({
     page,
     sort,
@@ -43,12 +43,14 @@ export default async function Artists({ searchParams }: Props) {
   });
 
   return (
-    <main className={`flex-1 px-4`}>
+    <main className={`flex-1 px-4 min-h-fullscreen`}>
       <SearchLayout
         data={data}
         total={total}
         page={page ?? 0}
-        renderRow={(a) => <ArtistCard key={a.url} className="h-48" {...a} />}
+        renderRow={(a) => (
+          <ArtistCard layout="vertical" key={a.url} className="h-48" {...a} />
+        )}
         filters={
           <SortSelect
             labels={{ name: "Name", lastUpdated: "Last updated" }}

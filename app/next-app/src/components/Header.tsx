@@ -28,7 +28,7 @@ const Header = () => {
         href="/"
         prefetch
       >
-        Scaruffi2.0
+        Scruffy2.0
       </Link>
       <div className="flex-1 h-10" />
       <div className="overflow-visible flex flex-row">

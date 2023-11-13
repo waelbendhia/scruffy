@@ -39,7 +39,10 @@ export const findInBody = ($: cheerio.Root) => {
         rating: matchedRating ? parseFloat(matchedRating) : undefined,
       };
     })
-    .filter((a): a is MakeKeyNotNull<typeof a, "name"> => a.name !== undefined);
+    .filter(
+      (a): a is MakeKeyNotNull<typeof a, "name" | "rating"> =>
+        a.name !== undefined && a.rating !== undefined,
+    );
 };
 
 const getBestAllTimeDates = async (config?: AxiosRequestConfig) => {

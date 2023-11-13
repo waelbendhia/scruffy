@@ -6,14 +6,7 @@ type Props = API["/artist"]["/"]["data"][number] & {
   layout?: "horizontal" | "vertical";
 };
 
-const ArtistCard = ({
-  className,
-  url,
-  imageUrl,
-  name,
-  lastUpdated,
-  layout,
-}: Props) => (
+const ArtistCard = ({ className, url, imageUrl, name, layout }: Props) => (
   <LabeledImage
     className={className}
     url={url}
@@ -23,14 +16,6 @@ const ArtistCard = ({
     <div className={`overflow-hidden text-ellipsis`}>
       <div className={`overflow-hidden text-ellipsis text-lg font-bold`}>
         {name}
-      </div>
-      <div className={`overflow-hidden text-ellipsis text-base`}>
-        <b>Updated:</b>{" "}
-        {new Date(lastUpdated).toLocaleDateString("en-us", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })}
       </div>
     </div>
   </LabeledImage>
