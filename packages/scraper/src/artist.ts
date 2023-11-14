@@ -219,33 +219,46 @@ const skipSummary = (t: string) => {
   return t;
 };
 
-const getBioFromBody = ($: cheerio.Root) =>
-  skipSummary(
-    $("td[bgcolor=eebb88]")
-      .get()
-      .flatMap(flattenElement)
-      .reduce((prev, e) => {
-        if (e.type === "text") {
-          return prev + $(e).text();
-        }
+const getBioElementsByColor = ($: cheerio.Root): cheerio.Element[] => {
+  for (const color of ["eebb88", "#eebb88", "e6dfaa"]) {
+    const bioElems = $(`td[bgcolor=${color}]`).get();
+    if (bioElems.length > 0) {
+      return bioElems;
+    }
+  }
 
-        switch (e.tagName) {
-          case "font":
-            if (e.attribs.size === "-1") {
-              return prev;
-            }
-            return prev + $(e).text();
-          case "hr":
-          case "br":
-            return prev + "\n\n";
-          case "p":
-          case "div":
-            return prev + "\n" + $(e).text();
-          default:
-            return prev + $(e).text();
-        }
-      }, ""),
+  return []
+};
+
+const getBioFromBody = ($: cheerio.Root) => {
+  const bioElems = getBioElementsByColor($);
+
+  return skipSummary(
+    bioElems.flatMap(flattenElement).reduce((prev, e) => {
+      if (e.type === "text") {
+        return prev + $(e).text();
+      }
+
+      switch (e.tagName) {
+        case "font":
+          if (e.attribs.size === "-1") {
+            console.log("found font skipping");
+            return prev;
+          }
+          return prev + $(e).text();
+        case "hr":
+        case "br":
+          return prev + "\n\n";
+        case "p":
+        case "div":
+          return prev + "\n" + $(e).text();
+        default:
+          return prev + $(e).text();
+      }
+    }, ""),
   ).trim();
+};
+
 const getRelatedArtistsFromBody = (
   $: cheerio.Root,
   artistUrl: string,

@@ -15,6 +15,7 @@ type DeezerArtist = {
   type: "artist";
 };
 
+
 export const getBestArtistSearchResult = async (name: string) => {
   const resp = await client.get<{ data: DeezerArtist[] }>(`/search/artist`, {
     params: { q: `artist:"${name}"`, limit: 1 },
@@ -60,9 +61,9 @@ export const getBestAlbumSearchResult = async (
 };
 
 type DeezerFullAlbum = DeezerAlbum & {
-  upc: "724384960650";
-  link: "https://www.deezer.com/album/302127";
-  share: "https://www.deezer.com/album/302127?utm_source=deezer&utm_content=album-302127&utm_term=0_1699783593&utm_medium=web";
+  upc: string;
+  link: string;
+  share: string;
   genres: {
     data: {
       id: number;

@@ -16,28 +16,15 @@ const beatleAlbums = [
   { name: "Help", year: 1965, rating: 3 },
   { name: "Rubber Soul", year: 1965, rating: 5 },
   { name: "Revolver", year: 1966, rating: 5 },
-  {
-    name: "Sgt Pepper's Lonely Hearts Club Band",
-    year: 1967,
-    rating: 7,
-  },
+  { name: "Sgt Pepper's Lonely Hearts Club Band", year: 1967, rating: 7 },
   { name: "Magical Mystery Tour", year: 1967, rating: 6 },
   { name: "The Beatles", year: 1968, rating: 6 },
   { name: "Yellow Submarine", year: 1969, rating: 5 },
   { name: "Abbey Road", year: 1969, rating: 7 },
   { name: "Let It Be", year: 1970, rating: 4 },
   { name: "George Harrison: Wonderwall", year: 1968, rating: 5 },
-  {
-    name: "George Harrison: Electronic Sounds",
-    year: 1969,
-
-    rating: 6,
-  },
-  {
-    name: "George Harrison: All Things Must Pass",
-    year: 1970,
-    rating: 6.5,
-  },
+  { name: "George Harrison: Electronic Sounds", year: 1969, rating: 6 },
+  { name: "George Harrison: All Things Must Pass", year: 1970, rating: 6.5 },
   {
     name: "John Lennon: John Lennon/ Plastic Ono Band",
     year: 1970,
@@ -148,90 +135,174 @@ const velvetAlbums = [
   { name: "Squeeze", year: 1973, rating: 4 },
 ];
 
+const aylerAlbums = [
+  { name: "Holy Ghost", year: 1962, rating: 5 },
+  { name: "Something Different", year: 1962, rating: 6 },
+  { name: "My Name is Albert Ayler", year: 1963, rating: 5 },
+  { name: "Spirits/Witches and Devils", year: 1964, rating: 7.5 },
+  { name: "Swing Low Sweet Spiritual", year: 1964, rating: 5 },
+  { name: "Prophecy", year: 1964, rating: 6 },
+  { name: "Spiritual Unity", year: 1964, rating: 9 },
+  { name: "New York Eye and Ear Control", year: 1946, rating: 7.5 },
+  { name: "Vibrations", year: 1964, rating: 7.5 },
+  { name: "The Hilversum Session", year: 1964, rating: 6 },
+  { name: "Bells", year: 1965, rating: 6 },
+  { name: "Spirits Rejoice", year: 1965, rating: 6 },
+  { name: "In Greenwich Village", year: 1966, rating: 4 },
+  { name: "Holy Ghost", year: 1967, rating: 5 },
+  { name: "Love Cry", year: 1967, rating: 4 },
+  {
+    name: "Music is the Healing Force of the Universe",
+    year: 1969,
+    rating: 5.5,
+  },
+];
+
+const deuterAlbums = [
+  { name: "D", rating: 7, year: undefined },
+  { name: "Aum", rating: 7, year: undefined },
+  { name: "Basho's Pond", rating: 5, year: undefined },
+  { name: "Tea From An Empty Cup", rating: 5, year: undefined },
+  { name: "San", rating: 6, year: undefined },
+  { name: "Buddham Sharnam Gachchami", rating: 5, year: undefined },
+  { name: "Flowers Of Silence", rating: 5, year: undefined },
+  { name: "Sambodhi Music", rating: 6, year: undefined },
+  { name: "Celebration", rating: 6, year: undefined },
+  { name: "Haleakala Mystery", rating: 7, year: undefined },
+  { name: "Ecstasy", rating: 7, year: undefined },
+  { name: "Silence Is The Answer", rating: 8, year: undefined },
+  { name: "Cicada", rating: 6, year: undefined },
+  { name: "Nirvana Road", rating: 7, year: undefined },
+  { name: "Land Of Enchantment", rating: 6, year: undefined },
+  { name: "Henon", rating: 5, year: undefined },
+  { name: "Terra Magica: Planet Of Light", rating: 5, year: undefined },
+  { name: "Wind & Mountain", rating: 4, year: undefined },
+  { name: "Kundalini", rating: 4, year: undefined },
+  { name: "Nadabrahma", rating: 4, year: undefined },
+  { name: "Nada Himalaya", rating: 5, year: undefined },
+  { name: "Reiki", rating: 4, year: undefined },
+  { name: "Sun Spirit", rating: 4, year: undefined },
+  { name: "Garden of the Gods", rating: 4, year: undefined },
+  { name: "Buddha Nature", rating: 4, year: undefined },
+];
+
 const readFileRel = (filepath: string) =>
   fs.readFile(path.resolve(__dirname, filepath));
 
+type ArtistReaderTestCase = {
+  url: string;
+} & (
+  | {
+      shouldBeNull?: false;
+      albums: { name: string; year?: number; rating: number }[];
+      start: RegExp;
+      end: RegExp;
+      name: string;
+    }
+  | { shouldBeNull: true }
+);
+
+const runArtistReaderTest = async ({ url, ...rest }: ArtistReaderTestCase) => {
+  const splitPath = url.split("/");
+  const filename = splitPath[splitPath.length - 1];
+  await readFileRel(`./${filename}`).then((content) =>
+    readArtistFromArtistPage(url, content),
+  );
+
+  const content = await readFileRel(filename);
+  const artist = readArtistFromArtistPage(url, content);
+  if (rest.shouldBeNull) {
+    expect(artist).toBeNull();
+  } else {
+    expect(artist?.name).toBe(rest.name);
+    expect(artist?.bio).toMatch(rest.start);
+    expect(artist?.bio).toMatch(rest.end);
+    expect(artist?.albums ?? []).toStrictEqual(rest.albums);
+  }
+};
+
 test("testing artist scraping", async () => {
-  const [
-    beatles,
-    mingus,
-    stones,
-    richards,
-    gecs,
-    gsybe,
-    softMachine,
-    velvet,
-    cdreview2018,
-  ] = await Promise.all([
-    readFileRel("./beatles.html").then((content) =>
-      readArtistFromArtistPage("vol1/beatles.html", content),
-    ),
-    readFileRel("./mingus.html").then((content) =>
-      readArtistFromArtistPage("jazz/mingus.html", content),
-    ),
-    readFileRel("./stones.html").then((content) =>
-      readArtistFromArtistPage("vol1/stones.html", content),
-    ),
-    readFileRel("./richards.html").then((content) =>
-      readArtistFromArtistPage("avant/richards.html", content),
-    ),
-    readFileRel("./100gecs.html").then((content) =>
-      readArtistFromArtistPage("vol8/100gecs.html", content),
-    ),
-    readFileRel("./godspeed.html").then((content) =>
-      readArtistFromArtistPage("vol6/godspeed.html", content),
-    ),
-    readFileRel("./softmach.html").then((content) =>
-      readArtistFromArtistPage("vol2/softmach.html", content),
-    ),
-    readFileRel("./velvet.html").then((content) =>
-      readArtistFromArtistPage("vol2/velvet.html", content),
-    ),
-    readFileRel("./2018.html").then((content) =>
-      readArtistFromArtistPage("cdreview/2018.html", content),
-    ),
-  ]);
-  expect(beatles?.name).toBe("Beatles");
-  expect(beatles?.bio).toMatch(/^The fact that/);
-  expect(beatles?.bio).toMatch(/they never said it\.$/);
-  expect(beatles?.albums).toStrictEqual(beatleAlbums);
+  await runArtistReaderTest({
+    url: "vol1/beatles.html",
+    name: "Beatles",
+    start: /^The fact that/,
+    end: /they never said it\.$/,
+    albums: beatleAlbums,
+  });
 
-  expect(mingus?.name).toBe("Charles Mingus");
-  expect(mingus?.bio).toMatch(/^The art of double bass/);
-  expect(mingus?.bio).toMatch(/Mingus died in january 1979\.$/);
-  expect(mingus?.albums).toStrictEqual(mingusAlbums);
+  await runArtistReaderTest({
+    url: "jazz/mingus.html",
+    name: "Charles Mingus",
+    start: /^The art of double bass/,
+    end: /Mingus died in january 1979\.$/,
+    albums: mingusAlbums,
+  });
 
-  expect(stones?.name).toBe("Rolling Stones");
-  expect(stones?.bio).toMatch(/^The Rolling Stones were/);
-  expect(stones?.bio).toMatch(/never be the same again\.$/);
-  expect(stones?.albums).toStrictEqual(stonesAlbums);
+  await runArtistReaderTest({
+    url: "vol1/stones.html",
+    name: "Rolling Stones",
+    start: /^The Rolling Stones were/,
+    end: /never be the same again\.$/,
+    albums: stonesAlbums,
+  });
 
-  expect(richards?.name).toBe("Vicki Richards");
-  expect(richards?.bio).toMatch(/^Violini virtuosa/);
-  expect(richards?.bio).toMatch(/with Amit Chatterjee\.$/);
-  expect(richards?.albums ?? []).toStrictEqual([]);
+  await runArtistReaderTest({
+    url: "avant/richards.html",
+    name: "Vicki Richards",
+    start: /^Violini virtuosa/,
+    end: /with Amit Chatterjee\.$/,
+    albums: [],
+  });
 
-  expect(gsybe?.name).toBe("Godspeed You! Black Emperor");
-  expect(gsybe?.bio).toMatch(/^Godspeed You! Black Emperor, a large/);
-  expect(gsybe?.bio).toMatch(/music\.$/);
-  expect(gsybe?.albums).toStrictEqual(gsybeAlbums);
+  await runArtistReaderTest({
+    url: "vol6/godspeed.html",
+    name: "Godspeed You! Black Emperor",
+    start: /^Godspeed You! Black Emperor, a large/,
+    end: /music\.$/,
+    albums: gsybeAlbums,
+  });
 
-  expect(gecs?.name).toBe("100 Gecs");
-  expect(gecs?.bio).toMatch(/^Missouri's duo 100 Gecs/);
-  expect(gecs?.bio).toMatch(/with Josh Pan\.$/);
-  expect(gecs?.albums ?? []).toStrictEqual([]);
+  await runArtistReaderTest({
+    url: "vol8/100gecs.html",
+    name: "100 Gecs",
+    start: /^Missouri's duo 100 Gecs/,
+    end: /with Josh Pan\.$/,
+    albums: [],
+  });
 
-  expect(softMachine?.name).toBe("Soft Machine");
-  expect(softMachine?.bio).toMatch(/^The Canterbury school of British/);
-  expect(softMachine?.bio).toMatch(/and Live Adventures \(october 2009\)\.$/);
-  expect(softMachine?.albums).toStrictEqual(softMachineAlbums);
+  await runArtistReaderTest({
+    url: "vol2/softmach.html",
+    name: "Soft Machine",
+    start: /^The Canterbury school of British/,
+    end: /and Live Adventures \(october 2009\)\.$/,
+    albums: softMachineAlbums,
+  });
 
-  expect(velvet?.name).toBe("Velvet Underground");
-  expect(velvet?.bio).toMatch(/^The Velvet Underground  are/);
-  expect(velvet?.bio).toMatch(/'Expanded Cinema' \(november 1965\)\.$/);
-  expect(velvet?.albums).toStrictEqual(velvetAlbums);
+  await runArtistReaderTest({
+    url: "vol2/velvet.html",
+    name: "Velvet Underground",
+    start: /^The Velvet Underground  are/,
+    end: /'Expanded Cinema' \(november 1965\)\.$/,
+    albums: velvetAlbums,
+  });
 
-  expect(cdreview2018).toBeNull();
+  await runArtistReaderTest({
+    url: "jazz/ayler.html",
+    name: "Albert Ayler",
+    start: /^Of all the protagonists/,
+    end: /"Holy Ghost" \(2022\)\.$/,
+    albums: aylerAlbums,
+  });
+
+  await runArtistReaderTest({
+    url: "vol3/deuter.html",
+    name: "Georg Deuter",
+    start: /^Georg Georg Deuter/,
+    end: /english\.$/,
+    albums: deuterAlbums,
+  });
+
+  await runArtistReaderTest({ url: "cdreview/2018.html", shouldBeNull: true });
 });
 
 test("testing page readers", async () => {

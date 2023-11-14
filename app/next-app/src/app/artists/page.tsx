@@ -45,6 +45,7 @@ export default async function Artists({ searchParams }: Props) {
   return (
     <main className={`flex-1 px-4 min-h-fullscreen`}>
       <SearchLayout
+        searchName={searchParams.name}
         data={data}
         total={total}
         page={page ?? 0}
@@ -54,9 +55,9 @@ export default async function Artists({ searchParams }: Props) {
         )}
         filters={
           <SortSelect
-            labels={{ name: "Name", lastUpdated: "Last updated" }}
+            labels={{ name: "Name", lastModified: "Last updated" }}
             searchParams={searchParams}
-            coerceString={(v) => (v === "name" ? "name" : "lastUpdated")}
+            coerceString={(v) => (v === "name" ? "name" : "lastModified")}
           />
         }
       />

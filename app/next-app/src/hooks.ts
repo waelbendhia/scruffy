@@ -63,8 +63,8 @@ export const useArtistSearchParams = (): [
 
   const name = params?.get("name") ?? undefined;
   const sort =
-    params?.get("sort") === "lastUpdated"
-      ? ("lastUpdated" as const)
+    params?.get("sort") === "lastModified"
+      ? ("lastModified" as const)
       : ("name" as const);
 
   const prev = React.useMemo(

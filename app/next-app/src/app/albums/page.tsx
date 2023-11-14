@@ -58,6 +58,7 @@ export default async function Artists({ searchParams }: Props) {
   return (
     <main className={`flex-1 px-4 min-h-fullscreen`}>
       <SearchLayout
+        searchName={searchParams.name}
         data={data}
         total={total}
         page={page ?? 0}

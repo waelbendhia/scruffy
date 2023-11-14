@@ -35,7 +35,11 @@ const SearchBar = ({
     async () =>
       !debouncedSearch
         ? { data: [], total: 0 }
-        : await searchAlbums({ name: debouncedSearch, itemsPerPage: 3 }),
+        : await searchAlbums({
+            name: debouncedSearch,
+            itemsPerPage: 3,
+            sort: "name",
+          }),
     { keepPreviousData: true },
   );
 

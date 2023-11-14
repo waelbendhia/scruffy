@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import * as React from "react";
 
 type Props = {
@@ -19,18 +20,19 @@ const Content = ({
   layout = "horizontal",
 }: Props) => (
   <>
-    <div
+    <Image
       className={
-        `bg-dark-gray h-full bg-center bg-no-repeat bg-cover ` +
+        `bg-dark-gray h-full object-center object-cover ` +
         `overflow-hidden after:content-[''] after:mix-blend-color after:absolute ` +
         `after:opacity-0 after:w-full after:h-full after:bg-red relative ` +
         `after:transition-opacity group-hover:after:opacity-100 after:z-20 ${
           imageClassName ?? ""
         }`
       }
-      style={{
-        backgroundImage: `url('${imageUrl ?? "album-default.svg"}')`,
-      }}
+      width={300}
+      height={300}
+      src={imageUrl ?? "album-default.svg"}
+      alt="cover"
     />
     <div
       className={
@@ -69,9 +71,9 @@ const LabeledImage = ({
       <Content layout={layout} {...props} />
     </Link>
   ) : (
-    <span className={className}>
+    <div className={className}>
       <Content layout={layout} {...props} />
-    </span>
+    </div>
   );
 };
 

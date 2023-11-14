@@ -21,7 +21,6 @@ import {
 } from "./env";
 import {
   addImagesAndReleaseYearsFromDeezer,
-  addImagesFromLastFM,
   insertArtist,
   readArtist,
   readJazzPage,
@@ -104,17 +103,6 @@ const loadAndInsertFromArtistPages = () => {
     mergeMapIfArtist(
       ({ url }) =>
         readArtist(url).pipe(
-          catchError((e) => {
-            console.debug("error: ", e);
-            return of();
-          }),
-        ),
-      conncurentConnections,
-    ),
-    rateLimit(5, 1100),
-    mergeMapIfArtist(
-      (a) =>
-        addImagesFromLastFM(a).pipe(
           catchError((e) => {
             console.debug("error: ", e);
             return of();

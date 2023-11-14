@@ -35,6 +35,7 @@ import {
   getLastFMArtist,
 } from "./lastfm";
 import { rateLimit } from "./rate-limit";
+import { URL } from "url";
 
 type PageData = Awaited<ReturnType<typeof getPage>>;
 
@@ -145,14 +146,25 @@ export const addImagesFromLastFM = (artist: ReadArtist) =>
     ),
   );
 
+const deezerDefaultImage = "1000x1000-000000-80-0-0.jpg";
+
 export const addImagesAndReleaseYearsFromDeezer = (artist: ReadArtist) =>
   of(artist).pipe(
     concatMap(async (a) => {
-      if (a.imageUrl) {
+      if (!!a.imageUrl) {
         return a;
       }
 
       const searchResult = await getBestArtistSearchResult(a.name);
+      if (!searchResult) {
+        return a;
+      }
+
+      const path = new URL(searchResult.picture_xl).pathname.split("/");
+      if (path[path.length - 1] === deezerDefaultImage) {
+        return a;
+      }
+
       return { ...a, imageUrl: searchResult?.picture_xl };
     }),
     concatMap((a) =>
