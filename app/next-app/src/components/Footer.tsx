@@ -42,6 +42,10 @@ const Footer = () => {
             Some release dates, artist images and album covers are from{" "}
             <FooterLink href="https://www.deezer.com">Deezer</FooterLink>
           </div>
+          <div>
+            Some artist images and album covers are from{" "}
+            <FooterLink href="https://last.fm">last.fm</FooterLink>
+          </div>
         </div>
       </div>
     </footer>

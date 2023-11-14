@@ -39,7 +39,7 @@ const config: Config = {
         labeled: "minmax(3.75rem, 12.5rem) minmax(7.5rem, 1fr)",
         "artist-content": "1fr minmax(200px, 400px)",
       },
-      minWidth: { px: "1px" },
+      minWidth: { px: "1px", "1/2": "50%" },
       width: {
         "almost-full": "calc(100% - 4rem)",
         "almost-4/10": "calc(40% - 1rem)",

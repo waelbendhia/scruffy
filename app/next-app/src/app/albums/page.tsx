@@ -43,6 +43,7 @@ const labels: Record<SortColumn, string> = {
   name: "Name",
   artist: "Artist",
   year: "Newest",
+  lastUpdated: "Last Updated",
 };
 
 export default async function Artists({ searchParams }: Props) {

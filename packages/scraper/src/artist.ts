@@ -161,28 +161,91 @@ const getNameFromBody = ($: cheerio.Root) => {
   return $("center font").first().text();
 };
 
-const getBioFromBody = ($: cheerio.Root) => {
-  let bio = "";
-  if ($("table").get().length > 1) {
-    const tables = $("table:nth-of-type(2) [bgcolor]").get();
+const flattenElement = (
+  e: cheerio.Element,
+): (cheerio.TextElement | cheerio.TagElement)[] => {
+  switch (e.type) {
+    case "text":
+      return [e];
+    case "tag":
+      return e.children.reduce<(cheerio.TextElement | cheerio.TagElement)[]>(
+        (prev, e) => {
+          switch (e.type) {
+            case "text":
+              return [...prev, e];
+            case "tag":
+              switch (e.tagName) {
+                case "center":
+                  if (
+                    e.children.find(
+                      (c) =>
+                        c.type === "tag" &&
+                        c.tagName === "font" &&
+                        c.attribs.size === "-1",
+                    )
+                  ) {
+                    return prev;
+                  }
 
-    for (let k = 0; k < tables.length; k += 2) {
-      const table = tables[k];
-
-      for (let j = 0; j < $(table).contents().get().length; j++) {
-        const childNode = $(table).contents().get(j);
-
-        bio +=
-          childNode.name === "br"
-            ? "\n"
-            : (childNode.name === "p" ? "\n\n\n" : " ") +
-              ($(childNode).text() || "").trim().replace(/\n/g, " ");
-      }
-    }
+                  return [...prev, ...e.children.flatMap(flattenElement)];
+                case "td":
+                  return [...prev, ...e.children.flatMap(flattenElement)];
+                default:
+                  return [...prev, e];
+              }
+            default:
+              return prev;
+          }
+        },
+        [],
+      );
+    default:
+      return [];
   }
-  return bio.trim();
 };
 
+const skippables = ["Summary.", "Summary", "Summary:"];
+
+const skipSummary = (t: string) => {
+  const skipIndex = Math.max(
+    ...skippables
+      .map((s) => ({ skippable: s, start: t.indexOf(s) }))
+      .filter((s) => s.start !== -1)
+      .map((s) => s.start + s.skippable.length),
+  );
+  if (skipIndex > 0) {
+    return t.substring(skipIndex);
+  }
+  return t;
+};
+
+const getBioFromBody = ($: cheerio.Root) =>
+  skipSummary(
+    $("td[bgcolor=eebb88]")
+      .get()
+      .flatMap(flattenElement)
+      .reduce((prev, e) => {
+        if (e.type === "text") {
+          return prev + $(e).text();
+        }
+
+        switch (e.tagName) {
+          case "font":
+            if (e.attribs.size === "-1") {
+              return prev;
+            }
+            return prev + $(e).text();
+          case "hr":
+          case "br":
+            return prev + "\n\n";
+          case "p":
+          case "div":
+            return prev + "\n" + $(e).text();
+          default:
+            return prev + $(e).text();
+        }
+      }, ""),
+  ).trim();
 const getRelatedArtistsFromBody = (
   $: cheerio.Root,
   artistUrl: string,
@@ -221,6 +284,15 @@ const getRelatedArtistsFromBody = (
 
 const artistUrlRegex = /(avant|jazz|vol).*\.html$/;
 
+// Some of these have bad titles so it requires manual fixing.
+const nameExceptions: Record<string, string> = {
+  "vol6/belleli.html": "Tractor's Revenge",
+  "vol7/blkjks.html": "BLK JKS",
+  "vol7/kem.html": "Kern",
+  "vol4/eae.html": "The Electronic Art Ensemble",
+  "avant/zeier.html": "Marc Zeier",
+};
+
 export const readArtistFromArtistPage = (
   artistUrl: string,
   content: string | Buffer,
@@ -231,8 +303,13 @@ export const readArtistFromArtistPage = (
 
   const $ = cheerio.load(content);
 
+  let name = getNameFromBody($).trim();
+  if (name === "%") {
+    name = nameExceptions[artistUrl] ?? name;
+  }
+
   return {
-    name: getNameFromBody($).trim(),
+    name,
     bio: getBioFromBody($).trim(),
     albums: findInBody($),
     relatedArtists: getRelatedArtistsFromBody($, path(artistUrl)),

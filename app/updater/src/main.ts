@@ -13,9 +13,6 @@ import {
   of,
   distinct,
   Observable,
-  bufferTime,
-  delay,
-  pipe,
 } from "rxjs";
 import {
   conncurentConnections,
@@ -23,13 +20,15 @@ import {
   recheckDelay,
 } from "./env";
 import {
-  addImagesAndReleaseYears,
+  addImagesAndReleaseYearsFromDeezer,
+  addImagesFromLastFM,
   insertArtist,
   readArtist,
   readJazzPage,
   readRockPage,
   readVolumePage,
 } from "./artists";
+import { rateLimit } from "./rate-limit";
 
 type EndMarker = {
   url: string;
@@ -37,13 +36,6 @@ type EndMarker = {
   hash: string;
   type: "end";
 };
-
-const rateLimit = <T>(quantity: number, timeMs: number) =>
-  pipe(
-    bufferTime<T>(timeMs, null, quantity),
-    delay(timeMs),
-    mergeMap((buff) => from(buff)),
-  );
 
 const mergeMapIfArtist = <T extends { type: "artist" }, R>(
   fn: (_: T) => Observable<R>,
@@ -119,10 +111,21 @@ const loadAndInsertFromArtistPages = () => {
         ),
       conncurentConnections,
     ),
+    rateLimit(5, 1100),
+    mergeMapIfArtist(
+      (a) =>
+        addImagesFromLastFM(a).pipe(
+          catchError((e) => {
+            console.debug("error: ", e);
+            return of();
+          }),
+        ),
+      conncurentConnections,
+    ),
     rateLimit(50, 5000),
     mergeMapIfArtist(
       (a) =>
-        addImagesAndReleaseYears(a).pipe(
+        addImagesAndReleaseYearsFromDeezer(a).pipe(
           catchError((e) => {
             console.debug("error: ", e);
             return of();

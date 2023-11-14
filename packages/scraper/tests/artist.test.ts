@@ -86,11 +86,83 @@ const stonesAlbums = [
   { name: "Exile On Main Street", year: 1972, rating: 8 },
 ];
 
+const gsybeAlbums = [
+  { name: "F#A# Infinity", year: undefined, rating: 7 },
+  { name: "Slow Riot For New Zero Kanada", year: undefined, rating: 6 },
+  { name: "Lift Your Skinny Fists", year: undefined, rating: 7.5 },
+  { name: "Silver Mt Zion: He Has Left Us Alone", year: 2000, rating: 7 },
+  { name: "Silver Mt Zion: Born Into Trouble", year: 2001, rating: 6.5 },
+  { name: "Set Fire To Flames: Sings Reign Rebuilder", year: 2001, rating: 6 },
+  { name: "Molasses: You'll Never Be Well No More", year: 1999, rating: 6 },
+  { name: "Molasses: Trilogie - Toil & Peaceful Life", year: 2000, rating: 6 },
+  { name: "Molasses: A Slow Messe", year: 2003, rating: 6.5 },
+  { name: "Yanqui UXO", year: 2002, rating: 7 },
+  { name: "Hrsta: L'Eclat Du Ciel Etait Insoutenable", year: 2001, rating: 5 },
+  { name: "Hrsta: Stem Stem In Electro", year: 2005, rating: 6.5 },
+  { name: "Hrsta: Ghosts Will Come And Kiss Our Eyes", year: 2007, rating: 6 },
+  {
+    name: "Set Fire To Flames: Telegraphs In Negative",
+    year: 2003,
+    rating: 6,
+  },
+  { name: "Silver Mt Zion: This Is Our Punk", year: 2003, rating: 5.5 },
+  { name: "Silver Mt Zion: Horses In The Sky", year: 2005, rating: 6 },
+  {
+    name: "Silver Mt Zion: 13 Blues for Thirteen Moons",
+    year: 2008,
+    rating: 5,
+  },
+  { name: "Silver Mt Zion: Kollaps Tradixionales", year: 2010, rating: 5 },
+  { name: "Allelujah Don't Bend Ascend", year: 2012, rating: 7 },
+  {
+    name: "Silver Mt Zion: Fuck Off Get Free We Pour Light on Everything",
+    year: 2014,
+    rating: 6.5,
+  },
+  { name: "Asunder, Sweet And Other Distress", year: 2015, rating: 6 },
+  { name: "Luciferian Towers", year: 2017, rating: 5.5 },
+  { name: "G_d's Pee at State's End", year: 2021, rating: 6 },
+];
+
+const softMachineAlbums = [
+  { name: "1", year: 1968, rating: 6.5 },
+  { name: "2", year: 1969, rating: 7 },
+  { name: "Spaced", year: 1969, rating: 6.5 },
+  { name: "3", year: 1970, rating: 9 },
+  { name: "4", year: 1971, rating: 7 },
+  { name: "5", year: 1972, rating: 6 },
+  { name: "6", year: 1972, rating: 7.5 },
+  { name: "7", year: 1973, rating: 5 },
+  { name: "Bundles", year: 1975, rating: 6 },
+  { name: "Softs", year: 1976, rating: 5 },
+  { name: "Rubber Riff", year: 1978, rating: 5 },
+  { name: "Land of Cockayne", year: 1981, rating: 5 },
+];
+
+const velvetAlbums = [
+  { name: "The Velvet Underground And Nico", year: 1967, rating: 9 },
+  { name: "White Light White Heat", year: 1967, rating: 9 },
+  { name: "Velvet Underground", year: 1969, rating: 6.5 },
+  { name: "Live", year: 1974, rating: 8 },
+  { name: "Loaded", year: 1970, rating: 6 },
+  { name: "Squeeze", year: 1973, rating: 4 },
+];
+
 const readFileRel = (filepath: string) =>
   fs.readFile(path.resolve(__dirname, filepath));
 
 test("testing artist scraping", async () => {
-  const [beatles, mingus, stones, richards, cdreview2018] = await Promise.all([
+  const [
+    beatles,
+    mingus,
+    stones,
+    richards,
+    gecs,
+    gsybe,
+    softMachine,
+    velvet,
+    cdreview2018,
+  ] = await Promise.all([
     readFileRel("./beatles.html").then((content) =>
       readArtistFromArtistPage("vol1/beatles.html", content),
     ),
@@ -103,23 +175,61 @@ test("testing artist scraping", async () => {
     readFileRel("./richards.html").then((content) =>
       readArtistFromArtistPage("avant/richards.html", content),
     ),
+    readFileRel("./100gecs.html").then((content) =>
+      readArtistFromArtistPage("vol8/100gecs.html", content),
+    ),
+    readFileRel("./godspeed.html").then((content) =>
+      readArtistFromArtistPage("vol6/godspeed.html", content),
+    ),
+    readFileRel("./softmach.html").then((content) =>
+      readArtistFromArtistPage("vol2/softmach.html", content),
+    ),
+    readFileRel("./velvet.html").then((content) =>
+      readArtistFromArtistPage("vol2/velvet.html", content),
+    ),
     readFileRel("./2018.html").then((content) =>
       readArtistFromArtistPage("cdreview/2018.html", content),
     ),
   ]);
   expect(beatles?.name).toBe("Beatles");
   expect(beatles?.bio).toMatch(/^The fact that/);
+  expect(beatles?.bio).toMatch(/they never said it\.$/);
   expect(beatles?.albums).toStrictEqual(beatleAlbums);
 
   expect(mingus?.name).toBe("Charles Mingus");
   expect(mingus?.bio).toMatch(/^The art of double bass/);
+  expect(mingus?.bio).toMatch(/Mingus died in january 1979\.$/);
   expect(mingus?.albums).toStrictEqual(mingusAlbums);
 
   expect(stones?.name).toBe("Rolling Stones");
+  expect(stones?.bio).toMatch(/^The Rolling Stones were/);
+  expect(stones?.bio).toMatch(/never be the same again\.$/);
   expect(stones?.albums).toStrictEqual(stonesAlbums);
 
   expect(richards?.name).toBe("Vicki Richards");
   expect(richards?.bio).toMatch(/^Violini virtuosa/);
+  expect(richards?.bio).toMatch(/with Amit Chatterjee\.$/);
+  expect(richards?.albums ?? []).toStrictEqual([]);
+
+  expect(gsybe?.name).toBe("Godspeed You! Black Emperor");
+  expect(gsybe?.bio).toMatch(/^Godspeed You! Black Emperor, a large/);
+  expect(gsybe?.bio).toMatch(/music\.$/);
+  expect(gsybe?.albums).toStrictEqual(gsybeAlbums);
+
+  expect(gecs?.name).toBe("100 Gecs");
+  expect(gecs?.bio).toMatch(/^Missouri's duo 100 Gecs/);
+  expect(gecs?.bio).toMatch(/with Josh Pan\.$/);
+  expect(gecs?.albums ?? []).toStrictEqual([]);
+
+  expect(softMachine?.name).toBe("Soft Machine");
+  expect(softMachine?.bio).toMatch(/^The Canterbury school of British/);
+  expect(softMachine?.bio).toMatch(/and Live Adventures \(october 2009\)\.$/);
+  expect(softMachine?.albums).toStrictEqual(softMachineAlbums);
+
+  expect(velvet?.name).toBe("Velvet Underground");
+  expect(velvet?.bio).toMatch(/^The Velvet Underground  are/);
+  expect(velvet?.bio).toMatch(/'Expanded Cinema' \(november 1965\)\.$/);
+  expect(velvet?.albums).toStrictEqual(velvetAlbums);
 
   expect(cdreview2018).toBeNull();
 });

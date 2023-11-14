@@ -1,11 +1,15 @@
 import LabeledImage from "@/components/LabeledImage";
 import { API } from "@scruffy/server";
 
-type Props = API["/album"]["/"]["data"][number] & {
+type Album = API["/album"]["/"]["data"][number];
+
+type Props = Omit<Album, "artist"> & {
+  artist?: Album["artist"];
   className?: string;
   clickable?: boolean;
   layout?: React.ComponentProps<typeof LabeledImage>["layout"];
   textSize?: "lg" | "xl";
+  whiteText?: boolean;
 };
 
 const AlbumCard = ({
@@ -18,16 +22,21 @@ const AlbumCard = ({
   clickable = true,
   layout = "horizontal",
   textSize = "lg",
+  whiteText = false,
 }: Props) => {
   const artistSize = textSize;
-  const albumSize = textSize === "lg" ? ("base" as const) : ("lg" as const);
-  const otherSize = textSize === 'lg' ? 'sm' as const : 'base' as const
+  const albumSize =
+    textSize === "lg" ? ("text-base" as const) : ("text-lg" as const);
+  const otherSize =
+    textSize === "lg" ? ("text-sm" as const) : ("text-base" as const);
+  const yearColor = whiteText ? "text-dark-white" : "text-gray";
 
   return (
     <LabeledImage
+      whiteText={whiteText}
       layout={layout}
       className={className}
-      url={clickable ? artist.url : undefined}
+      url={clickable ? artist?.url : undefined}
       imageUrl={imageUrl ?? "/album-default.svg"}
       imageClassName={
         rating >= 8
@@ -37,22 +46,22 @@ const AlbumCard = ({
       }
     >
       <div className={"overflow-hidden"}>
-        <div
-          className={`overflow-hidden text-ellipsis text-${artistSize} font-bold`}
-        >
-          {artist.name}
-        </div>
-        <div
-          className={`overflow-hidden text-ellipsis text-${albumSize} italic`}
-        >
+        {artist && (
+          <div
+            className={`overflow-hidden text-ellipsis ${artistSize} font-bold`}
+          >
+            {artist.name}
+          </div>
+        )}
+        <div className={`overflow-hidden text-ellipsis ${albumSize} italic`}>
           {name ?? " "}
         </div>
-        <div className={`overflow-hidden text-ellipsis text-${otherSize}`}>
+        <div className={`overflow-hidden text-ellipsis ${otherSize}`}>
           <b>{rating}</b> / 10
         </div>
         <div
           className={
-            `overflow-hidden text-ellipsis text-${otherSize} text-gray font-bold ` +
+            `overflow-hidden text-ellipsis ${otherSize} ${yearColor} font-bold ` +
             `group-hover:text-red`
           }
         >

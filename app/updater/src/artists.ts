@@ -18,6 +18,7 @@ import {
   toArray,
   retry,
   timer,
+  catchError,
 } from "rxjs";
 import { AxiosRequestConfig, isAxiosError } from "axios";
 import { Agent } from "http";
@@ -28,6 +29,12 @@ import {
   getBestAlbumSearchResult,
   getBestArtistSearchResult,
 } from "./deezer";
+import {
+  getBiggestLastFMImage,
+  getLastFMAlbum,
+  getLastFMArtist,
+} from "./lastfm";
+import { rateLimit } from "./rate-limit";
 
 type PageData = Awaited<ReturnType<typeof getPage>>;
 
@@ -92,46 +99,98 @@ export const readArtist = (url: string) =>
     }),
   );
 
-type ReadArtist = Observed<ReturnType<typeof readArtist>>;
+type ReadArtistWithoutImage = Observed<ReturnType<typeof readArtist>>;
+type ReadAlbumWithoutImage = ReadArtistWithoutImage["albums"][number];
 
-export const addImagesAndReleaseYears = (artist: ReadArtist) =>
-  from(getBestArtistSearchResult(artist.name)).pipe(
-    concatMap((searchResult) =>
-      from(artist.albums ?? []).pipe(
+type ReadArtist = Omit<ReadArtistWithoutImage, "albums"> & {
+  imageUrl?: string | undefined;
+  albums: (ReadAlbumWithoutImage & { imageUrl?: string })[];
+};
+
+export const addImagesFromLastFM = (artist: ReadArtist) =>
+  of(artist).pipe(
+    concatMap(async (a) => {
+      if (a.imageUrl) {
+        return a;
+      }
+
+      const searchResult = await getLastFMArtist(a.name);
+      return {
+        ...a,
+        imageUrl: getBiggestLastFMImage(searchResult?.artist.image)?.["#text"],
+      };
+    }),
+    catchError(() => of(artist)),
+    concatMap((a) =>
+      from(a.albums ?? []).pipe(
+        rateLimit(5, 1100),
         mergeMap(async (album) => {
+          if (album.imageUrl) {
+            return album;
+          }
+
+          try {
+            const albumSearchResult = await getLastFMAlbum(a.name, album.name);
+
+            const cover = getBiggestLastFMImage(albumSearchResult?.album.image);
+
+            return { ...album, imageUrl: cover?.["#text"] };
+          } catch (e) {
+            return album;
+          }
+        }, conncurentConnections),
+        toArray(),
+        map((albums) => ({ ...a, albums })),
+      ),
+    ),
+  );
+
+export const addImagesAndReleaseYearsFromDeezer = (artist: ReadArtist) =>
+  of(artist).pipe(
+    concatMap(async (a) => {
+      if (a.imageUrl) {
+        return a;
+      }
+
+      const searchResult = await getBestArtistSearchResult(a.name);
+      return { ...a, imageUrl: searchResult?.picture_xl };
+    }),
+    concatMap((a) =>
+      from(a.albums ?? []).pipe(
+        concatMap(async (album) => {
+          if (album.imageUrl && album.year) {
+            return album;
+          }
+
           const albumSearchResult = await getBestAlbumSearchResult(
-            artist.name,
+            a.name,
             album.name,
           );
 
-          if (!!album.year || !albumSearchResult) {
+          if (album.year || !albumSearchResult) {
             return { ...album, imageUrl: albumSearchResult?.cover_xl };
           }
 
           const deezerAlbum = await getAlbum(albumSearchResult.id);
-          const year = deezerAlbum?.release_date
-            ? new Date(deezerAlbum.release_date).getFullYear()
-            : undefined;
-          console.debug(
-            `setting year ${year} for album ${artist.name} - ${album.name}`,
-          );
 
           return {
             ...album,
-            imageUrl: albumSearchResult.cover_xl,
+            imageUrl: album.imageUrl ?? albumSearchResult.cover_xl,
             year: deezerAlbum?.release_date
               ? new Date(deezerAlbum.release_date).getFullYear()
               : undefined,
           };
-        }, conncurentConnections),
+        }),
         toArray(),
-        map((albums) => ({
-          ...artist,
-          imageUrl: searchResult?.picture_xl,
-          albums,
-        })),
+        map((albums) => ({ ...a, albums })),
       ),
     ),
+  );
+
+export const addImagesAndReleaseYears = (artist: ReadArtist) =>
+  of(artist).pipe(
+    concatMap(addImagesFromLastFM),
+    concatMap(addImagesAndReleaseYearsFromDeezer),
   );
 
 type ReadArtistWithImages = Observed<

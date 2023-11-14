@@ -11,7 +11,7 @@ const getData = async (params: Omit<ArtistSearchRequest, "itemsPerPage">) => {
       params: { ...params, itemsPerPage: 12 },
     })
     .then((resp) => resp.data);
-  const maxPage = Math.ceil(total / 12) - 1;
+  const maxPage = Math.max(Math.ceil(total / 12) - 1, 0);
   if ((params.page ?? 0) > maxPage) {
     const redirectParams = new URLSearchParams();
     Object.entries(params).forEach(([key, val]) => {
@@ -48,6 +48,7 @@ export default async function Artists({ searchParams }: Props) {
         data={data}
         total={total}
         page={page ?? 0}
+        colNumber={4}
         renderRow={(a) => (
           <ArtistCard layout="vertical" key={a.url} className="h-48" {...a} />
         )}
