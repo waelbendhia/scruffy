@@ -1,11 +1,7 @@
-import axios, { AxiosRequestConfig } from "axios";
-import * as crypto from "crypto";
+import { AxiosRequestConfig } from "axios";
 import { findInBody } from "./album";
 import * as cheerio from "cheerio";
-
-const basePath = "http://scaruffi.com";
-
-const path = (pathname: string) => new URL(pathname, basePath).href;
+import { getPage, scruffyPath } from "./page";
 
 const readArtistsFromPage = (
   content: string | Buffer,
@@ -21,10 +17,14 @@ const readArtistsFromPage = (
       if (!artistUrl) {
         return p;
       }
+      const pathname = new URL(artistUrl, scruffyPath(pagePath)).pathname;
+      if (!/\.html$/.test(pathname)) {
+        return p;
+      }
 
       return {
         ...p,
-        [new URL(artistUrl, path(pagePath)).pathname]: {
+        [pathname]: {
           name: $(elem).text().trim(),
         },
       };
@@ -33,23 +33,6 @@ const readArtistsFromPage = (
     // TODO: Handle this
     return {};
   }
-};
-
-export const getPage = async (
-  pagePath: string,
-  config?: AxiosRequestConfig,
-) => {
-  const resp = await axios.get<string>(path(pagePath), {
-    ...config,
-    responseType: "document",
-  });
-
-  return {
-    url: pagePath,
-    lastModified: new Date(resp.headers["last-modified"] as string),
-    data: resp.data,
-    hash: crypto.createHash("md5").update(resp.data).digest("hex"),
-  };
 };
 
 type PageReader = (content: string | Buffer) => {
@@ -91,7 +74,7 @@ export const getJazzPage = (config?: AxiosRequestConfig) =>
 /** Parses artists from the jazz/musician.html page */
 export const readArtistsFromJazzPage = (content: string | Buffer) =>
   readArtistsFromPage(content, "jazz/musician.html", ($) =>
-    $('[width="400"] a').get(),
+    $('[width="400"] a[HREF]').get(),
   );
 
 /** Loads and parses artists from the jazz/musician.html page */
@@ -121,7 +104,7 @@ export const readArtistsFromVolumePage = (
         return;
       }
 
-      const pathname = new URL(href, path(`vol${vol}/`)).pathname;
+      const pathname = new URL(href, scruffyPath(`vol${vol}/`)).pathname;
       $(entry).attr("href", pathname);
     });
     return elems;
@@ -137,20 +120,6 @@ export const getArtistsFromVolumePage = (
     (data) => readArtistsFromVolumePage(vol, data),
     config,
   );
-
-/** This is the page with new reviews */
-export const getNewPage = (config?: AxiosRequestConfig) =>
-  getPage("cdreview/new.html", config);
-
-/** Parses artists from the cdreview/new.html page */
-export const readArtistsFromNewPage = (content: string | Buffer) =>
-  readArtistsFromPage(content, "cdreview/new.html", ($) =>
-    $("table[bgcolor=ffa000]:first td[bgcolor=000aaa] a").get(),
-  );
-
-/** Loads and parses artists from the cdreview/new.html page */
-export const getArtistsFromNewPage = (config?: AxiosRequestConfig) =>
-  getAndRead("cdreview/new.html", readArtistsFromNewPage, config);
 
 const getNameFromBody = ($: cheerio.Root) => {
   const header = $("center h1");
@@ -227,7 +196,7 @@ const getBioElementsByColor = ($: cheerio.Root): cheerio.Element[] => {
     }
   }
 
-  return []
+  return [];
 };
 
 const getBioFromBody = ($: cheerio.Root) => {
@@ -325,19 +294,19 @@ export const readArtistFromArtistPage = (
     name,
     bio: getBioFromBody($).trim(),
     albums: findInBody($),
-    relatedArtists: getRelatedArtistsFromBody($, path(artistUrl)),
+    relatedArtists: getRelatedArtistsFromBody($, scruffyPath(artistUrl)),
     url: artistUrl,
   };
 };
 
 export const getArtistPage = (artistUrl: string, config?: AxiosRequestConfig) =>
-  getPage(path(artistUrl), config);
+  getPage(scruffyPath(artistUrl), config);
 
 export const getArtistFromPage = (
   artistUrl: string,
   config?: AxiosRequestConfig,
 ) =>
-  getPage(path(artistUrl), config).then((page) => {
+  getPage(scruffyPath(artistUrl), config).then((page) => {
     const artist = readArtistFromArtistPage(artistUrl, page.data);
     if (artist) {
       return { ...artist, lastModified: page.lastModified, hash: page.hash };

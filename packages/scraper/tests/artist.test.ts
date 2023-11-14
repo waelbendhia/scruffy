@@ -2,7 +2,6 @@ import * as fs from "node:fs/promises";
 import {
   readArtistFromArtistPage,
   readArtistsFromJazzPage,
-  readArtistsFromNewPage,
   readArtistsFromVolumePage,
 } from "../src/artist";
 import * as path from "node:path";
@@ -190,7 +189,7 @@ const readFileRel = (filepath: string) =>
   fs.readFile(path.resolve(__dirname, filepath));
 
 type ArtistReaderTestCase = {
-  url: string;
+  filepath: string;
 } & (
   | {
       shouldBeNull?: false;
@@ -202,126 +201,161 @@ type ArtistReaderTestCase = {
   | { shouldBeNull: true }
 );
 
-const runArtistReaderTest = async ({ url, ...rest }: ArtistReaderTestCase) => {
-  const splitPath = url.split("/");
-  const filename = splitPath[splitPath.length - 1];
-  await readFileRel(`./${filename}`).then((content) =>
-    readArtistFromArtistPage(url, content),
+const itReadsArtistPage = ({ filepath, ...rest }: ArtistReaderTestCase) =>
+  it(
+    rest.shouldBeNull
+      ? `it does not read artist from ${filepath} page`
+      : `it reads the ${filepath} page correctly`,
+    async () => {
+      const splitPath = filepath.split("/");
+      const filename = splitPath[splitPath.length - 1];
+
+      const content = await readFileRel(filename);
+      const artist = readArtistFromArtistPage(filepath, content);
+      if (rest.shouldBeNull) {
+        expect(artist).toBeNull();
+      } else {
+        expect(artist?.name).toBe(rest.name);
+        expect(artist?.bio).toMatch(rest.start);
+        expect(artist?.bio).toMatch(rest.end);
+        expect(artist?.albums ?? []).toStrictEqual(rest.albums);
+      }
+    },
   );
 
-  const content = await readFileRel(filename);
-  const artist = readArtistFromArtistPage(url, content);
-  if (rest.shouldBeNull) {
-    expect(artist).toBeNull();
-  } else {
-    expect(artist?.name).toBe(rest.name);
-    expect(artist?.bio).toMatch(rest.start);
-    expect(artist?.bio).toMatch(rest.end);
-    expect(artist?.albums ?? []).toStrictEqual(rest.albums);
-  }
-};
-
-test("testing artist scraping", async () => {
-  await runArtistReaderTest({
-    url: "vol1/beatles.html",
+describe("The readArtistFromArtistPage function", () => {
+  itReadsArtistPage({
+    filepath: "vol1/beatles.html",
     name: "Beatles",
     start: /^The fact that/,
     end: /they never said it\.$/,
     albums: beatleAlbums,
   });
 
-  await runArtistReaderTest({
-    url: "jazz/mingus.html",
+  itReadsArtistPage({
+    filepath: "jazz/mingus.html",
     name: "Charles Mingus",
     start: /^The art of double bass/,
     end: /Mingus died in january 1979\.$/,
     albums: mingusAlbums,
   });
 
-  await runArtistReaderTest({
-    url: "vol1/stones.html",
+  itReadsArtistPage({
+    filepath: "vol1/stones.html",
     name: "Rolling Stones",
     start: /^The Rolling Stones were/,
     end: /never be the same again\.$/,
     albums: stonesAlbums,
   });
 
-  await runArtistReaderTest({
-    url: "avant/richards.html",
+  itReadsArtistPage({
+    filepath: "avant/richards.html",
     name: "Vicki Richards",
     start: /^Violini virtuosa/,
     end: /with Amit Chatterjee\.$/,
     albums: [],
   });
 
-  await runArtistReaderTest({
-    url: "vol6/godspeed.html",
+  itReadsArtistPage({
+    filepath: "vol6/godspeed.html",
     name: "Godspeed You! Black Emperor",
     start: /^Godspeed You! Black Emperor, a large/,
     end: /music\.$/,
     albums: gsybeAlbums,
   });
 
-  await runArtistReaderTest({
-    url: "vol8/100gecs.html",
+  itReadsArtistPage({
+    filepath: "vol8/100gecs.html",
     name: "100 Gecs",
     start: /^Missouri's duo 100 Gecs/,
     end: /with Josh Pan\.$/,
     albums: [],
   });
 
-  await runArtistReaderTest({
-    url: "vol2/softmach.html",
+  itReadsArtistPage({
+    filepath: "vol2/softmach.html",
     name: "Soft Machine",
     start: /^The Canterbury school of British/,
     end: /and Live Adventures \(october 2009\)\.$/,
     albums: softMachineAlbums,
   });
 
-  await runArtistReaderTest({
-    url: "vol2/velvet.html",
+  itReadsArtistPage({
+    filepath: "vol2/velvet.html",
     name: "Velvet Underground",
     start: /^The Velvet Underground  are/,
     end: /'Expanded Cinema' \(november 1965\)\.$/,
     albums: velvetAlbums,
   });
 
-  await runArtistReaderTest({
-    url: "jazz/ayler.html",
+  itReadsArtistPage({
+    filepath: "jazz/ayler.html",
     name: "Albert Ayler",
     start: /^Of all the protagonists/,
     end: /"Holy Ghost" \(2022\)\.$/,
     albums: aylerAlbums,
   });
 
-  await runArtistReaderTest({
-    url: "vol3/deuter.html",
+  itReadsArtistPage({
+    filepath: "vol3/deuter.html",
     name: "Georg Deuter",
     start: /^Georg Georg Deuter/,
     end: /english\.$/,
     albums: deuterAlbums,
   });
 
-  await runArtistReaderTest({ url: "cdreview/2018.html", shouldBeNull: true });
+  itReadsArtistPage({ filepath: "cdreview/2018.html", shouldBeNull: true });
 });
 
-test("testing page readers", async () => {
-  const [jazz, vol6, newReviews] = await Promise.all([
-    readFileRel("./jazz.html").then(readArtistsFromJazzPage),
-    readFileRel("./vol6.html").then((content) =>
-      readArtistsFromVolumePage(6, content),
-    ),
-    readFileRel("./new.html").then(readArtistsFromNewPage),
-  ]);
+const itReadsArtistsFromPage = async ({
+  reader,
+  numArtists,
+  shouldInclude,
+  filePath,
+}: {
+  reader: (_: string | Buffer) => Record<string, { name: string }>;
+  numArtists: number;
+  shouldInclude: Record<string, { name: string }>;
+  filePath: string;
+}) =>
+  it(`should read artists from ${filePath}`, async () => {
+    const content = await readFileRel(filePath);
+    const artists = reader(content);
+    const entries = Object.entries(artists);
 
-  Object.entries(jazz).forEach(([url]) => expect(url).toMatch(/\.html$/));
-  expect(Object.keys(jazz).length).toBe(590);
+    entries.forEach(([url]) =>
+      expect(url).toMatch(/(avant|jazz|vol).*\.html$/),
+    );
+    entries.forEach(([url]) => expect(url).toMatch(/\.html$/));
 
-  Object.entries(jazz).forEach(([url]) => expect(url).toMatch(/\.html$/));
-  expect(Object.keys(vol6).length).toBeGreaterThanOrEqual(926);
+    expect(entries.length).toBe(numArtists);
 
-  Object.entries(newReviews).forEach(([url]) =>
-    expect(url).toMatch(/(avant|jazz|vol).*\.html$/),
-  );
-  expect(Object.keys(newReviews).length).toBeGreaterThanOrEqual(347);
+    const expected = Object.entries(shouldInclude);
+    expected.forEach(([url, { name }]) => {
+      expect(artists[url]?.name).toBe(name);
+    });
+  });
+
+describe("Page readers", () => {
+  itReadsArtistsFromPage({
+    filePath: "./jazz.html",
+    reader: readArtistsFromJazzPage,
+    numArtists: 590,
+    shouldInclude: {
+      "/avant/zummo.html": { name: "Peter Zummo" },
+      "/jazz/leandre.html": { name: "Joelle Leandre" },
+      "/jazz/abe.html": { name: "Kaoru Abe" },
+    },
+  });
+
+  itReadsArtistsFromPage({
+    filePath: "./vol6.html",
+    reader: (content) => readArtistsFromVolumePage(6, content),
+    numArtists: 961,
+    shouldInclude: {
+      "/vol6/zumpano.html": { name: "Zumpano" },
+      "/vol6/lescrawl.html": { name: "Le Scrawl" },
+      "/vol6/guycalle.html": { name: "A Guy Called Gerald" },
+    },
+  });
 });
