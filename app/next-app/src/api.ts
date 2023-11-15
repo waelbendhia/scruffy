@@ -1,7 +1,7 @@
 import { API, AlbumSearchRequest, ArtistSearchRequest } from "@scruffy/server";
 import axios from "axios";
 
-const baseURL = `http://${process.env.SERVER_HOST ?? "localhost"}:${
+export const baseURL = `http://${process.env.SERVER_HOST ?? "localhost"}:${
   process.env.SERVER_PORT ?? 8001
 }`;
 

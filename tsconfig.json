@@ -20,7 +20,9 @@
     "baseUrl":".",
     "paths":{
       "@scruffy/database": ["packages/database"],
-      "@scruffy/database/*": ["packages/database/*"]
+      "@scruffy/database/*": ["packages/database/*"],
+      "@scruffy/scraper": ["packages/scraper"],
+      "@scruffy/scraper/*": ["packages/scraper/*"]
     }
   },
   "exclude": [

@@ -1,4 +1,4 @@
-import { client } from "@/api";
+import { baseURL } from "@/api";
 import AlbumCard from "@/components/AlbumCard";
 import { API } from "@scruffy/server";
 import Link from "next/link";
@@ -62,17 +62,13 @@ const About = () => (
 );
 
 const getData = async () => {
-  const { data: newest } = await client
-    .get<API["/album"]["/"]>(`/album`, {
-      params: { itemsPerPage: 5, sort: "lastUpdated" },
-    })
-    .then((resp) => resp.data);
+  const { data: newest }: API["/album"]["/"] = await (
+    await fetch(`${baseURL}/album?itemsPerPage=5&sort=lastUpdated`)
+  ).json();
 
-  const { data: bnm } = await client
-    .get<API["/album"]["/"]>(`/album`, {
-      params: { itemsPerPage: 1, sort: "lastUpdated", ratingMin: 8 },
-    })
-    .then((resp) => resp.data);
+  const { data: bnm }: API["/album"]["/"] = await (
+    await fetch(`${baseURL}/album?itemsPerPage=1&sort=lastUpdated&ratingMin=8`)
+  ).json();
 
   return { bnm: bnm?.[0], newest };
 };
@@ -83,7 +79,9 @@ const Latest = async () => {
     <div className="max-w-screen-lg mx-auto pt-20 mb-20 px-8">
       <div className="flex flex-col-reverse md:flex-row gap-8">
         <div className="flex-1">
-          <h2 className="font-display font-bold text-2xl mb-8">Latest Reviews</h2>
+          <h2 className="font-display font-bold text-2xl mb-8">
+            Latest Reviews
+          </h2>
           <div>
             {newest.map((a) => (
               <AlbumCard
@@ -95,7 +93,9 @@ const Latest = async () => {
           </div>
         </div>
         <div className="w-full md:w-[300px] flex-0 min-w-fit">
-          <h2 className="font-display font-bold text-2xl mb-8">Best New Music</h2>
+          <h2 className="font-display font-bold text-2xl mb-8">
+            Best New Music
+          </h2>
           <AlbumCard
             layout="vertical"
             textSize="xl"

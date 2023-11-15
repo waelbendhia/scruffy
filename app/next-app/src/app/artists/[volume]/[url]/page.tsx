@@ -1,5 +1,3 @@
-import { client } from "@/api";
-import AlbumCard from "@/components/AlbumCard";
 import Albums from "@/components/Albums";
 import Bio from "@/components/Bio";
 import { API } from "@scruffy/server";
@@ -10,10 +8,10 @@ type Props = {
 };
 
 const getData = async ({ volume, url }: Props["params"]) => {
-  const resp = await client.get<API["/artist"]["/:volume/:url"]>(
-    `/artist/${volume}/${url}`,
-  );
-  return resp.data;
+  const resp = await fetch(`/artist/${volume}/${url}`);
+  const data: API["/artist"]["/:volume/:url"] = await resp.json();
+
+  return data;
 };
 
 const toHex = ([r, g, b]: [number, number, number]): string =>

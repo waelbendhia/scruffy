@@ -1,4 +1,4 @@
-import { client } from "@/api";
+import { baseURL } from "@/api";
 import { API, AlbumSearchRequest } from "@scruffy/server";
 import { RedirectType, redirect } from "next/navigation";
 import SearchLayout from "@/components/SearchLayout";
@@ -6,11 +6,17 @@ import AlbumCard from "@/components/AlbumCard";
 import SortSelect from "@/components/SortSelect";
 
 const getData = async (params: Omit<AlbumSearchRequest, "itemsPerPage">) => {
-  const { data, total } = await client
-    .get<API["/album"]["/"]>(`/album`, {
-      params: { ...params, itemsPerPage: 12 },
-    })
-    .then((resp) => resp.data);
+  const url = new URL(`${baseURL}/album`);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined) {
+      return;
+    }
+    url.searchParams.set(key, typeof value === "number" ? `${value}` : value);
+  });
+  url.searchParams.set("itemsPerPage", "12");
+  const resp = await fetch(url);
+  const { data, total }: API["/album"]["/"] = await resp.json();
+
   const maxPage = Math.max(Math.ceil(total / 12) - 1, 0);
   if ((params.page ?? 0) > maxPage) {
     const redirectParams = new URLSearchParams();

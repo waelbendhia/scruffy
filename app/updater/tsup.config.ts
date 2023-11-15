@@ -5,7 +5,7 @@ const isProduction = process.env.NODE_ENV === "production";
 export default defineConfig({
   clean: true,
   dts: true,
-  entry: ["src/index.ts", "src/server.ts"],
+  entry: ["src/index.ts", "src/main.ts"],
   format: ["cjs", "esm"],
   minify: isProduction,
   sourcemap: true,

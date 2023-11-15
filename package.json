@@ -2,12 +2,12 @@
   "name": "@scruffy/monorepo",
   "private": true,
   "workspaces": [
+    "packages/scraper",
+    "packages/database",
     "app/server",
     "app/updater",
     "app/web-app",
-    "app/next-app",
-    "packages/database",
-    "packages/scraper"
+    "app/next-app"
   ],
   "prisma": {
     "schema": "packages/database/prisma/schema.prisma"

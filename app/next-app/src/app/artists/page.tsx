@@ -1,16 +1,22 @@
-import { client } from "@/api";
 import { API, ArtistSearchRequest } from "@scruffy/server";
 import ArtistCard from "@/components/ArtistCard";
 import { RedirectType, redirect } from "next/navigation";
 import SearchLayout from "@/components/SearchLayout";
 import SortSelect from "@/components/SortSelect";
+import { baseURL } from "@/api";
 
 const getData = async (params: Omit<ArtistSearchRequest, "itemsPerPage">) => {
-  const { data, total } = await client
-    .get<API["/artist"]["/"]>(`/artist`, {
-      params: { ...params, itemsPerPage: 12 },
-    })
-    .then((resp) => resp.data);
+  const url = new URL(`${baseURL}/artist`);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined) {
+      return;
+    }
+    url.searchParams.set(key, typeof value === "number" ? `${value}` : value);
+  });
+  url.searchParams.set("itemsPerPage", "12");
+  const resp = await fetch(url);
+  const { data, total }: API["/artist"]["/"] = await resp.json();
+
   const maxPage = Math.max(Math.ceil(total / 12) - 1, 0);
   if ((params.page ?? 0) > maxPage) {
     const redirectParams = new URLSearchParams();
