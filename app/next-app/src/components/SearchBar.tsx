@@ -68,28 +68,28 @@ const SearchBar = ({
 
   return (
     <div
-      className={
-        `bg-transparent absolute left-0 top-10 z-0 w-full ` +
-        `h-headless-screen transition-opacity ${
+      className={`
+        bg-transparent absolute left-0 top-10 z-0 w-full h-headless-screen
+        transition-opacity overflow-hidden ${
           open ? `visible opacity-100` : `invisible opacity-0`
-        }`
-      }
+        }
+      `}
       onClick={() => toggleSearch()}
     >
       <div
         onClick={(e) => {
           e.stopPropagation();
         }}
-        className={
-          `px-8 pt-4 w-almost-full absolute left-8 h-[43rem] top-2 shadow-md ` +
-          `bg-white-transparent backdrop-blur-sm flex flex-col transition-all z-10 ` +
-          `rounded mb-4 ${open ? "translate-y-0" : "translate-y-8"}`
-        }
+        className={`
+          px-8 pt-4 w-almost-full absolute left-8 h-[43rem] top-2 shadow-md
+          bg-white-transparent backdrop-blur-sm flex flex-col transition-all z-10
+          rounded mb-4 ${open ? "translate-y-0" : "translate-y-8"}
+        `}
       >
         <Input
           ref={inputRef}
           className="h-10 mr-9"
-          whiteText={true}
+          whiteText={false}
           icon="search"
           type="text"
           value={search}
@@ -106,12 +106,12 @@ const SearchBar = ({
         >
           <div className={colClass}>
             {artistQueryResult.data?.data?.map((b) => (
-              <ArtistCard key={b.url} {...b} />
+              <ArtistCard className="!h-[200px]" key={b.url} {...b} />
             ))}
           </div>
           <div className={colClass}>
             {albumQueryResult.data?.data.map((a) => (
-              <AlbumCard key={`${a.artist.url}-${a.name}`} {...a} />
+              <AlbumCard className="!h-[200px]" key={`${a.artist.url}-${a.name}`} {...a} />
             ))}
           </div>
         </Loading>

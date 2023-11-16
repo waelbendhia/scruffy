@@ -14,10 +14,10 @@ const Header = () => {
 
   return (
     <div
-      className={
-        `sticky top-0 flex items-end flex-row h-10 bg-gradient-to-b ` +
-        `bg-white-transparent backdrop-blur-sm text-black px-8 z-20 shadow-md`
-      }
+      className={`
+        sticky top-0 flex items-end flex-row h-10 bg-gradient-to-b 
+        bg-white-transparent backdrop-blur-sm text-black px-8 z-20 shadow-md
+      `}
     >
       <Link
         className={`text-xl h-8 leading-8 font-display font-bold ${

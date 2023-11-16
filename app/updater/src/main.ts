@@ -1,60 +1,86 @@
 import { prisma } from "@scruffy/database";
 import {
-  catchError,
   concatMap,
-  endWith,
   from,
   interval,
-  last,
   lastValueFrom,
   map,
   merge,
   mergeMap,
   of,
   distinct,
-  Observable,
+  toArray,
+  reduce,
+  count,
 } from "rxjs";
+import { databaseConcurrency, recheckDelay } from "./env";
 import {
-  conncurentConnections,
-  databaseConcurrency,
-  recheckDelay,
-} from "./env";
-import {
-  addImagesAndReleaseYearsFromDeezer,
-  insertArtist,
-  readArtist,
+  insertArtistWithImages,
   readJazzPage,
   readRockPage,
   readVolumePage,
 } from "./artists";
-import { rateLimit } from "./rate-limit";
+import {
+  addAlbumCoverAndReleaseYearFromDeezer,
+  addAlbumCoverFromLastFM,
+  addAlbumCoverFromSpotify,
+  insertAlbum,
+  readNewRatingsPage,
+  readYearRatingsPage,
+} from "./album";
 
-type EndMarker = {
-  url: string;
-  lastModified: Date;
-  hash: string;
-  type: "end";
+const range = (start: number, end: number): number[] => {
+  let a = [];
+  for (let i = start; i < end; i++) {
+    a.push(i);
+  }
+  return a;
 };
 
-const mergeMapIfArtist = <T extends { type: "artist" }, R>(
-  fn: (_: T) => Observable<R>,
-  concurrency: number,
-) =>
-  mergeMap<
-    EndMarker | (T & { type: "artist" }),
-    Observable<EndMarker | (R & { type: "artist" })>
-  >(
-    (x) =>
-      x.type === "end"
-        ? of(x)
-        : fn(x).pipe(map((a) => ({ ...a, type: "artist" as const }))),
-    concurrency,
+const loadAndInsertRatingsPages = () =>
+  merge(
+    ...range(1990, new Date().getFullYear()).map(readYearRatingsPage),
+    readNewRatingsPage(),
+  ).pipe(
+    mergeMap(
+      (p) =>
+        prisma.updateHistory
+          .upsert({
+            where: { pageURL: p.url },
+            create: { pageURL: p.url, hash: p.hash },
+            update: { hash: p.hash, checkedOn: new Date() },
+          })
+          .then(() => p),
+      databaseConcurrency,
+    ),
+    toArray(),
+    concatMap((ps) =>
+      from(ps).pipe(
+        mergeMap((p) => from(Object.entries(p.data.artists))),
+        mergeMap(
+          ([url]) =>
+            from(prisma.artist.count({ where: { url } })).pipe(
+              concatMap((c) => (c > 0 ? of() : of(url))),
+            ),
+          databaseConcurrency,
+        ),
+        insertArtistWithImages(),
+        count(),
+        map(() => ps),
+      ),
+    ),
+    mergeMap((ps) => from(ps)),
+    mergeMap((p) =>
+      from(p.data.albums.map((album) => ({ ...album, pageURL: p.url }))),
+    ),
+    mergeMap((a) => addAlbumCoverFromSpotify(a.name, a)),
+    mergeMap((a) => addAlbumCoverAndReleaseYearFromDeezer(a.name, a)),
+    mergeMap((a) => addAlbumCoverFromLastFM(a.name, a)),
+    mergeMap((a) => insertAlbum(a), databaseConcurrency),
   );
 
-const loadAndInsertFromArtistPages = () => {
-  const visited = new Set();
-
-  return merge(
+const loadAndInsertFromArtistPages = () =>
+  merge(
     readRockPage(),
     readJazzPage(),
     readVolumePage(1),
@@ -65,91 +91,48 @@ const loadAndInsertFromArtistPages = () => {
     readVolumePage(6),
     readVolumePage(7),
     readVolumePage(8),
-    conncurentConnections,
   ).pipe(
-    concatMap(({ artists, ...page }) =>
+    mergeMap(
+      (p) =>
+        prisma.updateHistory
+          .upsert({
+            where: { pageURL: p.url },
+            create: { pageURL: p.url, hash: p.hash },
+            update: { hash: p.hash, checkedOn: new Date() },
+          })
+          .then(() => p),
+      databaseConcurrency,
+    ),
+    concatMap(({ artists }) =>
       from(
         Object.entries(artists).map(([url, o]) => ({
           ...o,
           url,
           type: "artist" as const,
         })),
-      ).pipe(endWith({ type: "end" as const, ...page })),
+      ),
     ),
     distinct((v) => `${v.type}-${v.url}`),
-    map((x) => {
-      if (visited.has(x.url)) {
-        console.log(`DUPLICATE: ${x.url}`);
-      } else {
-        visited.add(x.url);
-      }
-      return x;
+    toArray(),
+    concatMap((as) => {
+      console.debug(`discovered ${as.length} unique artists`);
+      return from(as);
     }),
-    // TODO: drop this
-    mergeMapIfArtist(
-      (a) =>
-        from(prisma.artist.count({ where: { url: a.url } })).pipe(
-          mergeMap((count) => {
-            if (count > 0) {
-              console.debug(`${a.url} already downloaded`);
-              return of();
-            }
-            return of(a);
-          }),
-        ),
-      databaseConcurrency,
-    ),
-    rateLimit(5, 1000),
-    mergeMapIfArtist(
-      ({ url }) =>
-        readArtist(url).pipe(
-          catchError((e) => {
-            console.debug("error: ", e);
-            return of();
-          }),
-        ),
-      conncurentConnections,
-    ),
-    rateLimit(50, 5000),
-    mergeMapIfArtist(
-      (a) =>
-        addImagesAndReleaseYearsFromDeezer(a).pipe(
-          catchError((e) => {
-            console.debug("error: ", e);
-            return of();
-          }),
-        ),
-      conncurentConnections,
-    ),
-    mergeMap(
-      (v) =>
-        v.type === "artist"
-          ? insertArtist(v).pipe(
-              catchError((e) => {
-                console.debug("error: ", e);
-                return of();
-              }),
-            )
-          : from(
-              prisma.updateHistory.upsert({
-                where: { pageURL: v.url },
-                create: { pageURL: v.url, hash: v.hash },
-                update: { hash: v.hash, checkedOn: new Date() },
-              }),
-            ).pipe(
-              catchError((e) => {
-                console.debug("error: ", e);
-                return of();
-              }),
-            ),
-      databaseConcurrency,
-    ),
+    map(({ url }) => url),
+    insertArtistWithImages(),
+    reduce((total, _): number => {
+      console.debug(`inserted ${total + 1} artists`);
+      return total + 1;
+    }, 0),
   );
-};
+
+const fullUpdate = () =>
+  loadAndInsertRatingsPages().pipe(
+    concatMap(() => loadAndInsertFromArtistPages()),
+  );
 
 lastValueFrom(
-  loadAndInsertFromArtistPages().pipe(
-    last(null, null),
+  fullUpdate().pipe(
     map(() => {
       console.log("check complete");
     }),
@@ -157,7 +140,7 @@ lastValueFrom(
     map(() => {
       console.debug("rechecking");
     }),
-    concatMap(() => loadAndInsertFromArtistPages()),
+    concatMap(() => fullUpdate()),
     map(() => {
       console.log("check complete");
     }),

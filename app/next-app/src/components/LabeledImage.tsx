@@ -20,33 +20,42 @@ const Content = ({
   layout = "horizontal",
 }: Props) => (
   <>
-    <Image
-      className={
-        `bg-dark-gray h-full object-center object-cover ` +
-        `overflow-hidden after:content-[''] after:mix-blend-color after:absolute ` +
-        `after:opacity-0 after:w-full after:h-full after:bg-red relative ` +
-        `after:transition-opacity group-hover:after:opacity-100 after:z-20 ${
-          imageClassName ?? ""
-        }`
-      }
-      width={300}
-      height={300}
-      src={imageUrl ?? "album-default.svg"}
-      alt="cover"
-    />
     <div
-      className={
-        `flex justify-start items-center  h-full whitespace-nowrap ` +
-        `text-ellipsis overflow-hidden text-xl bottom-0 ${
-          layout === "horizontal" ? "flex-row" : "flex-col"
-        }`
-      }
+      className={`${
+        imageClassName ?? ""
+      } relative max-h-full overflow-hidden flex`}
+    >
+      <Image
+        className={`
+          block bg-dark-gray max-h-full object-center object-cover
+          overflow-hidden relative w-full
+        `}
+        width={300}
+        height={300}
+        placeholder="empty"
+        src={imageUrl}
+        alt="cover"
+      />
+      <div
+        className={`
+          mix-blend-color absolute content-[''] opacity-0 w-full h-full bg-red
+          transition-opacity group-hover:opacity-100 z-20
+        `}
+      />
+    </div>
+    <div
+      className={`
+        flex justify-start items-center  h-full whitespace-nowrap
+        text-ellipsis overflow-hidden text-xl bottom-0 ${
+          layout === "horizontal" ? "flex-row" : "flex-col text-center"
+        }
+      `}
     >
       <div
         className={`${
           layout === "horizontal"
             ? `h-4/5 w-px min-w-px ml-3 mr-4`
-            : `w-4/5 h-px min-h-px mt-3 mb-4`
+            : `w-4/5 h-px min-h-px mt-4 mb-5`
         } ${whiteText ? "bg-white" : "bg-black"} group-hover:bg-red`}
       />
       {children}

@@ -29,17 +29,17 @@ const View = ({ text, link, options }: Props) => {
         {text}
       </Link>
       <div
-        className={
-          `h-16 overflow-hidden relative translate-y-2 opacity-0 ` +
-          `invisible transition-all group-hover:translate-y-0 ` +
-          `group-hover:opacity-100 group-hover:visible shadow-md`
-        }
+        className={`
+          h-16 overflow-hidden relative translate-y-2 opacity-0
+          invisible transition-all group-hover:translate-y-0
+          group-hover:opacity-100 group-hover:visible shadow-md
+        `}
       >
         <div
-          className={
-            `absolute t-10 w-full bg-white-transparent z-10 overflow-hidden ` +
-            `backdrop-blur-sm`
-          }
+          className={`
+            absolute t-10 w-full bg-white-transparent z-10 overflow-hidden
+            backdrop-blur-sm
+          `}
         >
           {options.map((o) => (
             <Link

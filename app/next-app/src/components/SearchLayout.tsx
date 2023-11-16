@@ -30,10 +30,10 @@ export default async function SearchLayout<T>({
         <ArtistSearch className="flex-1" />
       </div>
       <div
-        className={
-          `max-w-screen-xl h-8 leading-8 px-1 mx-auto ` +
-          `border-b-black-transparent border-b`
-        }
+        className={`
+          max-w-screen-xl h-8 leading-8 px-1 mx-auto border-b-black-transparent
+          border-b
+        `}
       >
         {total > 0 ? (
           <>

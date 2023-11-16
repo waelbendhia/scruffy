@@ -1,3 +1,4 @@
+import { baseURL } from "@/api";
 import Albums from "@/components/Albums";
 import Bio from "@/components/Bio";
 import { API } from "@scruffy/server";
@@ -8,7 +9,9 @@ type Props = {
 };
 
 const getData = async ({ volume, url }: Props["params"]) => {
-  const resp = await fetch(`/artist/${volume}/${url}`);
+  const resp = await fetch(`${baseURL}/artist/${volume}/${url}`, {
+    next: { revalidate: 300 },
+  });
   const data: API["/artist"]["/:volume/:url"] = await resp.json();
 
   return data;
@@ -55,16 +58,16 @@ const Header = async ({
       style={{ backgroundColor }}
     >
       <div
-        className={
-          `h-full grid grid-cols-artist-content z-10 max-w-screen-xl ` +
-          `text-dark-white mx-auto gap-x-8 px-14`
-        }
+        className={`
+          h-full grid grid-cols-artist-content z-10 max-w-screen-xl
+          text-dark-white mx-auto gap-x-8 px-14
+        `}
       >
         <div
-          className={
-            `bg-dark-gray absolute right-0 top-0 h-full w-full md:w-1/2 ` +
-            `bg-cover bg-right z-0`
-          }
+          className={`
+            bg-dark-gray absolute right-0 top-0 h-full w-full md:w-1/2
+            bg-cover bg-right z-0
+          `}
           style={{
             backgroundImage: `url('${
               artist.imageUrl ?? "/artist-default.svg"
@@ -72,10 +75,10 @@ const Header = async ({
           }}
         />
         <div
-          className={
-            `absolute right-0 top-0 h-full w-full md:w-1/2 bg-gradient-to-r ` +
-            `z-10 from-black to-transparent`
-          }
+          className={`
+            absolute right-0 top-0 h-full w-full md:w-1/2 bg-gradient-to-r z-10
+            from-black to-transparent
+          `}
           style={{
             backgroundImage:
               backgroundColor !== undefined
@@ -84,7 +87,9 @@ const Header = async ({
           }}
         />
         <div
-          className={`flex flex-col justify-center items-start font-extrabold z-10`}
+          className={`
+            flex flex-col justify-center items-start font-extrabold z-10
+          `}
         >
           <h1 className={`text-5xl m-0 flex-0 font-display`}>{artist.name}</h1>
           <a
@@ -104,13 +109,13 @@ export default async function ArtistView({ params }: Props) {
   const artist = await getData(params);
   return (
     <main>
-      <Header className={`mb-10`} artist={artist} />
+      <Header className={`mb-0 xl:mb-10`} artist={artist} />
       <div
-        className={
-          `self-stretch grid grid-cols-artist-content gap-x-8 items-start ` +
-          `px-6 bg-white-transparent backdrop-blur-sm rounded-sm pt-8 pb-6 ` +
-          `max-w-screen-xl mx-auto mb-10`
-        }
+        className={`
+          self-stretch flex flex-col-reverse lg:grid lg:grid-cols-artist-content
+          gap-x-8 items-start px-6 bg-white-transparent backdrop-blur-sm
+          rounded-sm pt-8 pb-6 max-w-screen-xl mx-auto mb-10
+        `}
       >
         <Bio bio={artist.bio || ""} />
         <Albums albums={artist.albums || []} />

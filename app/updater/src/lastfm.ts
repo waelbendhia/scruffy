@@ -1,12 +1,17 @@
 import axios from "axios";
 import { URL } from "url";
+import { rateLimitClient } from "./rate-limit";
 
 const apiKey = process.env.LAST_FM_API_KEY;
 
-const client = axios.create({
-  baseURL: "https://ws.audioscrobbler.com/2.0/",
-  params: { api_key: apiKey, format: "json" },
-});
+const client = rateLimitClient(
+  axios.create({
+    baseURL: "https://ws.audioscrobbler.com/2.0/",
+    params: { api_key: apiKey, format: "json" },
+  }),
+  5,
+  1000,
+);
 
 type LastFMImage = {
   "#text": string;
@@ -96,6 +101,7 @@ export const getLastFMArtist = async (name: string) => {
   });
 
   if ("error" in resp.data) {
+    console.error("whoopsie in last.fm", resp.data);
     return null;
   }
 
@@ -145,6 +151,7 @@ export const getLastFMAlbum = async (artist: string, name: string) => {
   });
 
   if ("error" in resp.data) {
+    console.error("whoopsie in last.fm", resp.data);
     return null;
   }
 

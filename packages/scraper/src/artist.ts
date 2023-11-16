@@ -1,4 +1,4 @@
-import { AxiosRequestConfig } from "axios";
+import { AxiosInstance } from "axios";
 import { findInBody } from "./album";
 import * as cheerio from "cheerio";
 import { getPage, scruffyPath } from "./page";
@@ -44,9 +44,9 @@ type PageReader = (content: string | Buffer) => {
 const getAndRead = async (
   pageURL: string,
   reader: PageReader,
-  config?: AxiosRequestConfig,
+  client?: AxiosInstance,
 ) => {
-  const { data, ...page } = await getPage(pageURL, config);
+  const { data, ...page } = await getPage(pageURL, client);
   const artists = reader(data);
   return { ...page, artists };
 };
@@ -54,8 +54,8 @@ const getAndRead = async (
 /** This is the page with supposedly all artists ever reviewed, should include
  * volums 1-9 and Avant.
  */
-export const getRockPage = (config?: AxiosRequestConfig) =>
-  getPage("music/groups.html", config);
+export const getRockPage = (client?: AxiosInstance) =>
+  getPage("music/groups.html", client);
 
 /** Parses artists from the music/groups.html page */
 export const readArtistsFromRockPage = (content: string | Buffer) =>
@@ -64,12 +64,12 @@ export const readArtistsFromRockPage = (content: string | Buffer) =>
   );
 
 /** Loads and parses artists from the music/groups.html page */
-export const getArtistsFromRockPage = (config?: AxiosRequestConfig) =>
-  getAndRead("music/groups.html", readArtistsFromRockPage, config);
+export const getArtistsFromRockPage = (client?: AxiosInstance) =>
+  getAndRead("music/groups.html", readArtistsFromRockPage, client);
 
 /** This is the page with all Jazz artists ever reviewed. */
-export const getJazzPage = (config?: AxiosRequestConfig) =>
-  getPage("jazz/musician.html", config);
+export const getJazzPage = (client?: AxiosInstance) =>
+  getPage("jazz/musician.html", client);
 
 /** Parses artists from the jazz/musician.html page */
 export const readArtistsFromJazzPage = (content: string | Buffer) =>
@@ -78,14 +78,14 @@ export const readArtistsFromJazzPage = (content: string | Buffer) =>
   );
 
 /** Loads and parses artists from the jazz/musician.html page */
-export const getArtistsFromJazzPage = (config?: AxiosRequestConfig) =>
-  getAndRead("jazz/musician.html", readArtistsFromJazzPage, config);
+export const getArtistsFromJazzPage = (client?: AxiosInstance) =>
+  getAndRead("jazz/musician.html", readArtistsFromJazzPage, client);
 
 type Volume = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 /** This is the page with all artists ever reviewed in a specific volume. */
-export const getVolumePage = (vol: Volume, config?: AxiosRequestConfig) =>
-  getPage(`vol${vol}/`, config);
+export const getVolumePage = (vol: Volume, client?: AxiosInstance) =>
+  getPage(`vol${vol}/`, client);
 
 /** Parses artists from the vol{vol} page */
 export const readArtistsFromVolumePage = (
@@ -111,14 +111,11 @@ export const readArtistsFromVolumePage = (
   });
 
 /** Loads and parses artists from the vol{vol} page */
-export const getArtistsFromVolumePage = (
-  vol: Volume,
-  config?: AxiosRequestConfig,
-) =>
+export const getArtistsFromVolumePage = (vol: Volume, client?: AxiosInstance) =>
   getAndRead(
     `vol${vol}/`,
     (data) => readArtistsFromVolumePage(vol, data),
-    config,
+    client,
   );
 
 const getNameFromBody = ($: cheerio.Root) => {
@@ -211,7 +208,6 @@ const getBioFromBody = ($: cheerio.Root) => {
       switch (e.tagName) {
         case "font":
           if (e.attribs.size === "-1") {
-            console.log("found font skipping");
             return prev;
           }
           return prev + $(e).text();
@@ -268,11 +264,11 @@ const artistUrlRegex = /(avant|jazz|vol).*\.html$/;
 
 // Some of these have bad titles so it requires manual fixing.
 const nameExceptions: Record<string, string> = {
-  "vol6/belleli.html": "Tractor's Revenge",
-  "vol7/blkjks.html": "BLK JKS",
-  "vol7/kem.html": "Kern",
-  "vol4/eae.html": "The Electronic Art Ensemble",
-  "avant/zeier.html": "Marc Zeier",
+  "/vol6/belleli.html": "Tractor's Revenge",
+  "/vol7/blkjks.html": "BLK JKS",
+  "/vol7/kem.html": "Kern",
+  "/vol4/eae.html": "The Electronic Art Ensemble",
+  "/avant/zeier.html": "Marc Zeier",
 };
 
 export const readArtistFromArtistPage = (
@@ -299,14 +295,11 @@ export const readArtistFromArtistPage = (
   };
 };
 
-export const getArtistPage = (artistUrl: string, config?: AxiosRequestConfig) =>
-  getPage(scruffyPath(artistUrl), config);
+export const getArtistPage = (artistUrl: string, client?: AxiosInstance) =>
+  getPage(scruffyPath(artistUrl), client);
 
-export const getArtistFromPage = (
-  artistUrl: string,
-  config?: AxiosRequestConfig,
-) =>
-  getPage(scruffyPath(artistUrl), config).then((page) => {
+export const getArtistFromPage = (artistUrl: string, client?: AxiosInstance) =>
+  getPage(scruffyPath(artistUrl), client).then((page) => {
     const artist = readArtistFromArtistPage(artistUrl, page.data);
     if (artist) {
       return { ...artist, lastModified: page.lastModified, hash: page.hash };

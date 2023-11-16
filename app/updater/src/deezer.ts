@@ -1,8 +1,11 @@
 import axios from "axios";
+import { rateLimitClient } from "./rate-limit";
 
-const client = axios.create({
-  baseURL: "https://api.deezer.com",
-});
+const client = rateLimitClient(
+  axios.create({ baseURL: "https://api.deezer.com" }),
+  50,
+  5000,
+);
 
 type DeezerArtist = {
   id: string;
@@ -14,7 +17,6 @@ type DeezerArtist = {
   picture_xl: string;
   type: "artist";
 };
-
 
 export const getBestArtistSearchResult = async (name: string) => {
   const resp = await client.get<{ data: DeezerArtist[] }>(`/search/artist`, {

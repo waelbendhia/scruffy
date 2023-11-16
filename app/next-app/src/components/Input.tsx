@@ -33,10 +33,10 @@ const Input = React.forwardRef<HTMLInputElement, Props>(function Input(
       <div className={"flex-1 relative h-10 my-[5px]"}>
         <input
           ref={ref}
-          className={
-            `p-0 outline-none h-[38px] text-3xl w-full border-b-2 border-gray bg-transparent ` +
-            `${whiteText ? "text-white" : "text-black"}}`
-          }
+          className={`
+            p-0 outline-none h-[38px] text-3xl w-full border-b-2 border-gray bg-transparent
+            ${whiteText ? "text-white" : "text-black"}
+          `}
           type={props.type}
           onChange={(e) =>
             props.type === "number"

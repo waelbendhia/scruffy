@@ -63,11 +63,16 @@ const About = () => (
 
 const getData = async () => {
   const { data: newest }: API["/album"]["/"] = await (
-    await fetch(`${baseURL}/album?itemsPerPage=5&sort=lastUpdated`)
+    await fetch(`${baseURL}/album?itemsPerPage=6&sort=lastUpdated`, {
+      next: { revalidate: 300 },
+    })
   ).json();
 
   const { data: bnm }: API["/album"]["/"] = await (
-    await fetch(`${baseURL}/album?itemsPerPage=1&sort=lastUpdated&ratingMin=8`)
+    await fetch(
+      `${baseURL}/album?itemsPerPage=1&sort=lastUpdated&ratingMin=8`,
+      { next: { revalidate: 300 } },
+    )
   ).json();
 
   return { bnm: bnm?.[0], newest };
@@ -76,30 +81,36 @@ const getData = async () => {
 const Latest = async () => {
   const { bnm, newest } = await getData();
   return (
-    <div className="max-w-screen-lg mx-auto pt-20 mb-20 px-8">
+    <div className="max-w-screen-xl mx-auto pt-20 mb-20 px-8">
       <div className="flex flex-col-reverse md:flex-row gap-8">
         <div className="flex-1">
           <h2 className="font-display font-bold text-2xl mb-8">
             Latest Reviews
           </h2>
-          <div>
+          <div className={`grid gap-4 grid-cols-1 lg:grid-cols-2`}>
             {newest.map((a) => (
               <AlbumCard
-                className="mb-4"
+                className={`
+                  !grid-cols-[minmax(3.75rem,_8.875rem)_minmax(7.5rem,_1fr)]
+                  h-[8.875rem]
+                `}
                 key={`${a.artist.url}-${a.name}`}
                 {...a}
               />
             ))}
           </div>
         </div>
-        <div className="w-full md:w-[300px] flex-0 min-w-fit">
+        <div className="w-full max-w-xs flex-0 min-w-fit">
           <h2 className="font-display font-bold text-2xl mb-8">
             Best New Music
           </h2>
           <AlbumCard
             layout="vertical"
             textSize="xl"
-            className={`!grid-rows-[300px_minmax(7.5rem,_1fr)] !h-auto mx-auto`}
+            className={`
+              !grid-rows-[300px_minmax(7.5rem,_9.875rem)] max-w-[inherit]
+              !h-auto mx-auto
+            `}
             {...bnm}
           />
         </div>

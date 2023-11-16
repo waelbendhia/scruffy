@@ -16,46 +16,23 @@ import {
   map,
   mergeMap,
   toArray,
-  retry,
-  timer,
   catchError,
+  pipe,
 } from "rxjs";
-import { AxiosRequestConfig, isAxiosError } from "axios";
-import { Agent } from "http";
-import { conncurentConnections } from "./env";
+import { conncurentConnections, databaseConcurrency } from "./env";
 import { Observed } from "./types";
-import {
-  getAlbum,
-  getBestAlbumSearchResult,
-  getBestArtistSearchResult,
-} from "./deezer";
-import {
-  getBiggestLastFMImage,
-  getLastFMAlbum,
-  getLastFMArtist,
-} from "./lastfm";
-import { rateLimit } from "./rate-limit";
+import { getBestArtistSearchResult } from "./deezer";
+import { getBiggestLastFMImage, getLastFMAlbum } from "./lastfm";
+import { readPage } from "./page";
 import { URL } from "url";
+import {
+  addAlbumCoverAndReleaseYearFromDeezer,
+  addAlbumCoverFromSpotify,
+} from "./album";
+import { client } from "./scaruffi";
+import { getBiggestSpotifyImage, getSpotifyArtist } from "./spotify";
 
 type PageData = Awaited<ReturnType<typeof getPage>>;
-
-const is404Error = (e: unknown) =>
-  isAxiosError(e) && e.response?.status === 404;
-
-/** Read page if no previous updateHistory entry is found or it does not match */
-const readPage = (getter: () => Promise<PageData>) =>
-  from(getter()).pipe(
-    retry({
-      count: 10,
-      delay: (err, count) =>
-        is404Error(err) ? of() : timer(1_000 * 1.5 ** count),
-    }),
-    concatMap((page) =>
-      from(
-        prisma.updateHistory.findUnique({ where: { pageURL: page.url } }),
-      ).pipe(concatMap((prev) => (prev?.hash === page.hash ? of() : of(page)))),
-    ),
-  );
 
 const readArtistsPage = (
   getter: () => Promise<PageData>,
@@ -67,26 +44,18 @@ const readArtistsPage = (
 
 type Volume = Parameters<typeof readArtistsFromVolumePage>[0];
 
-const config: AxiosRequestConfig = {
-  timeout: 5_000,
-  httpAgent: new Agent({
-    keepAlive: true,
-    maxSockets: conncurentConnections,
-  }),
-};
-
 export const readRockPage = () =>
-  readArtistsPage(() => getRockPage(config), readArtistsFromRockPage);
+  readArtistsPage(() => getRockPage(client), readArtistsFromRockPage);
 export const readJazzPage = () =>
-  readArtistsPage(() => getJazzPage(config), readArtistsFromJazzPage);
+  readArtistsPage(() => getJazzPage(client), readArtistsFromJazzPage);
 export const readVolumePage = (volume: Volume) =>
   readArtistsPage(
-    () => getVolumePage(volume, config),
+    () => getVolumePage(volume, client),
     (data) => readArtistsFromVolumePage(volume, data),
   );
 
 export const readArtist = (url: string) =>
-  readPage(() => getPage(url)).pipe(
+  readPage(() => getPage(url, client)).pipe(
     concatMap(({ data, ...page }) => {
       const artist = readArtistFromArtistPage(url, data);
       if (!artist || !artist?.name) {
@@ -94,37 +63,25 @@ export const readArtist = (url: string) =>
         return of();
       }
 
-      console.debug(`updating ${artist?.url}`);
-
       return of({ ...page, ...artist });
     }),
   );
 
 type ReadArtistWithoutImage = Observed<ReturnType<typeof readArtist>>;
-type ReadAlbumWithoutImage = ReadArtistWithoutImage["albums"][number];
+type ReadAlbum = ReadArtistWithoutImage["albums"][number] & {
+  imageUrl?: string;
+};
 
 type ReadArtist = Omit<ReadArtistWithoutImage, "albums"> & {
   imageUrl?: string | undefined;
-  albums: (ReadAlbumWithoutImage & { imageUrl?: string })[];
+  albums: ReadAlbum[];
 };
 
 export const addImagesFromLastFM = (artist: ReadArtist) =>
   of(artist).pipe(
-    concatMap(async (a) => {
-      if (a.imageUrl) {
-        return a;
-      }
-
-      const searchResult = await getLastFMArtist(a.name);
-      return {
-        ...a,
-        imageUrl: getBiggestLastFMImage(searchResult?.artist.image)?.["#text"],
-      };
-    }),
     catchError(() => of(artist)),
     concatMap((a) =>
       from(a.albums ?? []).pipe(
-        rateLimit(5, 1100),
         mergeMap(async (album) => {
           if (album.imageUrl) {
             return album;
@@ -167,32 +124,36 @@ export const addImagesAndReleaseYearsFromDeezer = (artist: ReadArtist) =>
 
       return { ...a, imageUrl: searchResult?.picture_xl };
     }),
+    mergeMap((a) =>
+      from(a.albums ?? []).pipe(
+        concatMap((album) =>
+          addAlbumCoverAndReleaseYearFromDeezer(a.name, album),
+        ),
+        toArray(),
+        map((albums) => ({ ...a, albums })),
+      ),
+    ),
+  );
+
+export const addImagesAndReleaseYearsFromSpotify = (artist: ReadArtist) =>
+  of(artist).pipe(
+    concatMap(async (a) => {
+      if (!!a.imageUrl) {
+        return a;
+      }
+
+      const bestMatch = await getSpotifyArtist(a.name);
+      if (!bestMatch) {
+        return a;
+      }
+
+      const image = getBiggestSpotifyImage(bestMatch.images);
+
+      return { ...a, imageUrl: image?.url };
+    }),
     concatMap((a) =>
       from(a.albums ?? []).pipe(
-        concatMap(async (album) => {
-          if (album.imageUrl && album.year) {
-            return album;
-          }
-
-          const albumSearchResult = await getBestAlbumSearchResult(
-            a.name,
-            album.name,
-          );
-
-          if (album.year || !albumSearchResult) {
-            return { ...album, imageUrl: albumSearchResult?.cover_xl };
-          }
-
-          const deezerAlbum = await getAlbum(albumSearchResult.id);
-
-          return {
-            ...album,
-            imageUrl: album.imageUrl ?? albumSearchResult.cover_xl,
-            year: deezerAlbum?.release_date
-              ? new Date(deezerAlbum.release_date).getFullYear()
-              : undefined,
-          };
-        }),
+        mergeMap((album) => addAlbumCoverFromSpotify(a.name, album)),
         toArray(),
         map((albums) => ({ ...a, albums })),
       ),
@@ -201,8 +162,9 @@ export const addImagesAndReleaseYearsFromDeezer = (artist: ReadArtist) =>
 
 export const addImagesAndReleaseYears = (artist: ReadArtist) =>
   of(artist).pipe(
-    concatMap(addImagesFromLastFM),
+    concatMap(addImagesAndReleaseYearsFromSpotify),
     concatMap(addImagesAndReleaseYearsFromDeezer),
+    concatMap(addImagesFromLastFM),
   );
 
 type ReadArtistWithImages = Observed<
@@ -264,4 +226,50 @@ export const insertArtist = (artist: ReadArtistWithImages) =>
         update: createOrUpdateInput,
       });
     }),
+  );
+
+export const insertArtistWithImages = () =>
+  pipe(
+    mergeMap((url: string) =>
+      readArtist(url).pipe(
+        catchError((e) => {
+          console.debug("error: ", e);
+          return of();
+        }),
+      ),
+    ),
+    mergeMap((a) =>
+      addImagesAndReleaseYearsFromSpotify(a).pipe(
+        catchError((e) => {
+          console.debug("error: ", e);
+          return of();
+        }),
+      ),
+    ),
+    mergeMap((a) =>
+      addImagesAndReleaseYearsFromDeezer(a).pipe(
+        catchError((e) => {
+          console.debug("error: ", e);
+          return of();
+        }),
+      ),
+    ),
+    mergeMap((a) =>
+      addImagesFromLastFM(a).pipe(
+        catchError((e) => {
+          console.debug("error: ", e);
+          return of();
+        }),
+      ),
+    ),
+    mergeMap(
+      (v) =>
+        insertArtist(v).pipe(
+          catchError((e) => {
+            console.debug("error: ", e);
+            return of();
+          }),
+        ),
+      databaseConcurrency,
+    ),
   );

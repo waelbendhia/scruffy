@@ -8,13 +8,13 @@ import { baseURL } from "@/api";
 const getData = async (params: Omit<ArtistSearchRequest, "itemsPerPage">) => {
   const url = new URL(`${baseURL}/artist`);
   Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined) {
+    if (value === undefined) {
       return;
     }
     url.searchParams.set(key, typeof value === "number" ? `${value}` : value);
   });
   url.searchParams.set("itemsPerPage", "12");
-  const resp = await fetch(url);
+  const resp = await fetch(url, { next: { revalidate: 300 } });
   const { data, total }: API["/artist"]["/"] = await resp.json();
 
   const maxPage = Math.max(Math.ceil(total / 12) - 1, 0);

@@ -8,13 +8,13 @@ import SortSelect from "@/components/SortSelect";
 const getData = async (params: Omit<AlbumSearchRequest, "itemsPerPage">) => {
   const url = new URL(`${baseURL}/album`);
   Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined) {
+    if (value === undefined) {
       return;
     }
     url.searchParams.set(key, typeof value === "number" ? `${value}` : value);
   });
   url.searchParams.set("itemsPerPage", "12");
-  const resp = await fetch(url);
+  const resp = await fetch(url, { next: { revalidate: 300 } });
   const { data, total }: API["/album"]["/"] = await resp.json();
 
   const maxPage = Math.max(Math.ceil(total / 12) - 1, 0);
@@ -41,23 +41,28 @@ type Props = {
 
 type SortColumn = Exclude<AlbumSearchRequest["sort"], undefined>;
 
-const asSortColumn = (x: unknown): SortColumn =>
-  x === "rating" || x === "name" || x === "artist" ? x : "year";
+type SortableColumns = Exclude<SortColumn, "artist" | "lastUpdated">;
 
-const labels: Record<SortColumn, string> = {
+const asSortColumn = (x: unknown): SortableColumns =>
+  x === "rating" || x === "name" ? x : "year";
+
+const asRating = (s: unknown): number =>
+  s === "6" ? 6 : s === "7" ? 7 : s === "8" ? 8 : s === "9" ? 9 : 0;
+
+const labels: Record<SortableColumns, string> = {
   rating: "Rating",
   name: "Name",
-  artist: "Artist",
   year: "Newest",
-  lastUpdated: "Last Updated",
 };
 
 export default async function Artists({ searchParams }: Props) {
   const page = Math.max(parseIntMaybe(searchParams.page) ?? 0, 0);
   const sort = asSortColumn(searchParams.sort);
+  const ratingMin = asRating(searchParams.ratingMin);
   const { data, total } = await getData({
     page,
     sort,
+    ratingMin,
     name: searchParams.name,
   });
 
@@ -76,11 +81,26 @@ export default async function Artists({ searchParams }: Props) {
           />
         )}
         filters={
-          <SortSelect
-            labels={labels}
-            searchParams={searchParams}
-            coerceString={asSortColumn}
-          />
+          <div className="flex justify-between">
+            <SortSelect
+              labels={labels}
+              searchParams={searchParams}
+              coerceString={asSortColumn}
+            />
+            <SortSelect<number>
+              label={"Min Rating:"}
+              labels={{
+                0: "Any",
+                6: "6",
+                7: "7",
+                8: "8",
+                9: "9",
+              }}
+              queryKey="ratingMin"
+              searchParams={searchParams}
+              coerceString={asRating}
+            />
+          </div>
         }
       />
     </main>

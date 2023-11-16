@@ -6,10 +6,10 @@ const Bio = ({ className, bio }: { className?: string; bio: string }) => {
     <div className={`${className ?? ""} px-8 pb-12`}>
       {firstParagraph && (
         <p
-          className={
-            `font-normal text-base mt-16 first-letter:font-display ` +
-            `first-letter:text-3xl first-letter:ml-4`
-          }
+          className={`
+            font-normal text-base mt-8 lg:mt-16 first-letter:font-display
+            first-letter:text-3xl first-letter:ml-4
+          `}
         >
           {firstParagraph}
         </p>

@@ -46,17 +46,17 @@ describe("Rating Page readers", () => {
     length: 581,
     shouldInclude: [
       {
-        artistURL: "/vol7/goteam.html",
+        artistUrl: "/vol7/goteam.html",
         name: "Get Up Sequences Part One",
         rating: 4,
       },
       {
-        artistURL: "/jazz/leppin.html",
+        artistUrl: "/jazz/leppin.html",
         name: "Ensemble Volcanic Ash",
         rating: 6.5,
       },
       {
-        artistURL: "/vol8/youroldd.html",
+        artistUrl: "/vol8/youroldd.html",
         name: "Krutoy Edition",
         rating: 7,
       },
@@ -78,16 +78,16 @@ describe("Rating Page readers", () => {
     length: 163,
     shouldInclude: [
       {
-        artistURL: "/vol8/1975.html",
+        artistUrl: "/vol8/1975.html",
         name: "A Brief Inquiry Into Online Relationships",
         rating: 6,
       },
       {
-        artistURL: "/vol7/kurushim.html",
+        artistUrl: "/vol7/kurushim.html",
         name: "What is Chaos",
         rating: 7,
       },
-      { artistURL: "/vol8/zealardo.html", name: "Stranger Fruit", rating: 6 },
+      { artistUrl: "/vol8/zealardo.html", name: "Stranger Fruit", rating: 6 },
     ],
     artistLength: 149,
     artistsShouldInclude: [
@@ -102,9 +102,9 @@ describe("Rating Page readers", () => {
     reader: (content) => readAlbumsFromYearRatingsPage(2000, content),
     length: 687,
     shouldInclude: [
-      { artistURL: "/vol6/guycalle.html", name: "Essence", rating: 5 },
-      { artistURL: "/vol5/leatherf.html", name: "Horsebox", rating: 5 },
-      { artistURL: "/vol4/zoviet.html", name: "Decriminalization", rating: 5 },
+      { artistUrl: "/vol6/guycalle.html", name: "Essence", rating: 5 },
+      { artistUrl: "/vol5/leatherf.html", name: "Horsebox", rating: 5 },
+      { artistUrl: "/vol4/zoviet.html", name: "Decriminalization", rating: 5 },
     ],
     artistLength: 620,
     artistsShouldInclude: [
@@ -119,9 +119,9 @@ describe("Rating Page readers", () => {
     reader: (content) => readAlbumsFromYearRatingsPage(1990, content),
     length: 457,
     shouldInclude: [
-      { artistURL: "/vol6/guycalle.html", name: "Automanikk", rating: 6 },
-      { artistURL: "/vol5/antbee.html", name: "Pure Electric Honey", rating: 8, },
-      { artistURL: "/vol4/zoviet.html", name: "Look Into Me", rating: 4 },
+      { artistUrl: "/vol6/guycalle.html", name: "Automanikk", rating: 6 },
+      { artistUrl: "/vol5/antbee.html", name: "Pure Electric Honey", rating: 8, },
+      { artistUrl: "/vol4/zoviet.html", name: "Look Into Me", rating: 4 },
     ],
     artistLength: 427,
     artistsShouldInclude: [

@@ -50,10 +50,10 @@ const Paginator = ({ className = "", total }: Props) => {
 
   return (
     <div
-      className={
-        `${className} flex items-center justify-center select-none ` +
-        `border-t-black-transparent border-t max-w-screen-xl mx-auto mt-3 pt-2`
-      }
+      className={`
+        ${className} flex items-center justify-center select-none 
+        border-t-black-transparent border-t max-w-screen-xl mx-auto mt-3 pt-2
+      `}
     >
       <Clicker maxPage={maxPage} page={page} value={-10} />
       <Clicker maxPage={maxPage} page={page} value={-1} />

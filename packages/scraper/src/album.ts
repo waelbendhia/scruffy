@@ -1,11 +1,13 @@
-import { AxiosRequestConfig } from "axios";
+import { AxiosInstance } from "axios";
 import * as cheerio from "cheerio";
 import { getPage, scruffyPath } from "./page";
 
 export type ReadAlbum = {
-  artistURL: string;
+  artistUrl: string;
   name: string;
   rating: number;
+  year?: number;
+  imageUrl?: string;
 };
 
 export type PageResult = {
@@ -13,11 +15,13 @@ export type PageResult = {
   artists: Record<string, { name: string }>;
 };
 
-type MakeKeyNotNull<O extends object, Key extends keyof O> = {
-  [k in keyof O]: k extends Key ? Exclude<O[k], undefined | null> : O[k];
-};
-
-export const findInBody = ($: cheerio.Root) => {
+export const findInBody = (
+  $: cheerio.Root,
+): {
+  name: string;
+  year?: number | undefined;
+  rating: number;
+}[] => {
   if ($("table").get().length === 0) {
     return [];
   }
@@ -34,21 +38,24 @@ export const findInBody = ($: cheerio.Root) => {
   const yearPattern = /[0-9]{4}(?=\))/;
   const ratingPattern = /(([0-9].[0-9])|[0-9])(?=\/10)/;
 
-  return albumStrings
-    .map((str) => {
-      const matchedYear = str.match(yearPattern)?.[0];
-      const matchedRating = str.match(ratingPattern)?.[0];
+  return albumStrings.flatMap((str) => {
+    const matchedYear = str.match(yearPattern)?.[0];
+    const matchedRating = str.match(ratingPattern)?.[0];
 
-      return {
-        name: str.match(albumNamePattern)?.[0]?.trim(),
+    const name = str.match(albumNamePattern)?.[0]?.trim();
+    const rating = matchedRating ? parseFloat(matchedRating) : undefined;
+    if (!name || !rating) {
+      return [];
+    }
+
+    return [
+      {
+        name,
+        rating,
         year: matchedYear ? parseInt(matchedYear, 10) : undefined,
-        rating: matchedRating ? parseFloat(matchedRating) : undefined,
-      };
-    })
-    .filter(
-      (a): a is MakeKeyNotNull<typeof a, "name" | "rating"> =>
-        a.name !== undefined && a.rating !== undefined,
-    );
+      },
+    ];
+  });
 };
 
 const ratingRegex = /^ *([0-9]{1,2}(\.5)?)(\/10)? *$/;
@@ -76,8 +83,8 @@ const readRatingsFromCDReview = (
     const artistName = $(artistLink).text()?.trim();
     if (!artistName) return;
 
-    const artistURL = new URL(link, scruffyPath(path)).pathname;
-    artists[artistURL] = { name: artistName };
+    const artistUrl = new URL(link, scruffyPath(path)).pathname;
+    artists[artistUrl] = { name: artistName };
 
     const albumName = $(albumLink).text()?.trim();
     if (!albumName) return;
@@ -90,7 +97,7 @@ const readRatingsFromCDReview = (
     if (isNaN(rating)) return;
 
     albums.push({
-      artistURL: artistURL,
+      artistUrl: artistUrl,
       name: albumName,
       rating,
     });
@@ -101,11 +108,11 @@ const readRatingsFromCDReview = (
 
 export const getYearRatingsPage = async (
   year: number,
-  config?: AxiosRequestConfig,
+  client?: AxiosInstance,
 ) => {
   const max = new Date().getFullYear();
   if (year >= 1990 && year <= max) {
-    return getPage(`cdreview/${year}.html`, config);
+    return getPage(`cdreview/${year}.html`, client);
   }
 
   return null;
@@ -117,20 +124,21 @@ export const readAlbumsFromYearRatingsPage = (
 ) => {
   const max = new Date().getFullYear();
   if (year >= 1990 && year <= max) {
-    return readRatingsFromCDReview(
+    const { artists, albums } = readRatingsFromCDReview(
       year >= 2000
         ? `table[bgcolor=ffa000] > tbody > tr`
         : `table > tbody > tr`,
       `cdreview/${year}.html`,
       content,
     );
+    return { artists, albums: albums.map((a) => ({ ...a, year })) };
   }
 
   return { albums: [], artists: {} };
 };
 
-export const getNewRatingsPage = (config?: AxiosRequestConfig) =>
-  getPage("cdreview/new.html", config);
+export const getNewRatingsPage = (client?: AxiosInstance) =>
+  getPage("cdreview/new.html", client);
 
 export const readAlbumsFromNewRatingsPage = (content: string | Buffer) =>
   readRatingsFromCDReview(
@@ -139,8 +147,8 @@ export const readAlbumsFromNewRatingsPage = (content: string | Buffer) =>
     content,
   );
 
-export const getAlbumsFromNewRatingsPage = (config?: AxiosRequestConfig) =>
-  getNewRatingsPage(config).then((page) => ({
+export const getAlbumsFromNewRatingsPage = (client?: AxiosInstance) =>
+  getNewRatingsPage(client).then((page) => ({
     ...page,
     ...readAlbumsFromNewRatingsPage(page.data),
   }));

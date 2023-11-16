@@ -9,12 +9,12 @@ const Loading = ({
   <div className={`relative ${className ?? ""}`}>
     {children}
     <div
-      className={
-        `absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center ` +
-        `text-black text-3xl z-10 ${
+      className={`
+        absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center
+        text-black text-3xl z-10 ${
           loading ? "opacity-100 visible" : "opacity-0 invisible"
-        } transition-opacity`
-      }
+        } transition-opacity
+      `}
     >
       <div
         className={`absolute top-0 left-0 w-full h-full backdrop-blur-sm z-0`}
