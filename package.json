@@ -6,7 +6,6 @@
     "packages/database",
     "app/server",
     "app/updater",
-    "app/web-app",
     "app/next-app"
   ],
   "prisma": {

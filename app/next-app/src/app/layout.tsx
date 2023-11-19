@@ -21,7 +21,7 @@ const workSans = Work_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Scruffy2.0",
+  title: { absolute: "Scruffy2.0", template: "%s - Scruffy2.0" },
   description: "Piero Scaruffi's internet music database with a facelift.",
 };
 
@@ -35,7 +35,7 @@ export default function RootLayout({
       lang="en"
       className={`${workSans.variable} ${libreBaskerville.variable}`}
     >
-      <body className="font-body">
+      <body className="flex flex-col">
         <Background />
         <Providers>
           <Header />

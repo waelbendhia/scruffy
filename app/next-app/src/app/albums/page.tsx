@@ -4,6 +4,13 @@ import { RedirectType, redirect } from "next/navigation";
 import SearchLayout from "@/components/SearchLayout";
 import AlbumCard from "@/components/AlbumCard";
 import SortSelect from "@/components/SortSelect";
+import { Metadata } from "next";
+import Loading from "@/components/Loading";
+
+export const metadata: Metadata = {
+  title: "Search Album Reviews",
+  description: "Album reviews by Piero Scaruffi",
+};
 
 const getData = async (params: Omit<AlbumSearchRequest, "itemsPerPage">) => {
   const url = new URL(`${baseURL}/album`);
@@ -55,7 +62,7 @@ const labels: Record<SortableColumns, string> = {
   year: "Newest",
 };
 
-export default async function Artists({ searchParams }: Props) {
+export default async function Albums({ searchParams }: Props) {
   const page = Math.max(parseIntMaybe(searchParams.page) ?? 0, 0);
   const sort = asSortColumn(searchParams.sort);
   const ratingMin = asRating(searchParams.ratingMin);

@@ -10,10 +10,10 @@
     transition: linear 0.15s;
   }
   h1 {
-    @apply font-display
+    @apply font-display;
   }
-  a:hover{
-    @apply text-red
+  a:hover {
+    @apply text-red;
   }
   html {
     @apply min-h-full;
@@ -21,7 +21,7 @@
   }
   body {
     @apply min-h-full;
-    @apply h-full;
+    @apply font-body
   }
   main {
     @apply z-0;

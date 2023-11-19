@@ -4,6 +4,12 @@ import { RedirectType, redirect } from "next/navigation";
 import SearchLayout from "@/components/SearchLayout";
 import SortSelect from "@/components/SortSelect";
 import { baseURL } from "@/api";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Search Artist Biographies",
+  description: "Artist biographies by Piero Scaruffi",
+};
 
 const getData = async (params: Omit<ArtistSearchRequest, "itemsPerPage">) => {
   const url = new URL(`${baseURL}/artist`);

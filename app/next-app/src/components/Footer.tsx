@@ -33,7 +33,7 @@ const Footer = () => {
             Version: <FooterLink href={commitURL}>{version}</FooterLink>
           </div>
         </div>
-        <div className="text-sm">
+        <div className="text-sm text-right">
           <div className="mb-2">
             All artist biographies and album ratings are the property of{" "}
             <FooterLink href="https://www.scaruffi.com">Piero Scaruffi</FooterLink>

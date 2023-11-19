@@ -1,20 +1,64 @@
 import { baseURL } from "@/api";
 import Albums from "@/components/Albums";
 import Bio from "@/components/Bio";
+import NotFound from "@/components/NotFound";
 import { API } from "@scruffy/server";
 import { getColorFromURL } from "color-thief-node";
+import { Metadata } from "next";
 
 type Props = {
   params: { volume: string; url: string };
 };
 
-const getData = async ({ volume, url }: Props["params"]) => {
+type Artist = API["/artist"]["/:volume/:url"];
+
+type ArtistResponse =
+  | (Artist & { status: "ok" })
+  | { status: "not found" }
+  | { status: "internal error" };
+
+const getData = async ({
+  volume,
+  url,
+}: Props["params"]): Promise<ArtistResponse> => {
+  console.log({ volume, url });
   const resp = await fetch(`${baseURL}/artist/${volume}/${url}`, {
     next: { revalidate: 300 },
   });
-  const data: API["/artist"]["/:volume/:url"] = await resp.json();
+  switch (resp.status) {
+    case 200:
+      const data: API["/artist"]["/:volume/:url"] = await resp.json();
 
-  return data;
+      return { status: "ok", ...data };
+    case 404:
+      return { status: "not found" };
+    default:
+      const message = await resp.json();
+      console.error("could not get artist", { volume, url }, message);
+      return { status: "internal error" };
+  }
+};
+
+export const generateMetadata = async ({ params }: Props) => {
+  const artist = await getData(params);
+
+  switch (artist.status) {
+    case "ok":
+      return {
+        title: artist.name,
+        description: `${artist.name} biography and album reviews by Piero Scaruffi.`,
+      } satisfies Metadata;
+    case "not found":
+      return {
+        title: "Not Found",
+        description: "Not Found",
+      } satisfies Metadata;
+    case "internal error":
+      return {
+        title: "Not Found",
+        description: "Not Found",
+      } satisfies Metadata;
+  }
 };
 
 const toHex = ([r, g, b]: [number, number, number]): string =>
@@ -48,7 +92,7 @@ const Header = async ({
   className,
 }: {
   className?: string;
-  artist: Awaited<ReturnType<typeof getData>>;
+  artist: Artist;
 }) => {
   const backgroundColor = await backgroundColorFromImage(artist.imageUrl);
 
@@ -108,18 +152,24 @@ const Header = async ({
 export default async function ArtistView({ params }: Props) {
   const artist = await getData(params);
   return (
-    <main>
-      <Header className={`mb-0 xl:mb-10`} artist={artist} />
-      <div
-        className={`
+    <main className="flex-1 flex flex-col">
+      {artist.status === "ok" ? (
+        <>
+          <Header className={`mb-0 xl:mb-10`} artist={artist} />
+          <div
+            className={`
           self-stretch flex flex-col-reverse lg:grid lg:grid-cols-artist-content
           gap-x-8 items-start px-6 bg-white-transparent backdrop-blur-sm
           rounded-sm pt-8 pb-6 max-w-screen-xl mx-auto mb-10
         `}
-      >
-        <Bio bio={artist.bio || ""} />
-        <Albums albums={artist.albums || []} />
-      </div>
+          >
+            <Bio bio={artist.bio || ""} />
+            <Albums albums={artist.albums || []} />
+          </div>
+        </>
+      ) : (
+        <NotFound className="m-auto" />
+      )}
     </main>
   );
 }
