@@ -36,4 +36,4 @@ ENV SERVER_HOST "0.0.0.0"
 
 EXPOSE ${SERVER_PORT}
 
-CMD [ "node", "app/api/dist/server.js" ]
+ENTRYPOINT [ "node", "app/api/dist/server.js" ]
