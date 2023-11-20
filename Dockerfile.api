@@ -1,0 +1,16 @@
+FROM scruffy-builder AS builder
+
+COPY app/api app/api
+
+RUN yarn workspace @scruffy/api run build
+RUN yarn workspace @scruffy/api add --dev prisma
+
+ENV PRISMA_QUERY_ENGINE_LIBRARY "app/api/node_modules/@prisma/engines/libquery_engine-debian-openssl-3.0.x.so.node"
+
+ENV SERVER_PORT 8001
+ENV SERVER_HOST "0.0.0.0"
+ENV DATABASE_URL ""
+
+EXPOSE ${SERVER_PORT}
+
+CMD [ "node", "app/api/dist/server.js" ]

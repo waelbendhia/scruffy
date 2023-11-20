@@ -2,7 +2,7 @@ import { baseURL } from "@/api";
 import Albums from "@/components/Albums";
 import Bio from "@/components/Bio";
 import NotFound from "@/components/NotFound";
-import { API } from "@scruffy/server";
+import { API } from "@scruffy/api";
 import { getColorFromURL } from "color-thief-node";
 import { Metadata } from "next";
 

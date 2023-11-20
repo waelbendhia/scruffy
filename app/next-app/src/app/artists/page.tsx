@@ -1,4 +1,4 @@
-import { API, ArtistSearchRequest } from "@scruffy/server";
+import { API, ArtistSearchRequest } from "@scruffy/api";
 import ArtistCard from "@/components/ArtistCard";
 import { RedirectType, redirect } from "next/navigation";
 import SearchLayout from "@/components/SearchLayout";

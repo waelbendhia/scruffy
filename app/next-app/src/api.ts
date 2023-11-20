@@ -1,4 +1,4 @@
-import { API, AlbumSearchRequest, ArtistSearchRequest } from "@scruffy/server";
+import { API, AlbumSearchRequest, ArtistSearchRequest } from "@scruffy/api";
 import axios from "axios";
 
 export const baseURL = `http://${process.env.SERVER_HOST ?? "localhost"}:${

@@ -4,7 +4,7 @@
   "workspaces": [
     "packages/scraper",
     "packages/database",
-    "app/server",
+    "app/api",
     "app/updater",
     "app/next-app"
   ],

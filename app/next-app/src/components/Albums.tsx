@@ -1,4 +1,4 @@
-import { API } from "@scruffy/server";
+import { API } from "@scruffy/api";
 import AlbumCard from "./AlbumCard";
 
 type Album = API["/artist"]["/:volume/:url"]["albums"][number];

@@ -1,11 +1,11 @@
 {
-  "name": "@scruffy/server",
+  "name": "@scruffy/api",
   "version": "0.0.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && cp ../../packages/database/prisma/schema.prisma ./dist",
     "dev": "yarn start",
     "serve": "ts-node src/server.ts",
     "start": "nodemon"

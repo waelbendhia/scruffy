@@ -19,6 +19,8 @@
     ],
     "baseUrl":".",
     "paths":{
+      "@scruffy/api": ["app/api"],
+      "@scruffy/api/*": ["app/api/*"],
       "@scruffy/database": ["packages/database"],
       "@scruffy/database/*": ["packages/database/*"],
       "@scruffy/scraper": ["packages/scraper"],

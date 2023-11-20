@@ -1,0 +1,36 @@
+FROM scruffy-api AS builder
+
+COPY app/next-app app/next-app
+
+RUN yarn workspace @scruffy/next-app run build
+
+FROM node:18.17
+
+WORKDIR /app
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --from=builder /base/app/next-app/public ./public
+
+RUN mkdir .next
+RUN chown nextjs:nodejs .next
+
+COPY --from=builder --chown=nextjs:nodejs /base/app/next-app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /base/app/next-app/.next/static ./.next/static
+
+USER nextjs
+
+ENV NODE_ENV "production"
+ENV NEXT_TELEMETRY_DISABLED 1
+ENV GITHUB_SHA ""
+ENV SERVER_HOST ""
+ENV SERVER_PORT ""
+
+
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
+
+EXPOSE ${PORT}
+
+CMD [ "node", "app/next-app/server.js" ]

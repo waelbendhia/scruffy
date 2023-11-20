@@ -3,7 +3,6 @@ import {
   concatMap,
   from,
   interval,
-  lastValueFrom,
   map,
   merge,
   mergeMap,
@@ -127,12 +126,10 @@ const loadAndInsertFromArtistPages = () =>
   );
 
 const fullUpdate = () =>
-  loadAndInsertRatingsPages().pipe(
-    concatMap(() => loadAndInsertFromArtistPages()),
-  );
+  merge(loadAndInsertRatingsPages(), loadAndInsertFromArtistPages(), 1);
 
-lastValueFrom(
-  fullUpdate().pipe(
+fullUpdate()
+  .pipe(
     map(() => {
       console.log("check complete");
     }),
@@ -144,6 +141,5 @@ lastValueFrom(
     map(() => {
       console.log("check complete");
     }),
-  ),
-  { defaultValue: null },
-).then(() => console.log("exiting"));
+  )
+  .subscribe(() => {});

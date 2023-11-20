@@ -1,4 +1,4 @@
-import { API } from "@scruffy/server";
+import { API } from "@scruffy/api";
 import { baseURL } from "@/api";
 
 export async function GET(request: Request) {

@@ -1,4 +1,4 @@
-import { ArtistSearchRequest } from "@scruffy/server";
+import { ArtistSearchRequest } from "@scruffy/api";
 import {
   ReadonlyURLSearchParams,
   usePathname,

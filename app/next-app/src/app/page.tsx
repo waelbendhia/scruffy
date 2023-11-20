@@ -1,6 +1,6 @@
 import { baseURL } from "@/api";
 import AlbumCard from "@/components/AlbumCard";
-import { API } from "@scruffy/server";
+import { API } from "@scruffy/api";
 import Link from "next/link";
 
 const HomeBlock = ({

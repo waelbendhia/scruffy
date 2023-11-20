@@ -1,7 +1,7 @@
 import { prisma } from "@scruffy/database";
 import { getPage } from "@scruffy/scraper";
 import { isAxiosError } from "axios";
-import { concatMap, from, of, retry, timer } from "rxjs";
+import { concatMap, filter, from, of, retry, timer } from "rxjs";
 
 export type PageData = Awaited<ReturnType<typeof getPage>>;
 
@@ -16,13 +16,20 @@ export const readPage = (getter: () => Promise<PageData | null>) =>
       delay: (err, count) =>
         is404Error(err) ? of() : timer(1_000 * 1.5 ** count),
     }),
-    concatMap((page) =>
-      page === null
-        ? of()
-        : from(
-            prisma.updateHistory.findUnique({ where: { pageURL: page.url } }),
-          ).pipe(
-            concatMap((prev) => (prev?.hash === page.hash ? of() : of(page))),
-          ),
-    ),
+    concatMap(async (page) => {
+      if (page === null) {
+        return null;
+      }
+
+      const prev = await prisma.updateHistory.findUnique({
+        where: { pageURL: page.url },
+      });
+      if (prev?.hash === page.hash) {
+        console.debug(`no update for page ${page.url}, skipping.`);
+        return null;
+      }
+
+      return page;
+    }),
+    filter((page): page is Exclude<typeof page, null> => page !== null),
   );

@@ -1,0 +1,15 @@
+FROM scruffy-builder AS builder
+
+COPY app/updater app/updater
+
+RUN yarn workspace @scruffy/updater run build
+RUN yarn workspace @scruffy/updater add --dev prisma
+
+ENV PRISMA_QUERY_ENGINE_LIBRARY "app/updater/node_modules/@prisma/engines/libquery_engine-debian-openssl-3.0.x.so.node"
+
+ENV LAST_FM_API_KEY ""
+ENV DATABASE_URL ""
+
+EXPOSE ${SERVER_PORT}
+
+CMD [ "node", "app/updater/dist/main.js" ]

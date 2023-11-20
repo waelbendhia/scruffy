@@ -1,5 +1,5 @@
 import LabeledImage from "@/components/LabeledImage";
-import { API } from "@scruffy/server";
+import { API } from "@scruffy/api";
 
 type Props = API["/artist"]["/"]["data"][number] & {
   className?: string;

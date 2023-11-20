@@ -1,11 +1,10 @@
 import { baseURL } from "@/api";
-import { API, AlbumSearchRequest } from "@scruffy/server";
+import { API, AlbumSearchRequest } from "@scruffy/api";
 import { RedirectType, redirect } from "next/navigation";
 import SearchLayout from "@/components/SearchLayout";
 import AlbumCard from "@/components/AlbumCard";
 import SortSelect from "@/components/SortSelect";
 import { Metadata } from "next";
-import Loading from "@/components/Loading";
 
 export const metadata: Metadata = {
   title: "Search Album Reviews",
