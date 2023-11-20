@@ -33,7 +33,6 @@ ENV PRISMA_QUERY_ENGINE_LIBRARY "app/api/node_modules/@prisma/engines/libquery_e
 ENV SERVER_PORT 8001
 ENV SERVER_HOST "0.0.0.0"
 
-
 EXPOSE ${SERVER_PORT}
 
-ENTRYPOINT [ "node", "app/api/dist/server.js" ]
+CMD exec node app/api/dist/server.js

@@ -27,6 +27,7 @@ COPY app/next-app app/next-app
 
 ARG GITHUB_SHA
 
+RUN yarn workspace @scruffy/next-app add sharp
 RUN yarn workspace @scruffy/next-app run build
 
 FROM node:18.17
@@ -53,4 +54,4 @@ ENV HOSTNAME "0.0.0.0"
 
 EXPOSE ${PORT}
 
-ENTRYPOINT [ "node", "app/next-app/server.js" ]
+CMD exec node app/next-app/server.js

@@ -38,6 +38,9 @@ fastify.setErrorHandler((err, _req, reply) => {
   }
 });
 
+process.on("SIGTERM", () => process.exit(0));
+process.on("SIGINT", () => process.exit(0));
+
 fastify.listen({ port, host }, (err) => {
   if (err) {
     fastify.log.error(err);

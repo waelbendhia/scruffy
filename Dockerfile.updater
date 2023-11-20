@@ -35,4 +35,4 @@ ENV DATABASE_URL ""
 
 EXPOSE ${SERVER_PORT}
 
-ENTRYPOINT [ "node", "app/updater/dist/main.js" ]
+CMD exec node app/updater/dist/main.js
