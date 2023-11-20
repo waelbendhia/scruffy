@@ -24,6 +24,7 @@ model Artist {
   fromRelatedArtists Artist[]      @relation("RelatedArtists")
   toRelatedArtists   Artist[]      @relation("RelatedArtists")
   albums             Album[]
+  corrections Correction[]
   lastModified       DateTime
 }
 
@@ -37,8 +38,31 @@ model Album {
 
   imageUrl String?
 
+  corrections Correction[]
+
   fromUpdate UpdateHistory @relation(fields: [pageURL], references: [pageURL])
   pageURL    String
 
   @@id([artistUrl, name])
+}
+
+
+model Correction {
+  id Int @id @default(autoincrement())
+  submittedOn DateTime @default(now())
+  status String @default("pending")
+
+  artist Artist? @relation(fields: [artistUrl], references: [url])
+  artistUrl String?
+
+  proposedName String?
+  selectedImageURL String?
+  proposedBiographyChange String?
+
+  album Album? @relation(fields: [albumArtistURL, albumName], references: [artistUrl, name])
+  albumArtistURL String?
+  albumName String?
+     proposedCoverURL String?
+     proposedReleaseYear Int?
+     proposedRating Decimal?
 }
