@@ -1,6 +1,31 @@
-FROM scruffy-api AS builder
+FROM node:18.17 AS builder
+
+WORKDIR /base
+
+COPY package.json .
+COPY yarn.lock .
+
+COPY packages/database/package.json packages/database/package.json
+COPY packages/scraper/package.json  packages/scraper/package.json
+COPY app/updater/package.json app/updater/package.json
+COPY app/api/package.json app/api/package.json
+COPY app/next-app/package.json app/next-app/package.json
+
+RUN yarn
+
+COPY tsconfig.json .
+
+COPY packages/database/ packages/database/
+
+RUN yarn workspace @scruffy/database run build
+
+COPY packages/scraper/  packages/scraper/
+
+RUN yarn workspace @scruffy/scraper run build
 
 COPY app/next-app app/next-app
+
+ARG GITHUB_SHA
 
 RUN yarn workspace @scruffy/next-app run build
 
@@ -19,7 +44,6 @@ USER nextjs
 
 ENV NODE_ENV "production"
 ENV NEXT_TELEMETRY_DISABLED 1
-ENV GITHUB_SHA ""
 ENV SERVER_HOST ""
 ENV SERVER_PORT ""
 

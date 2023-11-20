@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  env: {
+    GITHUB_SHA: process.env.GITHUB_SHA,
+  },
   images: {
     remotePatterns: [
       {
