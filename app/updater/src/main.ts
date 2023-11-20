@@ -126,7 +126,11 @@ const loadAndInsertFromArtistPages = () =>
   );
 
 const fullUpdate = () =>
-  merge(loadAndInsertRatingsPages(), loadAndInsertFromArtistPages(), 1);
+  loadAndInsertRatingsPages().pipe(
+    reduce((p) => p, 0),
+    concatMap(() => loadAndInsertFromArtistPages()),
+    reduce((p) => p, 0),
+  );
 
 fullUpdate()
   .pipe(

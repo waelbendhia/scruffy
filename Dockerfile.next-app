@@ -11,13 +11,9 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder /base/app/next-app/public ./public
-
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
-
+COPY --from=builder /base/app/next-app/public ./app/next-app/public
 COPY --from=builder --chown=nextjs:nodejs /base/app/next-app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /base/app/next-app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /base/app/next-app/.next/static ./app/next-app/.next/static
 
 USER nextjs
 
