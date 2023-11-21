@@ -63,7 +63,13 @@ export default async function Artists({ searchParams }: Props) {
         page={page ?? 0}
         colNumber={4}
         renderRow={(a) => (
-          <ArtistCard layout="vertical" key={a.url} className="h-48" {...a} />
+          <ArtistCard
+            placeholder="empty"
+            layout="vertical"
+            key={a.url}
+            className="h-48"
+            {...a}
+          />
         )}
         filters={
           <SortSelect

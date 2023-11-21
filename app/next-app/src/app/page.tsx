@@ -1,7 +1,7 @@
 import { baseURL } from "@/api";
-import AlbumCard from "@/components/AlbumCard";
 import { API } from "@scruffy/api";
 import Link from "next/link";
+import AlbumSuspended from "./Components/AlbumSuspended";
 
 const HomeBlock = ({
   title,
@@ -80,6 +80,14 @@ const getData = async () => {
 
 const Latest = async () => {
   const { bnm, newest } = await getData();
+  const listClassname = `
+    !grid-cols-[minmax(3.75rem,_8.875rem)_minmax(7.5rem,_1fr)] h-[8.875rem]
+  `;
+
+  const bnmClassname = `
+    !grid-rows-[300px_minmax(7.5rem,_9.875rem)] max-w-[inherit] !h-auto mx-auto
+  `;
+
   return (
     <div className="max-w-screen-xl mx-auto pt-20 mb-20 px-8">
       <div className="flex flex-col-reverse md:flex-row gap-8">
@@ -89,12 +97,9 @@ const Latest = async () => {
           </h2>
           <div className={`grid gap-4 grid-cols-1 lg:grid-cols-2`}>
             {newest.map((a) => (
-              <AlbumCard
-                className={`
-                  !grid-cols-[minmax(3.75rem,_8.875rem)_minmax(7.5rem,_1fr)]
-                  h-[8.875rem]
-                `}
+              <AlbumSuspended
                 key={`${a.artist.url}-${a.name}`}
+                className={listClassname}
                 {...a}
               />
             ))}
@@ -104,13 +109,10 @@ const Latest = async () => {
           <h2 className="font-display font-bold text-2xl mb-8">
             Best New Music
           </h2>
-          <AlbumCard
+          <AlbumSuspended
             layout="vertical"
             textSize="xl"
-            className={`
-              !grid-rows-[300px_minmax(7.5rem,_9.875rem)] max-w-[inherit]
-              !h-auto mx-auto
-            `}
+            className={bnmClassname}
             {...bnm}
           />
         </div>

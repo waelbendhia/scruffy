@@ -4,10 +4,18 @@ import { API } from "@scruffy/api";
 type Props = API["/artist"]["/"]["data"][number] & {
   className?: string;
   layout?: "horizontal" | "vertical";
-};
+} & ({ placeholder: "empty" } | { placeholder: "blur"; blurDaraURL: string });
 
-const ArtistCard = ({ className, url, imageUrl, name, layout }: Props) => (
+const ArtistCard = ({
+  className,
+  url,
+  imageUrl,
+  name,
+  layout,
+  ...rest
+}: Props) => (
   <LabeledImage
+    {...rest}
     className={className}
     url={url}
     imageUrl={imageUrl ?? "/artist-default.svg"}

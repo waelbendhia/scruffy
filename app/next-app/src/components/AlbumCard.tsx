@@ -3,7 +3,7 @@ import { API } from "@scruffy/api";
 
 type Album = API["/album"]["/"]["data"][number];
 
-type Props = Omit<Album, "artist"> & {
+type BaseProps = Omit<Album, "imageUrl" | "artist"> & {
   artist?: Album["artist"];
   className?: string;
   clickable?: boolean;
@@ -12,9 +12,19 @@ type Props = Omit<Album, "artist"> & {
   whiteText?: boolean;
 };
 
+type LoadingProps =
+  | {
+      loading: true;
+    }
+  | ({ loading?: false; imageUrl?: string } & (
+      | { placeholder: "empty" }
+      | { placeholder: "blur"; blurDaraURL: string }
+    ));
+
+type Props = BaseProps & LoadingProps;
+
 const AlbumCard = ({
   artist,
-  imageUrl,
   className,
   name,
   rating,
@@ -23,8 +33,9 @@ const AlbumCard = ({
   layout = "horizontal",
   textSize = "lg",
   whiteText = false,
+  ...props
 }: Props) => {
-  const artistSize = textSize;
+  const artistSize = textSize === "lg" ? "text-lg" : "text-xl";
   const albumSize =
     textSize === "lg" ? ("text-base" as const) : ("text-lg" as const);
   const otherSize =
@@ -33,11 +44,12 @@ const AlbumCard = ({
 
   return (
     <LabeledImage
+      {...props}
       whiteText={whiteText}
       layout={layout}
       className={className}
       url={clickable ? artist?.url : undefined}
-      imageUrl={imageUrl ?? "/album-default.svg"}
+      imageUrl={!props.loading ? props.imageUrl ?? "/album-default.svg" : ""}
       imageClassName={
         rating >= 8
           ? `before:content-[''] before:absolute before:bg-scruff before:h-full
@@ -49,12 +61,15 @@ const AlbumCard = ({
       <div className={"overflow-hidden max-width-full"}>
         {artist && (
           <div
-            className={`overflow-hidden whitespace-nowrap text-ellipsis max-w-full ${artistSize} font-bold`}
+            className={`
+              overflow-hidden whitespace-nowrap text-ellipsis max-w-full
+              ${artistSize} font-bold
+            `}
           >
             {artist.name}
           </div>
         )}
-        <div className={`overflow-hidden whitespace-normal ${albumSize} italic`}>
+        <div className={`overflow-hidden whitespace-normal ${albumSize}`}>
           {name ?? " "}
         </div>
         <div className={`overflow-hidden text-ellipsis ${otherSize}`}>

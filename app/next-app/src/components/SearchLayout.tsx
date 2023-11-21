@@ -11,7 +11,7 @@ type Props<T> = {
   colNumber?: 4 | 3;
 };
 
-export default async function SearchLayout<T>({
+export default function SearchLayout<T>({
   searchName,
   data,
   total,
@@ -53,13 +53,11 @@ export default async function SearchLayout<T>({
       </div>
       <div className={`max-w-screen-xl mx-auto`}>{filters}</div>
       <div
-        className={
-          `grid ${
-            colNumber === 4
-              ? `sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`
-              : `sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3`
-          } gap-2 md:gap-4 lg:gap-8 max-w-screen-xl mx-auto`
-        }
+        className={`grid ${
+          colNumber === 4
+            ? `sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`
+            : `sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3`
+        } gap-2 md:gap-4 lg:gap-8 max-w-screen-xl mx-auto`}
       >
         {data.map(renderRow)}
       </div>

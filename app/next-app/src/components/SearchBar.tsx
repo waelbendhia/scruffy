@@ -106,12 +106,22 @@ const SearchBar = ({
         >
           <div className={colClass}>
             {artistQueryResult.data?.data?.map((b) => (
-              <ArtistCard className="!h-[200px]" key={b.url} {...b} />
+              <ArtistCard
+                placeholder="empty"
+                className="!h-[200px]"
+                key={b.url}
+                {...b}
+              />
             ))}
           </div>
           <div className={colClass}>
             {albumQueryResult.data?.data.map((a) => (
-              <AlbumCard className="!h-[200px]" key={`${a.artist.url}-${a.name}`} {...a} />
+              <AlbumCard
+                placeholder="empty"
+                className="!h-[200px]"
+                key={`${a.artist.url}-${a.name}`}
+                {...a}
+              />
             ))}
           </div>
         </Loading>

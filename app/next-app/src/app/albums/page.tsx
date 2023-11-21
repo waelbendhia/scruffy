@@ -2,9 +2,11 @@ import { baseURL } from "@/api";
 import { API, AlbumSearchRequest } from "@scruffy/api";
 import { RedirectType, redirect } from "next/navigation";
 import SearchLayout from "@/components/SearchLayout";
-import AlbumCard from "@/components/AlbumCard";
 import SortSelect from "@/components/SortSelect";
 import { Metadata } from "next";
+import AlbumCard from "@/components/AlbumCard";
+import { Suspense } from "react";
+import AlbumWithBlur from "../Components/AlbumWithBlur";
 
 export const metadata: Metadata = {
   title: "Search Album Reviews",
@@ -80,11 +82,12 @@ export default async function Albums({ searchParams }: Props) {
         total={total}
         page={page ?? 0}
         renderRow={(a) => (
-          <AlbumCard
+          <Suspense
             key={`${a.artist.url}-${a.name}`}
-            className="h-48"
-            {...a}
-          />
+            fallback={<AlbumCard className="h-48" loading {...a} />}
+          >
+            <AlbumWithBlur className="h-48" {...a} />
+          </Suspense>
         )}
         filters={
           <div className="flex justify-between">

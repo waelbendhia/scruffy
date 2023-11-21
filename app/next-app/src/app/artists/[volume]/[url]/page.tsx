@@ -158,10 +158,11 @@ export default async function ArtistView({ params }: Props) {
           <Header className={`mb-0 xl:mb-10`} artist={artist} />
           <div
             className={`
-          self-stretch flex flex-col-reverse lg:grid lg:grid-cols-artist-content
-          gap-x-8 items-start px-6 bg-white-transparent backdrop-blur-sm
-          rounded-sm pt-8 pb-6 max-w-screen-xl mx-auto mb-10
-        `}
+              self-stretch flex flex-col-reverse lg:grid
+              lg:grid-cols-artist-content gap-x-8 items-start px-6
+              bg-white-transparent backdrop-blur-sm rounded-sm pt-8 pb-6
+              max-w-screen-xl mx-auto mb-10 w-full
+            `}
           >
             <Bio bio={artist.bio || ""} />
             <Albums albums={artist.albums || []} />

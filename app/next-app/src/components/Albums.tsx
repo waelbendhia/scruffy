@@ -1,5 +1,5 @@
 import { API } from "@scruffy/api";
-import AlbumCard from "./AlbumCard";
+import AlbumSuspended from "@/app/Components/AlbumSuspended";
 
 type Album = API["/artist"]["/:volume/:url"]["albums"][number];
 
@@ -26,7 +26,7 @@ const Albums = ({
             : b.rating - a.rating,
         )
         .map((a) => (
-          <AlbumCard
+          <AlbumSuspended
             {...a}
             textSize="lg"
             className={`w-full h-48 mb-6`}
@@ -40,4 +40,5 @@ const Albums = ({
     <div className={`lg:hidden mt-12 mb-12 ml-8 h-1 bg-red`} />
   </div>
 );
+
 export default Albums;
