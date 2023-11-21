@@ -4,9 +4,7 @@ import { RedirectType, redirect } from "next/navigation";
 import SearchLayout from "@/components/SearchLayout";
 import SortSelect from "@/components/SortSelect";
 import { Metadata } from "next";
-import AlbumCard from "@/components/AlbumCard";
-import { Suspense } from "react";
-import AlbumWithBlur from "../Components/AlbumWithBlur";
+import AlbumSuspended from "../Components/AlbumSuspended";
 
 export const metadata: Metadata = {
   title: "Search Album Reviews",
@@ -81,14 +79,7 @@ export default async function Albums({ searchParams }: Props) {
         data={data}
         total={total}
         page={page ?? 0}
-        renderRow={(a) => (
-          <Suspense
-            key={`${a.artist.url}-${a.name}`}
-            fallback={<AlbumCard className="h-48" loading {...a} />}
-          >
-            <AlbumWithBlur className="h-48" {...a} />
-          </Suspense>
-        )}
+        renderRow={(a) => <AlbumSuspended className="h-48" {...a} />}
         filters={
           <div className="flex justify-between">
             <SortSelect

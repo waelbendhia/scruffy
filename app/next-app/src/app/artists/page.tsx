@@ -5,6 +5,7 @@ import SearchLayout from "@/components/SearchLayout";
 import SortSelect from "@/components/SortSelect";
 import { baseURL } from "@/api";
 import { Metadata } from "next";
+import ArtistSuspended from "../Components/ArtistSuspended";
 
 export const metadata: Metadata = {
   title: "Search Artist Biographies",
@@ -63,8 +64,7 @@ export default async function Artists({ searchParams }: Props) {
         page={page ?? 0}
         colNumber={4}
         renderRow={(a) => (
-          <ArtistCard
-            placeholder="empty"
+          <ArtistSuspended
             layout="vertical"
             key={a.url}
             className="h-48"

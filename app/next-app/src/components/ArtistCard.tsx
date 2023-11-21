@@ -1,10 +1,22 @@
 import LabeledImage from "@/components/LabeledImage";
 import { API } from "@scruffy/api";
 
-type Props = API["/artist"]["/"]["data"][number] & {
+type Artist = API["/artist"]["/"]["data"][number];
+
+type BaseProps = {
   className?: string;
   layout?: "horizontal" | "vertical";
-} & ({ placeholder: "empty" } | { placeholder: "blur"; blurDaraURL: string });
+};
+
+type LoadingProps =
+  | ({ loading: true } & Partial<Artist>)
+  | ({ loading?: false } & Artist &
+      (
+        | { placeholder: "empty" }
+        | { placeholder: "blur"; blurDaraURL: string }
+      ));
+
+type Props = BaseProps & LoadingProps;
 
 const ArtistCard = ({
   className,
@@ -22,9 +34,13 @@ const ArtistCard = ({
     layout={layout}
   >
     <div className={`overflow-hidden text-ellipsis`}>
-      <div className={`overflow-hidden text-ellipsis text-lg font-bold`}>
-        {name}
-      </div>
+      {name !== undefined || !rest.loading ? (
+        <div className={`overflow-hidden text-ellipsis text-lg font-bold`}>
+          {name}
+        </div>
+      ) : (
+        <div className={`rounded-md my-0.5 max-w-full h-6 w-40 bg-dark-gray`} />
+      )}
     </div>
   </LabeledImage>
 );

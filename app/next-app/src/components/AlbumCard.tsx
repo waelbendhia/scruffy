@@ -2,9 +2,12 @@ import LabeledImage from "@/components/LabeledImage";
 import { API } from "@scruffy/api";
 
 type Album = API["/album"]["/"]["data"][number];
+type AlbumWithoutArtist = Omit<
+  API["/album"]["/"]["data"][number],
+  "artist" | "imageUrl"
+>;
 
-type BaseProps = Omit<Album, "imageUrl" | "artist"> & {
-  artist?: Album["artist"];
+type BaseProps = {
   className?: string;
   clickable?: boolean;
   layout?: React.ComponentProps<typeof LabeledImage>["layout"];
@@ -13,13 +16,19 @@ type BaseProps = Omit<Album, "imageUrl" | "artist"> & {
 };
 
 type LoadingProps =
-  | {
+  | ({
       loading: true;
-    }
-  | ({ loading?: false; imageUrl?: string } & (
-      | { placeholder: "empty" }
-      | { placeholder: "blur"; blurDaraURL: string }
-    ));
+      artist?: Album["artist"];
+    } & Partial<AlbumWithoutArtist>)
+  | ({
+      loading?: false;
+      imageUrl?: string;
+      artist?: Album["artist"];
+    } & AlbumWithoutArtist &
+      (
+        | { placeholder: "empty" }
+        | { placeholder: "blur"; blurDaraURL: string }
+      ));
 
 type Props = BaseProps & LoadingProps;
 
@@ -41,6 +50,31 @@ const AlbumCard = ({
   const otherSize =
     textSize === "lg" ? ("text-sm" as const) : ("text-base" as const);
   const yearColor = whiteText ? "text-dark-white" : "text-gray";
+  const yearBG = whiteText ? "bg-dark-white" : "bg-gray";
+
+  const bgCol = whiteText ? "bg-white" : "bg-dark-gray";
+
+  const WithData = <T,>({
+    val,
+    bg,
+    width,
+    height,
+    children,
+  }: React.PropsWithChildren<{
+    val?: T;
+    width: string;
+    height?: string;
+    bg?: string;
+  }>) =>
+    val !== undefined || !props.loading ? (
+      children
+    ) : (
+      <div
+        className={`rounded-md my-0.5 max-w-full ${height ?? "h-4"} ${width} ${
+          bg ?? bgCol
+        }`}
+      />
+    );
 
   return (
     <LabeledImage
@@ -51,7 +85,7 @@ const AlbumCard = ({
       url={clickable ? artist?.url : undefined}
       imageUrl={!props.loading ? props.imageUrl ?? "/album-default.svg" : ""}
       imageClassName={
-        rating >= 8
+        rating !== undefined && rating >= 8
           ? `before:content-[''] before:absolute before:bg-scruff before:h-full
             before:w-full before:z-10 before:bg-1/2 before:bg-no-repeat
             before:bg-scruff-offset`
@@ -59,30 +93,38 @@ const AlbumCard = ({
       }
     >
       <div className={"overflow-hidden max-width-full"}>
-        {artist && (
-          <div
-            className={`
+        <WithData val={artist?.name} width="w-40" height="h-6">
+          {artist && (
+            <div
+              className={`
               overflow-hidden whitespace-nowrap text-ellipsis max-w-full
               ${artistSize} font-bold
             `}
-          >
-            {artist.name}
+            >
+              {artist.name}
+            </div>
+          )}
+        </WithData>
+        <WithData val={name} width="w-28">
+          <div className={`overflow-hidden whitespace-normal ${albumSize}`}>
+            {name ?? " "}
           </div>
-        )}
-        <div className={`overflow-hidden whitespace-normal ${albumSize}`}>
-          {name ?? " "}
-        </div>
-        <div className={`overflow-hidden text-ellipsis ${otherSize}`}>
-          <b>{rating}</b> / 10
-        </div>
-        <div
-          className={`
+        </WithData>
+        <WithData val={rating} width="w-10">
+          <div className={`overflow-hidden text-ellipsis ${otherSize}`}>
+            <b>{rating}</b> / 10
+          </div>
+        </WithData>
+        <WithData val={rating} width="w-9" bg={yearBG}>
+          <div
+            className={`
             overflow-hidden text-ellipsis ${otherSize} ${yearColor} font-bold
             group-hover:text-red
           `}
-        >
-          {year ?? "N/A"}
-        </div>
+          >
+            {year ?? "N/A"}
+          </div>
+        </WithData>
       </div>
     </LabeledImage>
   );
