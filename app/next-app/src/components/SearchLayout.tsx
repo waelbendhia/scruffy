@@ -3,6 +3,7 @@ import Paginator from "@/components/Paginator";
 import { Fragment, Suspense } from "react";
 
 type Props<T> = {
+  className?: string;
   suspenseKey: string;
   prevTotal?: number;
   prevDataLength?: number;
@@ -84,6 +85,7 @@ const AsyncContent = async <T,>({
 };
 
 export default function SearchLayout<T>({
+  className,
   suspenseKey,
   searchName,
   prevTotal,
@@ -98,7 +100,9 @@ export default function SearchLayout<T>({
   return (
     <>
       <div
-        className={`flex gap-2 items-center flex-row py-4 max-w-screen-2xl mx-auto`}
+        className={`
+          flex gap-2 items-center flex-row py-4 max-w-screen-2xl mx-auto
+        `}
       >
         <ArtistSearch className="flex-1" />
       </div>
@@ -136,7 +140,7 @@ export default function SearchLayout<T>({
           colNumber === 4
             ? `sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6`
             : `sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`
-        } gap-2 md:gap-4 lg:gap-8 max-w-screen-2xl mx-auto`}
+        } gap-2 md:gap-4 lg:gap-8 max-w-screen-2xl mx-auto ${className}`}
       >
         <Suspense
           key={suspenseKey}
@@ -162,7 +166,8 @@ export default function SearchLayout<T>({
             <div
               className={`
                 mb-4 flex items-center justify-center select-none
-                border-t-black-transparent border-t max-w-screen-2xl mx-auto mt-3 pt-2
+                border-t-black-transparent border-t max-w-screen-2xl mx-auto
+                mt-3 pt-2
               `}
             >
               <h1 className={`w-52 text-center`}>Loading...</h1>

@@ -79,12 +79,12 @@ const getData = async () => {
 };
 
 const listClassname = `
-    !grid-cols-[minmax(3.75rem,_8.875rem)_minmax(7.5rem,_1fr)] h-[8.875rem]
-  `;
+  !grid-cols-[minmax(3.75rem,_8.875rem)_minmax(7.5rem,_1fr)] h-[8.875rem]
+`;
 
 const bnmClassname = `
-    !grid-rows-[300px_minmax(7.5rem,_9.875rem)] max-w-[inherit] !h-auto mx-auto
-  `;
+  !grid-rows-[300px_minmax(7.5rem,_9.875rem)] max-w-[inherit] !h-auto mx-auto
+`;
 
 const LatestLayout = ({
   newest,
@@ -141,7 +141,7 @@ const Latest = async () => {
 const LatestPlaceholder = () => (
   <LatestLayout
     newest={Array.from({ length: 6 }).map((_, i) => (
-      <AlbumCard key={i} loading />
+      <AlbumCard className={listClassname} key={i} loading />
     ))}
     bnm={
       <AlbumCard

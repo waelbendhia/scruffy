@@ -37,7 +37,7 @@ const Content = (props: Props) => (
         <div
           className={`
             relative w-full overflow-hidden flex bg-dark-gray rounded-md
-            h-[192px]
+            max-h-full
           `}
         />
       ) : (

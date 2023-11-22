@@ -83,6 +83,7 @@ export default function Albums({ searchParams }: Props) {
   return (
     <main className={`flex-1 px-4 min-h-fullscreen`}>
       <SearchLayout
+        className="auto-rows-[12.5rem]"
         suspenseKey={JSON.stringify(searchParams)}
         searchName={searchParams.name}
         prevTotal={prevTotal}
