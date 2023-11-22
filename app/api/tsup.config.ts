@@ -6,7 +6,7 @@ export default defineConfig({
   clean: true,
   dts: true,
   plugins: [],
-  entry: ["src/index.ts", "src/server.ts"],
+  entry: ["src/index.ts", "src/server.ts", "src/instrumentation.ts"],
   format: ["cjs", "esm"],
   minify: isProduction,
   sourcemap: true,

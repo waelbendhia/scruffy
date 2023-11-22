@@ -1,5 +1,6 @@
 import { api } from "./app";
 import Fastify, { RouteOptions } from "fastify";
+import { prisma } from "@scruffy/database";
 import { NotFoundError, QueryValidationError } from "./app/errors";
 
 const fastify = Fastify({ logger: true });
@@ -38,8 +39,14 @@ fastify.setErrorHandler((err, _req, reply) => {
   }
 });
 
-process.on("SIGTERM", () => process.exit(0));
-process.on("SIGINT", () => process.exit(0));
+const exit = async () => {
+  await fastify.close();
+  await prisma.$disconnect();
+  process.exit(0);
+};
+
+process.on("SIGTERM", exit);
+process.on("SIGINT", exit);
 
 fastify.listen({ port, host }, (err) => {
   if (err) {

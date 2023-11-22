@@ -6,10 +6,6 @@ COPY package.json .
 COPY yarn.lock .
 
 COPY packages/database/package.json packages/database/package.json
-COPY packages/scraper/package.json  packages/scraper/package.json
-COPY app/updater/package.json app/updater/package.json
-COPY app/api/package.json app/api/package.json
-COPY app/next-app/package.json app/next-app/package.json
 
 RUN yarn
 
@@ -19,20 +15,26 @@ COPY packages/database/ packages/database/
 
 RUN yarn workspace @scruffy/database run build
 
-COPY packages/scraper/  packages/scraper/
+COPY app/api/package.json app/api/package.json
 
-RUN yarn workspace @scruffy/scraper run build
+RUN yarn workspace @scruffy/api install
 
-COPY app/api app/api
+COPY app/api/ app/api/
 
-RUN yarn workspace @scruffy/api run build
-RUN yarn workspace @scruffy/api add --dev prisma
+RUN yarn workspace @scruffy/api build
 
-ENV PRISMA_QUERY_ENGINE_LIBRARY "app/api/node_modules/@prisma/engines/libquery_engine-debian-openssl-3.0.x.so.node"
+FROM node:18.17
+
+WORKDIR /app
+
+COPY --from=builder /base/app/api ./app/api
+COPY --from=builder /base/node_modules ./node_modules
+
+ENV PRISMA_QUERY_ENGINE_LIBRARY "node_modules/@prisma/engines/libquery_engine-debian-openssl-3.0.x.so.node"
 
 ENV SERVER_PORT 8001
 ENV SERVER_HOST "0.0.0.0"
 
 EXPOSE ${SERVER_PORT}
 
-CMD exec node app/api/dist/server.js
+CMD exec node --require ./app/api/dist/instrumentation.js app/api/dist/server.js
