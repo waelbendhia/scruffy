@@ -96,7 +96,11 @@ const LabeledImage = ({
   } ${props.loading ? "animate-pulse" : ""} ${classNameProp ?? ""}`;
 
   return !!url ? (
-    <Link className={className} href={`/artists${url.split(".")[0]}`}>
+    <Link
+      prefetch={false}
+      className={className}
+      href={`/artists${url.split(".")[0]}`}
+    >
       <Content layout={layout} {...props} />
     </Link>
   ) : (

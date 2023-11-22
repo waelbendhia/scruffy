@@ -24,6 +24,7 @@ const SortSelect = <T extends string | number>({
       <div>{label}</div>
       {(Object.keys(labels) as T[]).map((v) => (
         <Link
+          prefetch={false}
           key={v}
           className={`
             text-lg border-t-2 transition-all ${

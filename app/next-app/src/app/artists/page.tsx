@@ -82,7 +82,9 @@ export default function Artists({ searchParams }: Props) {
           <SortSelect
             labels={{ name: "Name", lastModified: "Last updated" }}
             searchParams={searchParams}
-            coerceString={(v) => (v === "name" ? "name" : "lastModified")}
+            coerceString={(v) =>
+              v === "lastModified" ? "lastModified" : "name"
+            }
           />
         }
       />

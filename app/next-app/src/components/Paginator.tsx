@@ -37,13 +37,19 @@ const Clicker = ({
     }
     return p;
   }, [params, targetPage, total, dataLength]);
-  return (
+
+  const isDisabled =
+    (value < 0 && page === 0) || (value > 0 && page + 1 === maxPage);
+
+  return isDisabled ? (
+    <span
+      className={`mx-2.5 text-3xl`}
+    >
+      {value < 0 ? `${Math.abs(value)}<` : `>${value}`}
+    </span>
+  ) : (
     <Link
-      className={`mx-2.5 text-3xl ${
-        (value < 0 && page === 0) || (value > 0 && page + 1 === maxPage)
-          ? "pointer-events-none"
-          : ""
-      }`}
+      className={`mx-2.5 text-3xl`}
       href={{ pathname, query: newParams.toString() }}
       scroll={false}
     >

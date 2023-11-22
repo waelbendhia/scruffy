@@ -2,24 +2,34 @@
 
 // TODO: since we're using this for artist and search rename this component
 
-import { useArtistSearchParams, useDebouncedEffect } from "@/hooks";
+import { useDebouncedEffect, useQueryParams } from "@/hooks";
 import Input from "@/components/Input";
 import React from "react";
 
-const ArtistSearch = ({ className = "" }) => {
+type Props = { className?: string };
+
+const ArtistSearch = ({ className = "" }: Props) => {
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const [search, setSearch] = useArtistSearchParams();
-  const [name, setName] = React.useState(search.name);
+
+  const [searchParams, setSearchParams] = useQueryParams();
+  const searchName = searchParams.get("name");
+  const [name, setName] = React.useState(searchName);
+
   const cbSearch = React.useCallback(
-    (newName?: string) => {
-      if (search.name !== newName) {
-        console.log(`setting ${newName}`);
-        setSearch((prev) => ({ ...prev, name: newName }));
-      }
+    (newName: string | null) => {
+      if (newName === searchName) return;
+      const newParams = new URLSearchParams(searchParams);
+
+      if (newName !== null) newParams.set("name", newName);
+      else newParams.delete("name");
+
+      setSearchParams(newParams);
     },
-    [setSearch, search],
+    [searchName, searchParams, setSearchParams],
   );
-  useDebouncedEffect(name, cbSearch);
+
+  useDebouncedEffect(name, cbSearch, 250);
+
   React.useEffect(() => {
     inputRef.current?.focus();
   }, []);
