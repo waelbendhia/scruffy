@@ -13,7 +13,7 @@ const HomeBlock = ({
 }>) => (
   <div>
     <div className="text-center mb-8 uppercase text-xs">{title}</div>
-    <div className="text-center text-sm">{children}</div>
+    <div className="text-justify text-sm">{children}</div>
   </div>
 );
 
