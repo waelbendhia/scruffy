@@ -7,32 +7,33 @@ COPY yarn.lock .
 
 COPY packages/database/package.json packages/database/package.json
 COPY packages/scraper/package.json  packages/scraper/package.json
-COPY app/updater/package.json app/updater/package.json
-COPY app/api/package.json app/api/package.json
-COPY app/next-app/package.json app/next-app/package.json
 
 RUN yarn
 
 COPY tsconfig.json .
 
 COPY packages/database/ packages/database/
-
-RUN yarn workspace @scruffy/database run build
-
 COPY packages/scraper/  packages/scraper/
 
+RUN yarn workspace @scruffy/database run build
 RUN yarn workspace @scruffy/scraper run build
+
+COPY app/updater/package.json app/updater/package.json
+
+RUN yarn workspace @scruffy/updater install
 
 COPY app/updater app/updater
 
 RUN yarn workspace @scruffy/updater run build
-RUN yarn workspace @scruffy/updater add --dev prisma
 
-ENV PRISMA_QUERY_ENGINE_LIBRARY "app/updater/node_modules/@prisma/engines/libquery_engine-debian-openssl-3.0.x.so.node"
+FROM node:18.17
+
+COPY --from=builder /base/app/updater ./app/updater
+COPY --from=builder /base/node_modules ./node_modules
+
+ENV PRISMA_QUERY_ENGINE_LIBRARY "node_modules/@prisma/engines/libquery_engine-debian-openssl-3.0.x.so.node"
 
 ENV LAST_FM_API_KEY ""
 ENV DATABASE_URL ""
 
-EXPOSE ${SERVER_PORT}
-
-CMD exec node app/updater/dist/main.js
+CMD exec node --require ./app/updater/dist/instrumentation.js app/updater/dist/main.js

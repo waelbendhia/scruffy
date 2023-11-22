@@ -4,21 +4,15 @@ import {
   PeriodicExportingMetricReader,
   ConsoleMetricExporter,
 } from "@opentelemetry/sdk-metrics";
-import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
-import { FastifyInstrumentation } from "@opentelemetry/instrumentation-fastify";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 
 const sdk = new NodeSDK({
-  serviceName: "scruffy-api",
+  serviceName: "scruffy-updater",
   traceExporter: new OTLPTraceExporter(),
   metricReader: new PeriodicExportingMetricReader({
     exporter: new ConsoleMetricExporter(),
   }),
-  instrumentations: [
-    getNodeAutoInstrumentations(),
-    new HttpInstrumentation(),
-    new FastifyInstrumentation(),
-  ],
+  instrumentations: [getNodeAutoInstrumentations()],
 });
 
 sdk.start();

@@ -132,10 +132,7 @@ const fullUpdate = () =>
     reduce((p) => p, 0),
   );
 
-process.on("SIGTERM", () => process.exit(0));
-process.on("SIGINT", () => process.exit(0));
-
-fullUpdate()
+const sub = fullUpdate()
   .pipe(
     map(() => {
       console.log("check complete");
@@ -150,3 +147,12 @@ fullUpdate()
     }),
   )
   .subscribe(() => {});
+
+const exit = async () => {
+  sub.unsubscribe();
+  await prisma.$disconnect();
+  process.exit(0);
+};
+
+process.on("SIGTERM", exit);
+process.on("SIGINT", exit);
