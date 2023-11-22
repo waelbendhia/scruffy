@@ -6,6 +6,7 @@ const nextConfig = {
   env: {
     GITHUB_SHA: process.env.GITHUB_SHA,
   },
+  experimental: { instrumentationHook: true },
   images: {
     remotePatterns: [
       {
