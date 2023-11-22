@@ -5,13 +5,19 @@ import SearchLayout from "@/components/SearchLayout";
 import SortSelect from "@/components/SortSelect";
 import { Metadata } from "next";
 import AlbumSuspended from "../Components/AlbumSuspended";
+import AlbumCard from "@/components/AlbumCard";
 
 export const metadata: Metadata = {
   title: "Search Album Reviews",
   description: "Album reviews by Piero Scaruffi",
 };
 
-const getData = async (params: Omit<AlbumSearchRequest, "itemsPerPage">) => {
+type Query = Omit<AlbumSearchRequest, "itemsPerPage"> & {
+  prevTotal?: number;
+  prevDataLength?: number;
+};
+
+const getData = async (params: Query) => {
   const url = new URL(`${baseURL}/album`);
   Object.entries(params).forEach(([key, value]) => {
     if (value === undefined) {
@@ -33,7 +39,13 @@ const getData = async (params: Omit<AlbumSearchRequest, "itemsPerPage">) => {
     return redirect(`/albums?${redirectParams}`, RedirectType.replace);
   }
 
-  return { data, total, params };
+  await new Promise<void>((res) => setTimeout(() => res(), 2000));
+
+  return {
+    data,
+    total,
+    params: { ...params, prevTotal: total, prevDataLength: data.length },
+  };
 };
 
 const parseIntMaybe = (s: string | undefined): number | undefined => {
@@ -61,23 +73,29 @@ const labels: Record<SortableColumns, string> = {
   year: "Newest",
 };
 
-export default async function Albums({ searchParams }: Props) {
+export default function Albums({ searchParams }: Props) {
   const page = Math.max(parseIntMaybe(searchParams.page) ?? 0, 0);
   const sort = asSortColumn(searchParams.sort);
   const ratingMin = asRating(searchParams.ratingMin);
-  const { data, total } = await getData({
-    page,
-    sort,
-    ratingMin,
-    name: searchParams.name,
-  });
+  const prevTotal = parseIntMaybe(searchParams.prevTotal);
+  const prevDataLength = parseIntMaybe(searchParams.prevDataLength);
 
   return (
     <main className={`flex-1 px-4 min-h-fullscreen`}>
       <SearchLayout
+        suspenseKey={JSON.stringify(searchParams)}
         searchName={searchParams.name}
-        data={data}
-        total={total}
+        prevTotal={prevTotal}
+        prevDataLength={prevDataLength}
+        loadingPlaceholder={<AlbumCard loading />}
+        asyncData={getData({
+          page,
+          sort,
+          ratingMin,
+          name: searchParams.name,
+          prevTotal,
+          prevDataLength,
+        })}
         page={page ?? 0}
         renderRow={(a) => <AlbumSuspended className="h-48" {...a} />}
         filters={

@@ -2,6 +2,8 @@ import { baseURL } from "@/api";
 import { API } from "@scruffy/api";
 import Link from "next/link";
 import AlbumSuspended from "./Components/AlbumSuspended";
+import { Suspense } from "react";
+import AlbumCard from "@/components/AlbumCard";
 
 const HomeBlock = ({
   title,
@@ -61,33 +63,36 @@ const About = () => (
   </div>
 );
 
-const getData = async () => {
-  const { data: newest }: API["/album"]["/"] = await (
-    await fetch(`${baseURL}/album?itemsPerPage=6&sort=lastUpdated`, {
-      next: { revalidate: 300 },
-    })
-  ).json();
+type AlbumResult = API["/album"]["/"];
 
-  const { data: bnm }: API["/album"]["/"] = await (
-    await fetch(
-      `${baseURL}/album?itemsPerPage=1&sort=lastUpdated&ratingMin=8`,
-      { next: { revalidate: 300 } },
-    )
-  ).json();
+const getData = async () => {
+  const [{ data: newest }, { data: bnm }] = await Promise.all([
+    fetch(`${baseURL}/album?itemsPerPage=6&sort=lastUpdated`, {
+      next: { revalidate: 300 },
+    }).then((r): Promise<AlbumResult> => r.json()),
+    fetch(`${baseURL}/album?itemsPerPage=1&sort=lastUpdated&ratingMin=8`, {
+      next: { revalidate: 300 },
+    }).then((r): Promise<AlbumResult> => r.json()),
+  ]);
 
   return { bnm: bnm?.[0], newest };
 };
 
-const Latest = async () => {
-  const { bnm, newest } = await getData();
-  const listClassname = `
+const listClassname = `
     !grid-cols-[minmax(3.75rem,_8.875rem)_minmax(7.5rem,_1fr)] h-[8.875rem]
   `;
 
-  const bnmClassname = `
+const bnmClassname = `
     !grid-rows-[300px_minmax(7.5rem,_9.875rem)] max-w-[inherit] !h-auto mx-auto
   `;
 
+const LatestLayout = ({
+  newest,
+  bnm,
+}: {
+  newest: React.ReactNode;
+  bnm: React.ReactNode;
+}) => {
   return (
     <div className="max-w-screen-xl mx-auto pt-20 mb-20 px-8">
       <div className="flex flex-col-reverse md:flex-row gap-8">
@@ -96,37 +101,67 @@ const Latest = async () => {
             Latest Reviews
           </h2>
           <div className={`grid gap-4 grid-cols-1 lg:grid-cols-2`}>
-            {newest.map((a) => (
-              <AlbumSuspended
-                key={`${a.artist.url}-${a.name}`}
-                className={listClassname}
-                {...a}
-              />
-            ))}
+            {newest}
           </div>
         </div>
         <div className="w-full max-w-xs flex-0 min-w-fit">
           <h2 className="font-display font-bold text-2xl mb-8">
             Best New Music
           </h2>
-          <AlbumSuspended
-            layout="vertical"
-            textSize="xl"
-            className={bnmClassname}
-            {...bnm}
-          />
+          {bnm}
         </div>
       </div>
     </div>
   );
 };
 
+const Latest = async () => {
+  const { bnm, newest } = await getData();
+  return (
+    <LatestLayout
+      newest={newest.map((a) => (
+        <AlbumSuspended
+          key={`${a.artist.url}-${a.name}`}
+          className={listClassname}
+          {...a}
+        />
+      ))}
+      bnm={
+        <AlbumSuspended
+          layout="vertical"
+          textSize="xl"
+          className={bnmClassname}
+          {...bnm}
+        />
+      }
+    />
+  );
+};
+
+const LatestPlaceholder = () => (
+  <LatestLayout
+    newest={Array.from({ length: 6 }).map((_, i) => (
+      <AlbumCard key={i} loading />
+    ))}
+    bnm={
+      <AlbumCard
+        loading
+        layout="vertical"
+        textSize="xl"
+        className={bnmClassname}
+      />
+    }
+  />
+);
+
 export default function Home() {
   return (
     <div className={`min-h-fullscreen`}>
       <PageHeader />
       <About />
-      <Latest />
+      <Suspense fallback={<LatestPlaceholder />}>
+        <Latest />
+      </Suspense>
     </div>
   );
 }

@@ -12,7 +12,12 @@ export const metadata: Metadata = {
   description: "Artist biographies by Piero Scaruffi",
 };
 
-const getData = async (params: Omit<ArtistSearchRequest, "itemsPerPage">) => {
+type Query = Omit<ArtistSearchRequest, "itemsPerPage"> & {
+  prevTotal?: number;
+  prevDataLength?: number;
+};
+
+const getData = async (params: Query) => {
   const url = new URL(`${baseURL}/artist`);
   Object.entries(params).forEach(([key, value]) => {
     if (value === undefined) {
@@ -34,7 +39,7 @@ const getData = async (params: Omit<ArtistSearchRequest, "itemsPerPage">) => {
     return redirect(`/artists?${redirectParams}`, RedirectType.replace);
   }
 
-  return { data, total, params };
+  return { data, total };
 };
 
 const parseIntMaybe = (s: string | undefined): number | undefined => {
@@ -46,21 +51,23 @@ type Props = {
   searchParams: Record<string, string>;
 };
 
-export default async function Artists({ searchParams }: Props) {
+export default function Artists({ searchParams }: Props) {
   const page = Math.max(parseIntMaybe(searchParams.page) ?? 0, 0);
   const sort = searchParams.sort === "lastModified" ? "lastModified" : "name";
-  const { data, total } = await getData({
-    page,
-    sort,
-    name: searchParams.name,
-  });
 
   return (
     <main className={`flex-1 px-4 min-h-fullscreen`}>
       <SearchLayout
+        loadingPlaceholder={
+          <ArtistCard layout="vertical" className="h-48" loading />
+        }
+        suspenseKey={JSON.stringify(searchParams)}
         searchName={searchParams.name}
-        data={data}
-        total={total}
+        asyncData={getData({
+          page,
+          sort,
+          name: searchParams.name,
+        })}
         page={page ?? 0}
         colNumber={4}
         renderRow={(a) => (
