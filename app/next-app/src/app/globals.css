@@ -21,10 +21,11 @@
   }
   body {
     @apply min-h-full;
-    @apply font-body
+    @apply font-body;
   }
   main {
     @apply z-0;
     @apply relative;
+    @apply min-h-fullscreen;
   }
 }

@@ -5,18 +5,18 @@ type InputPropsBase = {
   placeHolder?: string;
   whiteText?: boolean;
   icon?: string;
-};
+} & Pick<React.ComponentProps<"input">, "name">;
 
 type TextInputProps = {
-  type: "text";
-  onChange: (_: string) => void;
-  value: string;
+  type: "text" | "password";
+  onChange?: (_: string) => void;
+  value?: string;
 };
 
 type NumberInputProps = {
   type: "number";
-  onChange: (_: number) => void;
-  value: number;
+  onChange?: (_: number) => void;
+  value?: number;
   minValue: number;
   maxValue: number;
 };
@@ -27,6 +27,17 @@ const Input = React.forwardRef<HTMLInputElement, Props>(function Input(
   { className, icon, whiteText, placeHolder, ...props },
   ref,
 ) {
+  const onChange = props.onChange
+    ? (e: React.ChangeEvent<HTMLInputElement>) =>
+        props.type === "number"
+          ? props.onChange?.(
+              Math.min(
+                Math.max(props.minValue, parseFloat(e.target.value) || 0),
+              ),
+            )
+          : props.onChange?.(e.target.value)
+    : undefined;
+
   return (
     <div className={`flex items-center ${className ?? ""}`}>
       {!!icon && <i className={`material-icons text-3xl mr-2`}>{icon}</i>}
@@ -38,17 +49,10 @@ const Input = React.forwardRef<HTMLInputElement, Props>(function Input(
             ${whiteText ? "text-white" : "text-black"}
           `}
           type={props.type}
-          onChange={(e) =>
-            props.type === "number"
-              ? props.onChange(
-                  Math.min(
-                    Math.max(props.minValue, parseFloat(e.target.value) || 0),
-                  ),
-                )
-              : props.onChange(e.target.value)
-          }
+          onChange={onChange}
           value={props.value}
           placeholder={placeHolder}
+          name={props.name}
         />
         <span
           className={

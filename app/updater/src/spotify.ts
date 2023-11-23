@@ -37,7 +37,7 @@ const client = rateLimitClient(
   5000,
 );
 
-type SpotifyArtist = {
+export type SpotifyArtist = {
   genres: string[];
   href: string;
   id: string;
@@ -52,7 +52,7 @@ type SpotifyArtist = {
   uri: string;
 };
 
-type SpotifyAlbum = {
+export type SpotifyAlbum = {
   album_type: "album";
   artists: {
     external_urls: { spotify: string };
@@ -86,6 +86,7 @@ type SpotifyAlbum = {
 
 type BestMatch<T> = {
   best_match: { items: T[] };
+  items: { items: T[]; total: number };
 };
 
 type QueryResult<T extends "album" | "artist"> = T extends "album"
@@ -94,9 +95,10 @@ type QueryResult<T extends "album" | "artist"> = T extends "album"
   ? SpotifyArtist
   : never;
 
-const getBestMatch = async <T extends "album" | "artist">(
+const search = async <T extends "album" | "artist">(
   type: T,
   name: string,
+  limit = 10,
 ) => {
   const { data } = await client.get<BestMatch<QueryResult<T>>>("search", {
     params: {
@@ -105,15 +107,35 @@ const getBestMatch = async <T extends "album" | "artist">(
       decorate_restrictions: false,
       best_match: true,
       include_external: "audio",
-      limit: 1,
+      limit,
     },
   });
+
+  return data;
+};
+
+const getBestMatch = async <T extends "album" | "artist">(
+  type: T,
+  name: string,
+) => {
+  const data = await search(type, name, 1);
 
   return data.best_match.items?.[0];
 };
 
+export type SpotifyArtistSearchResult = BestMatch<QueryResult<"artist">>;
+
+export const searchSpotifyArtist = async (name: string) =>
+  search("artist", name);
+
 export const getSpotifyArtist = async (name: string) =>
   getBestMatch("artist", name);
+
+export type SpotifyAlbumSearchResult = BestMatch<QueryResult<"album">>;
+
+export const searchSpotifyAlbums = async (artist: string, album: string) =>
+  search("album", `${artist} ${album}`);
+
 export const getSpotifyAlbum = async (artist: string, album: string) =>
   getBestMatch("album", `${artist} ${album}`);
 

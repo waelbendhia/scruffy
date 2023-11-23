@@ -11,9 +11,18 @@ const commitURL = !!githubSHA
 
 const emojis = ["😭", "😡", "🥴", "💔", "🤕", "🍆", "💦"];
 
-const FooterLink = (
-  props: Omit<React.ComponentProps<typeof Link>, "className">,
-) => <Link target="_blank" className="font-bold text-white" {...props} />;
+const FooterLink = ({
+  blank = true,
+  ...props
+}: Omit<React.ComponentProps<typeof Link>, "className"> & {
+  blank?: boolean;
+}) => (
+  <Link
+    target={blank ? "_blank" : undefined}
+    className="font-bold text-white"
+    {...props}
+  />
+);
 
 const Footer = () => {
   const emoji = emojis[Math.floor(Math.random() * emojis.length)];
@@ -27,8 +36,15 @@ const Footer = () => {
             Made with {emoji} by{" "}
             <FooterLink href="https://wbd.tn">Wael Ben Dhia</FooterLink>
           </div>
-          <div>
+          <div className="mb-2">
             Version: <FooterLink href={commitURL}>{version}</FooterLink>
+          </div>
+          <div>
+            Are you{" "}
+            <FooterLink blank={false} href={"/administration"}>
+              me
+            </FooterLink>
+            ?
           </div>
         </div>
         <div className="text-sm text-right">

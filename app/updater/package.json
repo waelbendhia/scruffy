@@ -13,10 +13,13 @@
   "author": "Wael Ben Dhia",
   "license": "ISC",
   "dependencies": {
+    "@fastify/type-provider-typebox": "^3.5.0",
     "@opentelemetry/auto-instrumentations-node": "^0.40.1",
     "@prisma/instrumentation": "^5.6.0",
+    "@sinclair/typebox": "^0.31.28",
     "axios": "^1.6.1",
     "color-thief-node": "^1.0.4",
+    "fastify": "^4.24.3",
     "global": "^4.3.2",
     "nodemon": "^1.17.2",
     "progress": "2.0.0",

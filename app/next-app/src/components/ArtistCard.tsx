@@ -5,6 +5,7 @@ type Artist = API["/artist"]["/"]["data"][number];
 
 type BaseProps = {
   className?: string;
+  imageClassName?: string;
   layout?: "horizontal" | "vertical";
 };
 
@@ -35,7 +36,9 @@ const ArtistCard = ({
   >
     <div className={`overflow-hidden text-ellipsis`}>
       {name !== undefined || !rest.loading ? (
-        <div className={`overflow-hidden text-ellipsis text-lg font-bold`}>
+        <div className={`
+          overflow-hidden text-ellipsis text-lg font-bold max-w-full
+        `}>
           {name}
         </div>
       ) : (

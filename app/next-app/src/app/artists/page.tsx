@@ -26,7 +26,9 @@ const getData = async (params: Query) => {
     url.searchParams.set(key, typeof value === "number" ? `${value}` : value);
   });
   url.searchParams.set("itemsPerPage", "12");
-  const resp = await fetch(url, { next: { revalidate: 300 } });
+  const resp = await fetch(url, {
+    next: { tags: ["artists"], revalidate: 300 },
+  });
   const { data, total }: API["/artist"]["/"] = await resp.json();
 
   const maxPage = Math.max(Math.ceil(total / 12) - 1, 0);
@@ -56,10 +58,15 @@ export default function Artists({ searchParams }: Props) {
   const sort = searchParams.sort === "lastModified" ? "lastModified" : "name";
 
   return (
-    <main className={`flex-1 px-4 min-h-fullscreen`}>
+    <main className={`flex-1 px-4`}>
       <SearchLayout
         loadingPlaceholder={
-          <ArtistCard layout="vertical" className="h-48" loading />
+          <ArtistCard
+            layout="vertical"
+            className="h-48"
+            imageClassName="h-36"
+            loading
+          />
         }
         suspenseKey={JSON.stringify(searchParams)}
         searchName={searchParams.name}
@@ -75,6 +82,7 @@ export default function Artists({ searchParams }: Props) {
             layout="vertical"
             key={a.url}
             className="h-48"
+            imageClassName="h-36"
             {...a}
           />
         )}

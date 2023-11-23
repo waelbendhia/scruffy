@@ -68,10 +68,10 @@ type AlbumResult = API["/album"]["/"];
 const getData = async () => {
   const [{ data: newest }, { data: bnm }] = await Promise.all([
     fetch(`${baseURL}/album?itemsPerPage=6&sort=lastUpdated`, {
-      next: { revalidate: 300 },
+      next: { tags: ["albums"], revalidate: 300 },
     }).then((r): Promise<AlbumResult> => r.json()),
     fetch(`${baseURL}/album?itemsPerPage=1&sort=lastUpdated&ratingMin=8`, {
-      next: { revalidate: 300 },
+      next: { tags: ["albums"], revalidate: 300 },
     }).then((r): Promise<AlbumResult> => r.json()),
   ]);
 
@@ -121,17 +121,21 @@ const Latest = async () => {
     <LatestLayout
       newest={newest.map((a) => (
         <AlbumSuspended
+          {...a}
           key={`${a.artist.url}-${a.name}`}
           className={listClassname}
-          {...a}
+          imageClassName={`w-[8.875rem]`}
+          displayArtist
         />
       ))}
       bnm={
         <AlbumSuspended
+          {...bnm}
           layout="vertical"
           textSize="xl"
           className={bnmClassname}
-          {...bnm}
+          imageClassName={`h-80`}
+          displayArtist
         />
       }
     />
@@ -141,7 +145,12 @@ const Latest = async () => {
 const LatestPlaceholder = () => (
   <LatestLayout
     newest={Array.from({ length: 6 }).map((_, i) => (
-      <AlbumCard className={listClassname} key={i} loading />
+      <AlbumCard
+        className={listClassname}
+        imageClassName={`w-[8.875rem]`}
+        key={i}
+        loading
+      />
     ))}
     bnm={
       <AlbumCard
@@ -149,6 +158,7 @@ const LatestPlaceholder = () => (
         layout="vertical"
         textSize="xl"
         className={bnmClassname}
+        imageClassName={`h-80`}
       />
     }
   />
@@ -156,12 +166,12 @@ const LatestPlaceholder = () => (
 
 export default function Home() {
   return (
-    <div className={`min-h-fullscreen`}>
+    <main>
       <PageHeader />
       <About />
       <Suspense fallback={<LatestPlaceholder />}>
         <Latest />
       </Suspense>
-    </div>
+    </main>
   );
 }

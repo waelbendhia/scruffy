@@ -1,4 +1,4 @@
-import Link from "next/link";
+import FilterLayout, { FilterOption } from "@/app/Components/FilterLayout";
 
 type Props<T extends string | number> = {
   label?: string;
@@ -10,7 +10,7 @@ type Props<T extends string | number> = {
 };
 
 const SortSelect = <T extends string | number>({
-  label = "Sort By:",
+  label = "Sort By",
   className,
   queryKey = "sort",
   labels,
@@ -20,25 +20,17 @@ const SortSelect = <T extends string | number>({
   const current = coerceString(searchParams[queryKey]);
 
   return (
-    <div className={`${className} flex items-center gap-2 mb-2`}>
-      <div>{label}</div>
+    <FilterLayout className={className} label={label}>
       {(Object.keys(labels) as T[]).map((v) => (
-        <Link
-          prefetch={false}
+        <FilterOption
           key={v}
-          className={`
-            text-lg border-t-2 transition-all ${
-              `${v}` === `${current}`
-                ? "text-red pointer-events-none border-t-red"
-                : "border-t-transparent"
-            }
-          `}
-          href={{ query: { ...searchParams, [queryKey]: v } }}
+          active={`${v}` === `${current}`}
+          href={{ query: { ...searchParams, page: 0, [queryKey]: v } }}
         >
           {labels[v]}
-        </Link>
+        </FilterOption>
       ))}
-    </div>
+    </FilterLayout>
   );
 };
 

@@ -11,7 +11,9 @@ export async function GET(request: Request) {
     }
     url.searchParams.set(key, typeof value === "number" ? `${value}` : value);
   }
-  const resp = await fetch(url, { next: { revalidate: 300 } });
+  const resp = await fetch(url, {
+    next: { tags: ["artists"], revalidate: 300 },
+  });
   const data: API["/artist"]["/"] = await resp.json();
 
   return Response.json(data);

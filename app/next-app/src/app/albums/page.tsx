@@ -6,6 +6,7 @@ import SortSelect from "@/components/SortSelect";
 import { Metadata } from "next";
 import AlbumSuspended from "../Components/AlbumSuspended";
 import AlbumCard from "@/components/AlbumCard";
+import DecadeFitler from "./Components/DecadeFilter";
 
 export const metadata: Metadata = {
   title: "Search Album Reviews",
@@ -26,7 +27,9 @@ const getData = async (params: Query) => {
     url.searchParams.set(key, typeof value === "number" ? `${value}` : value);
   });
   url.searchParams.set("itemsPerPage", "12");
-  const resp = await fetch(url, { next: { revalidate: 300 } });
+  const resp = await fetch(url, {
+    next: { tags: ["albums"], revalidate: 300 },
+  });
   const { data, total }: API["/album"]["/"] = await resp.json();
 
   const maxPage = Math.max(Math.ceil(total / 12) - 1, 0);
@@ -81,33 +84,47 @@ export default function Albums({ searchParams }: Props) {
   const prevDataLength = parseIntMaybe(searchParams.prevDataLength);
 
   return (
-    <main className={`flex-1 px-4 min-h-fullscreen`}>
+    <main className={`flex-1 px-4`}>
       <SearchLayout
         className="auto-rows-[12.5rem]"
         suspenseKey={JSON.stringify(searchParams)}
         searchName={searchParams.name}
         prevTotal={prevTotal}
         prevDataLength={prevDataLength}
-        loadingPlaceholder={<AlbumCard loading />}
+        loadingPlaceholder={
+          <AlbumCard className="h-48" imageClassName="w-48" loading />
+        }
         asyncData={getData({
           page,
           sort,
           ratingMin,
+          yearMin: parseIntMaybe(searchParams.yearMin),
+          yearMax: parseIntMaybe(searchParams.yearMax),
           name: searchParams.name,
           prevTotal,
           prevDataLength,
         })}
         page={page ?? 0}
-        renderRow={(a) => <AlbumSuspended className="h-48" {...a} />}
+        renderRow={(a) => (
+          <AlbumSuspended
+            {...a}
+            displayArtist
+            className="h-48"
+            imageClassName="w-48"
+          />
+        )}
         filters={
-          <div className="flex justify-between">
+          <div className="flex justify-between gap-4 items-start">
+            {/* TODO: These look ugly. Maybe some select dropdowns aligned left.
+             */}
             <SortSelect
               labels={labels}
               searchParams={searchParams}
               coerceString={asSortColumn}
             />
+            <div className="flex-1" />
             <SortSelect<number>
-              label={"Min Rating:"}
+              label={"Min Rating"}
               labels={{
                 0: "Any",
                 6: "6",
@@ -119,6 +136,7 @@ export default function Albums({ searchParams }: Props) {
               searchParams={searchParams}
               coerceString={asRating}
             />
+            <DecadeFitler searchParams={searchParams} />
           </div>
         }
       />

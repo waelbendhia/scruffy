@@ -9,21 +9,23 @@ type AlbumWithoutArtist = Omit<
 
 type BaseProps = {
   className?: string;
+  imageClassName?: string;
   clickable?: boolean;
   layout?: React.ComponentProps<typeof LabeledImage>["layout"];
   textSize?: "lg" | "xl";
+  adminURL?: string;
   whiteText?: boolean;
 };
 
 type LoadingProps =
   | ({
       loading: true;
-      artist?: Album["artist"];
+      artist?: Album["artist"] | false;
     } & Partial<AlbumWithoutArtist>)
   | ({
       loading?: false;
       imageUrl?: string;
-      artist?: Album["artist"];
+      artist: Album["artist"] | false;
     } & AlbumWithoutArtist &
       (
         | { placeholder: "empty" }
@@ -42,6 +44,7 @@ const AlbumCard = ({
   layout = "horizontal",
   textSize = "lg",
   whiteText = false,
+  imageClassName,
   ...props
 }: Props) => {
   const artistSize = textSize === "lg" ? "text-lg" : "text-xl";
@@ -82,29 +85,34 @@ const AlbumCard = ({
       whiteText={whiteText}
       layout={layout}
       className={className}
-      url={clickable ? artist?.url : undefined}
+      url={clickable && artist !== false ? artist?.url : undefined}
       imageUrl={!props.loading ? props.imageUrl ?? "/album-default.svg" : ""}
-      imageClassName={
-        rating !== undefined && rating >= 8
-          ? `before:content-[''] before:absolute before:bg-scruff before:h-full
+      imageClassName={`
+        ${imageClassName ?? ""}
+        ${
+          rating !== undefined && rating >= 8
+            ? `before:content-[''] before:absolute before:bg-scruff before:h-full
             before:w-full before:z-10 before:bg-1/2 before:bg-no-repeat
             before:bg-scruff-offset`
-          : ""
-      }
+            : ""
+        }
+      `}
     >
       <div className={"overflow-hidden max-width-full"}>
-        <WithData val={artist?.name} width="w-40" height="h-6">
-          {artist && (
-            <div
-              className={`
+        {artist !== false && (
+          <WithData val={artist?.name} width="w-40" height="h-6">
+            {
+              <div
+                className={`
               overflow-hidden whitespace-nowrap text-ellipsis max-w-full
               ${artistSize} font-bold
             `}
-            >
-              {artist.name}
-            </div>
-          )}
-        </WithData>
+              >
+                {artist?.name}
+              </div>
+            }
+          </WithData>
+        )}
         <WithData val={name} width="w-28">
           <div className={`overflow-hidden whitespace-normal ${albumSize}`}>
             {name ?? " "}

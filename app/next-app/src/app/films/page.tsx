@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 };
 
 const Films = () => (
-  <main className={`flex flex-1 px-4 min-h-fullscreen`}>
+  <main className={`flex flex-1 px-4`}>
     <div className={`flex-1 flex flex-col justify-center`}>
       <div className={`flex justify-center items-center`}>
         <Image

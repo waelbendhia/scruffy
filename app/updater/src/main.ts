@@ -27,6 +27,7 @@ import {
   readNewRatingsPage,
   readYearRatingsPage,
 } from "./album";
+import { api } from "./api/server";
 
 const range = (start: number, end: number): number[] => {
   let a = [];
@@ -156,3 +157,13 @@ const exit = async () => {
 
 process.on("SIGTERM", exit);
 process.on("SIGINT", exit);
+
+const port = parseInt(process.env.UPDATER_PORT || "", 10) || 8002;
+const host = process.env.UPDATER_HOST || "0.0.0.0";
+
+api.listen({ port, host }, (err) => {
+  if (err) {
+    api.log.error(err);
+    process.exit(1);
+  }
+});

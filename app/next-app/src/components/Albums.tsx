@@ -5,9 +5,14 @@ type Album = API["/artist"]["/:volume/:url"]["albums"][number];
 
 const Albums = ({
   className,
+  artist,
   albums,
 }: {
   className?: string;
+  artist: {
+    url: string;
+    name: string;
+  };
   albums: Album[];
 }) => (
   <div className={`${className ?? ""} flex-0 w-full`}>
@@ -28,8 +33,11 @@ const Albums = ({
         .map((a) => (
           <AlbumSuspended
             {...a}
+            artist={artist}
+            displayArtist={false}
             textSize="lg"
             className={`w-full h-48 mb-6`}
+            imageClassName="w-48"
             key={`${a.name}`}
             year={a.year ?? undefined}
             imageUrl={a.imageUrl ?? undefined}

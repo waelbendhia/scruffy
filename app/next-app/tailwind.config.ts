@@ -29,7 +29,7 @@ const config: Config = {
         "almost-full": "calc(100% - 1rem)",
       },
       minHeight: {
-        fullscreen: "calc(100vh - 12.25rem)",
+        fullscreen: "calc(100vh - 14rem)",
       },
       gridTemplateRows: {
         "fixed-10": "2.5rem",

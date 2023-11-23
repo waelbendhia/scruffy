@@ -27,8 +27,8 @@ Object.entries(api.routes).forEach(([prefix, router]) => {
   );
 });
 
-const port = parseInt(process.env.SERVER_PORT || "", 10) || 8001;
-const host = process.env.SERVER_HOST || "0.0.0.0";
+const port = parseInt(process.env.API_PORT || "", 10) || 8001;
+const host = process.env.API_HOST || "0.0.0.0";
 
 fastify.setErrorHandler((err, _req, reply) => {
   if (err instanceof QueryValidationError || err instanceof NotFoundError) {

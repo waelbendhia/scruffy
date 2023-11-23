@@ -21,9 +21,8 @@ const getData = async ({
   volume,
   url,
 }: Props["params"]): Promise<ArtistResponse> => {
-  console.log({ volume, url });
   const resp = await fetch(`${baseURL}/artist/${volume}/${url}`, {
-    next: { revalidate: 300 },
+    next: { tags: ["artists"], revalidate: 300 },
   });
   switch (resp.status) {
     case 200:
@@ -161,11 +160,11 @@ export default async function ArtistView({ params }: Props) {
               self-stretch flex flex-col-reverse lg:grid
               lg:grid-cols-artist-content gap-x-8 items-start px-6
               bg-white-transparent backdrop-blur-sm rounded-sm pt-8 pb-6
-              max-w-screen-xl mx-auto mb-10 w-full
+              max-w-screen-xl mx-auto mb-10 w-full drop-shadow-md
             `}
           >
             <Bio bio={artist.bio || ""} />
-            <Albums albums={artist.albums || []} />
+            <Albums artist={artist} albums={artist.albums || []} />
           </div>
         </>
       ) : (

@@ -76,7 +76,6 @@ export const useArtistSearchParams = (): [
     (req: React.SetStateAction<ArtistSearchRequest>) => {
       const updated = typeof req === "function" ? req(prev) : req;
       const corrected = { name: "", ...updated };
-      console.log(prev, corrected);
 
       const searchParams = Object.entries(corrected).reduce(
         (prev, [key, val]) => {

@@ -23,6 +23,8 @@ const ArtistSearch = ({ className = "" }: Props) => {
       if (newName !== null) newParams.set("name", newName);
       else newParams.delete("name");
 
+      newParams.set("page", '0');
+
       setSearchParams(newParams);
     },
     [searchName, searchParams, setSearchParams],

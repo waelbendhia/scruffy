@@ -7,6 +7,7 @@ type Artist = API["/artist"]["/"]["data"][number];
 
 type Props = Artist & {
   className?: string;
+  imageClassName?: string;
   clickable?: boolean;
   layout?: React.ComponentProps<typeof LabeledImage>["layout"];
   textSize?: "lg" | "xl";

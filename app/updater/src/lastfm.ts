@@ -76,7 +76,7 @@ export const getBiggestLastFMImage = (imgs?: LastFMImage[]) =>
     undefined as LastFMImage | undefined,
   );
 
-type LastFMArtist = {
+export type LastFMArtist = {
   artist: {
     name: string;
     url: string;
@@ -121,7 +121,7 @@ type LastFMTrack = {
   };
 };
 
-type LastFMAlbum = {
+export type LastFMAlbum = {
   album: {
     artist: string;
     mbid: string;

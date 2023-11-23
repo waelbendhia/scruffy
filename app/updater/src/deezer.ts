@@ -7,7 +7,12 @@ const client = rateLimitClient(
   5000,
 );
 
-type DeezerArtist = {
+export type DeezerArtistSearchResult = {
+  data: DeezerArtist[];
+  total: number;
+};
+
+export type DeezerArtist = {
   id: string;
   name: string;
   picture: string;
@@ -18,11 +23,16 @@ type DeezerArtist = {
   type: "artist";
 };
 
-export const getBestArtistSearchResult = async (name: string) => {
-  const resp = await client.get<{ data: DeezerArtist[] }>(`/search/artist`, {
-    params: { q: `artist:"${name}"`, limit: 1 },
+export const searchDeezerArtists = async (name: string, limit = 10) => {
+  const resp = await client.get<DeezerArtistSearchResult>(`/search/artist`, {
+    params: { q: `artist:"${name}"`, limit },
   });
-  const artist = resp.data.data?.[0];
+  return resp.data;
+};
+
+export const getBestArtistSearchResult = async (name: string) => {
+  const resp = await searchDeezerArtists(name, 1);
+  const artist = resp.data?.[0];
   // I do this so that TS can infer the return type as DeezerArtist|undefined
   if (!artist) {
     return undefined;
@@ -31,9 +41,11 @@ export const getBestArtistSearchResult = async (name: string) => {
   return artist;
 };
 
-type DeezerAlbum = {
+export type DeezerAlbumSearchResult = { data: DeezerAlbum[]; total: number };
+
+export type DeezerAlbum = {
   id: number;
-  title: "The Eminem Show";
+  title: string;
   cover: string;
   cover_small: string;
   cover_medium: string;
@@ -45,15 +57,19 @@ type DeezerAlbum = {
   type: "album";
 };
 
+export const searchDeezerAlbums = async (artist: string, albumName: string) => {
+  const resp = await client.get<DeezerAlbumSearchResult>(`/search/album`, {
+    params: { q: `artist:"${artist}"album:"${albumName}"` },
+  });
+  return resp.data;
+};
+
 export const getBestAlbumSearchResult = async (
   artist: string,
   albumName: string,
 ) => {
-  const resp = await client.get<{ data: DeezerAlbum[] }>(`/search/album`, {
-    params: { q: `artist:"${artist}"album:"${albumName}"` },
-  });
-
-  const album = resp.data.data?.[0];
+  const resp = await searchDeezerAlbums(artist, albumName);
+  const album = resp.data?.[0];
   // I do this so that TS can infer the return type as DeezerArtist|undefined
   if (!album) {
     return undefined;
