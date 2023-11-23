@@ -1,5 +1,6 @@
 import { login } from "@/app/actions";
 import Input from "@/components/Input";
+import { headers } from "next/headers";
 import { RedirectType, redirect } from "next/navigation";
 
 type Props = {
@@ -11,19 +12,20 @@ export default function Login({ searchParams }: Props) {
 
   async function submitLogin(formData: FormData) {
     "use server";
+    const headerList = headers();
+    console.log("headers", {
+      "x-forwarded-host": headerList.get("x-forwarded-host"),
+      host: headerList.get("host"),
+      origin: headerList.get("origin"),
+    });
+
     const password = formData.get("password");
     if (password === null || typeof password !== "string")
-      return redirect(
-        "/login?failed=true",
-        RedirectType.replace,
-      );
+      return redirect("/login?failed=true", RedirectType.replace);
 
     const sessionToken = await login(password);
     if (!sessionToken)
-      return redirect(
-        "/login?failed=true",
-        RedirectType.replace,
-      );
+      return redirect("/login?failed=true", RedirectType.replace);
 
     return redirect("/administration", RedirectType.replace);
   }
