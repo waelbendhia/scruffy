@@ -28,4 +28,30 @@
     @apply relative;
     @apply min-h-fullscreen;
   }
+  [type="radio"] {
+    @apply w-4;
+    @apply accent-red;
+  }
+  label {
+    @apply group-hover:text-red;
+    @apply transition-colors;
+  }
+  button,
+  [type="button"],
+  [type="reset"],
+  [type="submit"] {
+    @apply bg-black;
+    @apply text-white;
+    @apply px-2;
+    @apply py-1;
+    @apply rounded-md;
+    @apply disabled:pointer-events-none;
+    @apply disabled:text-gray;
+    @apply disabled:bg-dark-gray;
+    @apply hover:text-red;
+    @apply hover:text-red;
+    @apply hover:drop-shadow-md;
+    @apply transition-all;
+    @apply text-lg;
+  }
 }

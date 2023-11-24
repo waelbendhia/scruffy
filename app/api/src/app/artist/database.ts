@@ -2,6 +2,12 @@ import { prisma } from "@scruffy/database";
 import { z } from "zod";
 import { ItemsPerPage, Page } from "../validation";
 
+export const getName = (artistUrl: string) =>
+  prisma.artist.findUnique({
+    where: { url: artistUrl },
+    select: { name: true },
+  });
+
 export const get = (artistUrl: string) =>
   prisma.artist.findUnique({
     where: { url: artistUrl },

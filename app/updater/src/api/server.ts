@@ -119,7 +119,7 @@ api.get<AlbumRoute<SpotifyAlbumSearchResult>>(
 );
 
 const TUpdateArtist = Type.Object({
-  name: Type.String(),
+  name: Type.Optional(Type.String()),
   imageUrl: Type.Optional(Type.String()),
 });
 
@@ -139,7 +139,8 @@ api.put<{
   },
   async function (req, reply) {
     const { vol, path } = req.params;
-    const artistURL = `${vol}/${path}.html`;
+    const artistURL = `/${vol}/${path}.html`;
+    console.log("updating", artistURL);
     const update = req.body;
 
     await prisma.artist.update({

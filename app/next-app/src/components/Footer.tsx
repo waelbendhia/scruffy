@@ -41,7 +41,7 @@ const Footer = () => {
           </div>
           <div>
             Are you{" "}
-            <FooterLink blank={false} href={"/administration"}>
+            <FooterLink blank={false} href="/admin">
               me
             </FooterLink>
             ?

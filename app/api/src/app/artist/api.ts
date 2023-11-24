@@ -1,4 +1,4 @@
-import { getCount, get, search, SearchRequest } from "./database";
+import { getCount, get, search, SearchRequest, getName } from "./database";
 import { NotFoundError, QueryValidationError } from "../errors";
 import {
   RawReplyDefaultExpression,
@@ -20,9 +20,26 @@ export const api = {
       return await search(eitherRequest.data);
     }) satisfies RouteHandlerMethod,
     "/total": ((_, __reply) => getCount()) satisfies RouteHandlerMethod,
+    "/:volume/:url/name": (async (req, _reply) => {
+      const band = await getName(
+        `/${req.params.volume}/${req.params.url}.html`,
+      );
+      console.log(`${req.params.volume}/${req.params.url}.html`);
+
+      if (!band) {
+        throw new NotFoundError("artist");
+      }
+
+      return band;
+    }) satisfies RouteHandlerMethod<
+      RawServerDefault,
+      RawRequestDefaultExpression<RawServerDefault>,
+      RawReplyDefaultExpression<RawServerDefault>,
+      { Params: { volume: string; url: string } }
+    >,
     "/:volume/:url": (async (req, _reply) => {
       const band = await get(`/${req.params.volume}/${req.params.url}.html`);
-      console.log(`${req.params.volume}/${req.params.url}.html`)
+      console.log(`${req.params.volume}/${req.params.url}.html`);
 
       if (!band) {
         throw new NotFoundError("artist");

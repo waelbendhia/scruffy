@@ -4,6 +4,7 @@ import LabeledImage from "@/components/LabeledImage";
 import { API } from "@scruffy/api";
 import { getPlaiceholder } from "plaiceholder";
 import { isLoggedIn } from "../actions";
+import { headers } from "next/headers";
 
 type Album = API["/album"]["/"]["data"][number];
 
@@ -19,9 +20,16 @@ type Props = Omit<Album, "imageUrl" | "artist"> & {
   imageUrl?: string;
 };
 
+const shouldUseAdminURL = async () => {
+  "use server";
+  const pathname = headers().get("x-pathname");
+  if (pathname && pathname.indexOf("/admin") !== -1) return false;
+  return await isLoggedIn();
+};
+
 const AlbumWithBlur = async ({ artist, displayArtist, ...props }: Props) => {
-  const adminURL = isLoggedIn()
-    ? `/admin/artist/${artist.url}/album/${props.name}`
+  const adminURL = (await shouldUseAdminURL())
+    ? `/admin/artists${artist.url.split(".")[0]}/album/${props.name}`
     : undefined;
 
   if (!props.imageUrl) {

@@ -6,6 +6,7 @@ import SortSelect from "@/components/SortSelect";
 import { baseURL } from "@/api";
 import { Metadata } from "next";
 import ArtistSuspended from "../Components/ArtistSuspended";
+import { getRedisClient } from "@/redis";
 
 export const metadata: Metadata = {
   title: "Search Artist Biographies",
@@ -39,6 +40,13 @@ const getData = async (params: Query) => {
     });
     redirectParams.set("page", `${Math.max(maxPage, 0)}`);
     return redirect(`/artists?${redirectParams}`, RedirectType.replace);
+  }
+
+  const client = getRedisClient();
+  if (client) {
+    await client.mSet(
+      data.map((a): [string, string] => [`artist-name-${a.url}`, a.name]),
+    );
   }
 
   return { data, total };

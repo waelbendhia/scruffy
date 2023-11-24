@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from "axios";
+import axios, { AxiosInstance, isAxiosError } from "axios";
 import { rateLimitClient } from "./rate-limit";
 
 type AccessToken = {
@@ -84,9 +84,10 @@ export type SpotifyAlbum = {
   uri: string;
 };
 
-type BestMatch<T> = {
+type BestMatch<T, Key extends string> = {
   best_match: { items: T[] };
-  items: { items: T[]; total: number };
+} & {
+  [key in `${Key}s`]: { items: T[]; total: number };
 };
 
 type QueryResult<T extends "album" | "artist"> = T extends "album"
@@ -100,18 +101,25 @@ const search = async <T extends "album" | "artist">(
   name: string,
   limit = 10,
 ) => {
-  const { data } = await client.get<BestMatch<QueryResult<T>>>("search", {
-    params: {
-      type,
-      q: name,
-      decorate_restrictions: false,
-      best_match: true,
-      include_external: "audio",
-      limit,
-    },
-  });
+  try {
+    const { data } = await client.get<BestMatch<QueryResult<T>, T>>("search", {
+      params: {
+        type,
+        q: name,
+        decorate_restrictions: false,
+        best_match: true,
+        include_external: "audio",
+        limit,
+      },
+    });
 
-  return data;
+    return data;
+  } catch (e) {
+    if (isAxiosError(e)) {
+      console.error("search request failed", e.response?.data, e);
+    }
+    throw e;
+  }
 };
 
 const getBestMatch = async <T extends "album" | "artist">(
@@ -123,7 +131,10 @@ const getBestMatch = async <T extends "album" | "artist">(
   return data.best_match.items?.[0];
 };
 
-export type SpotifyArtistSearchResult = BestMatch<QueryResult<"artist">>;
+export type SpotifyArtistSearchResult = BestMatch<
+  QueryResult<"artist">,
+  "artist"
+>;
 
 export const searchSpotifyArtist = async (name: string) =>
   search("artist", name);
@@ -131,7 +142,7 @@ export const searchSpotifyArtist = async (name: string) =>
 export const getSpotifyArtist = async (name: string) =>
   getBestMatch("artist", name);
 
-export type SpotifyAlbumSearchResult = BestMatch<QueryResult<"album">>;
+export type SpotifyAlbumSearchResult = BestMatch<QueryResult<"album">, "album">;
 
 export const searchSpotifyAlbums = async (artist: string, album: string) =>
   search("album", `${artist} ${album}`);

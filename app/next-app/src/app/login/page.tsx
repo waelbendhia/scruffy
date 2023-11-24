@@ -1,34 +1,38 @@
-import { login } from "@/app/actions";
+import { isLoggedIn, login } from "@/app/actions";
 import Input from "@/components/Input";
-import { headers } from "next/headers";
 import { RedirectType, redirect } from "next/navigation";
 
 type Props = {
   searchParams: Record<string, string>;
 };
 
-export default function Login({ searchParams }: Props) {
-  const failed = searchParams.failed;
-
-  async function submitLogin(formData: FormData) {
-    "use server";
-    const headerList = headers();
-    console.log("headers", {
-      "x-forwarded-host": headerList.get("x-forwarded-host"),
-      host: headerList.get("host"),
-      origin: headerList.get("origin"),
-    });
-
-    const password = formData.get("password");
-    if (password === null || typeof password !== "string")
-      return redirect("/login?failed=true", RedirectType.replace);
-
-    const sessionToken = await login(password);
-    if (!sessionToken)
-      return redirect("/login?failed=true", RedirectType.replace);
-
-    return redirect("/administration", RedirectType.replace);
+const checkLogin = async () => {
+  if (await isLoggedIn()) {
+    return redirect("/admin", RedirectType.replace);
   }
+};
+
+const submitLogin = async (formData: FormData) => {
+  "use server";
+  if (await isLoggedIn()) {
+    return redirect("/admin", RedirectType.replace);
+  }
+
+  const password = formData.get("password");
+  if (password === null || typeof password !== "string")
+    return redirect("/login?failed=true", RedirectType.replace);
+
+  const sessionToken = await login(password);
+  if (!sessionToken)
+    return redirect("/login?failed=true", RedirectType.replace);
+
+  return redirect("/admin", RedirectType.replace);
+};
+
+export default async function Login({ searchParams }: Props) {
+  await checkLogin();
+
+  const failed = searchParams.failed;
 
   return (
     <main className="flex justify-center items-center">
@@ -41,10 +45,7 @@ export default function Login({ searchParams }: Props) {
         <h2 className="text-xl">Prove it</h2>
         <form className="mt-8" action={submitLogin}>
           <Input name="password" type="password" />
-          <button
-            className="hover:text-red transition-colors text-lg mt-4"
-            type="submit"
-          >
+          <button className="mt-4" type="submit">
             Login
           </button>
         </form>

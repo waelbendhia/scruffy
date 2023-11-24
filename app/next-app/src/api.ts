@@ -19,8 +19,10 @@ export const searchAlbums = (req: AlbumSearchRequest) =>
     .get<API["/album"]["/"]>(`/albums/search`, { params: req })
     .then((resp) => resp.data);
 
-export const clientBaseURL = `http://${
+export const updaterBaseURL = `http://${
   process.env.UPDATER_HOST ?? "localhost"
 }:${process.env.UPDATER_PORT ?? 8002}`;
 
-export const updaterClient = axios.create({ baseURL: clientBaseURL });
+export const updaterClient = axios.create({ baseURL: updaterBaseURL });
+
+

@@ -11,12 +11,14 @@ type TextInputProps = {
   type: "text" | "password";
   onChange?: (_: string) => void;
   value?: string;
+  defaultValue?: string;
 };
 
 type NumberInputProps = {
   type: "number";
   onChange?: (_: number) => void;
   value?: number;
+  defaultValue?: number;
   minValue: number;
   maxValue: number;
 };
@@ -51,6 +53,7 @@ const Input = React.forwardRef<HTMLInputElement, Props>(function Input(
           type={props.type}
           onChange={onChange}
           value={props.value}
+          defaultValue={props.defaultValue}
           placeholder={placeHolder}
           name={props.name}
         />
