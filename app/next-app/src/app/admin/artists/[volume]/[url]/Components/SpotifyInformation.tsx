@@ -8,7 +8,9 @@ import { Suspense } from "react";
 type Params = { volume: string; url: string };
 
 const getSpotifyData = async (name: string) => {
-  const resp = await fetch(`${updaterBaseURL}/spotify/artist/${name}`);
+  const resp = await fetch(
+    `${updaterBaseURL}/spotify/artist/${encodeURIComponent(name)}`,
+  );
   const res: SpotifyArtistSearchResult = await resp.json();
 
   return res;

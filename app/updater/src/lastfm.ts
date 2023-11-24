@@ -93,19 +93,24 @@ type Error = {
 };
 
 export const getLastFMArtist = async (name: string) => {
-  const resp = await client.get<LastFMArtist | Error>("", {
-    params: {
-      method: "artist.getinfo",
-      artist: name,
-    },
-  });
+  try {
+    const resp = await client.get<LastFMArtist | Error>("", {
+      params: {
+        method: "artist.getinfo",
+        artist: name,
+      },
+    });
 
-  if ("error" in resp.data) {
-    console.error("whoopsie in last.fm", resp.data);
+    if ("error" in resp.data) {
+      console.error("whoopsie in last.fm", resp.data);
+      return null;
+    }
+
+    return resp.data;
+  } catch (e) {
+    console.error("whoopsie in last.fm", e);
     return null;
   }
-
-  return resp.data;
 };
 
 type LastFMTrack = {
@@ -142,18 +147,23 @@ export type LastFMAlbum = {
 };
 
 export const getLastFMAlbum = async (artist: string, name: string) => {
-  const resp = await client.get<LastFMAlbum | Error>("", {
-    params: {
-      method: "album.getinfo",
-      artist: artist,
-      album: name,
-    },
-  });
+  try {
+    const resp = await client.get<LastFMAlbum | Error>("", {
+      params: {
+        method: "album.getinfo",
+        artist: artist,
+        album: name,
+      },
+    });
 
-  if ("error" in resp.data) {
-    console.error("whoopsie in last.fm", resp.data);
+    if ("error" in resp.data) {
+      console.error("whoopsie in last.fm", resp.data);
+      return null;
+    }
+
+    return resp.data;
+  } catch (e) {
+    console.error("whoopsie in last.fm", e);
     return null;
   }
-
-  return resp.data;
 };

@@ -7,7 +7,9 @@ import { Suspense } from "react";
 type Params = { volume: string; url: string };
 
 const getDeezerData = async (name: string) => {
-  const resp = await fetch(`${updaterBaseURL}/deezer/artist/${name}`);
+  const resp = await fetch(
+    `${updaterBaseURL}/deezer/artist/${encodeURIComponent(name)}`,
+  );
   const res: DeezerArtistSearchResult = await resp.json();
 
   return res;

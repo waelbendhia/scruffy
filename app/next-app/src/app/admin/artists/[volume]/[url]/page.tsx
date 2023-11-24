@@ -55,45 +55,41 @@ const submitSelection = async (formData: FormData) => {
   // TODO: indicate error somehow
 };
 
-const SelectInputs = ({ loading }: { loading: boolean }) => {
-  return (
-    <>
-      <fieldset className="flex flex-row gap-2 items-center">
-        <span>Fields to update:</span>
-        {[
-          { value: "name-only", label: "Only name" },
-          { value: "img-only", label: "Only image" },
-          { value: "both", label: "Both", checked: true },
-        ].map(({ value, label, checked }) => (
-          <div key={value} className="group">
-            <input
-              id={value}
-              type="radio"
-              name="fields"
-              value={value}
-              defaultChecked={checked}
-            />
-            <label className="ml-1" htmlFor={value}>
-              {label}
-            </label>
-          </div>
-        ))}
-      </fieldset>
-      <button type="submit" disabled={loading}>
-        Select
-      </button>
-    </>
-  );
-};
+const SelectInputs = () => (
+  <>
+    <fieldset className="flex flex-row gap-2 items-center">
+      <span>Fields to update:</span>
+      {[
+        { value: "name-only", label: "Only name" },
+        { value: "img-only", label: "Only image" },
+        { value: "both", label: "Both", checked: true },
+      ].map(({ value, label, checked }) => (
+        <div key={value} className="group">
+          <input
+            id={value}
+            type="radio"
+            name="fields"
+            value={value}
+            defaultChecked={checked}
+          />
+          <label className="ml-1" htmlFor={value}>
+            {label}
+          </label>
+        </div>
+      ))}
+    </fieldset>
+    <button type="submit">Select</button>
+  </>
+);
 
 export default async function ArtistCorrect({ params, searchParams }: Props) {
   const searchValue = searchParams.name;
 
   return (
     <main>
-      <div className={`grid grid-cols-3 gap-4 p-4 grid-rows-[82px_1fr]`}>
+      <div className={`grid grid-cols-3 gap-4 p-4 grid-rows-[82px_82px_1fr]`}>
         <BlockContainer
-          className="px-0 [&>h3]:px-4 row-span-2"
+          className="px-0 [&>h3]:px-4 row-span-3"
           title="Original data"
         >
           <Header {...params} />
@@ -111,14 +107,11 @@ export default async function ArtistCorrect({ params, searchParams }: Props) {
             <button type="submit">Search</button>
           </form>
         </BlockContainer>
-        <form
-          action={submitSelection}
-          className={`grid grid-cols-2 gap-4 col-span-2 grid-rows-[82px_1fr]`}
-        >
+        <form action={submitSelection} className="contents">
           <input name="vol" hidden defaultValue={params.volume} />
           <input name="url" hidden defaultValue={params.url} />
           <BlockContainer className="col-span-2 flex flex-row justify-between items-center">
-            <SelectInputs loading={false} />
+            <SelectInputs />
           </BlockContainer>
           <DeezerInformation params={params} searchValue={searchValue} />
           <SpotifyInformation params={params} searchValue={searchValue} />

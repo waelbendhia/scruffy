@@ -157,7 +157,7 @@ api.put<{
 );
 
 const TUpdateAlbum = Type.Object({
-  name: Type.String(),
+  name: Type.Optional(Type.String()),
   year: Type.Optional(Type.Number()),
   imageUrl: Type.Optional(Type.String()),
 });
@@ -177,8 +177,9 @@ api.put<{
     },
   },
   async function (req, reply) {
-    const { vol, path, name } = req.params;
-    const artistUrl = `${vol}/${path}.html`;
+    const { vol, path, name: encodedName } = req.params;
+    const name = decodeURIComponent(encodedName);
+    const artistUrl = `/${vol}/${path}.html`;
     const update = req.body;
 
     await prisma.album.update({

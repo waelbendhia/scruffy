@@ -4,10 +4,11 @@ import { API } from "@scruffy/api";
 type Album = API["/album"]["/"]["data"][number];
 type AlbumWithoutArtist = Omit<
   API["/album"]["/"]["data"][number],
-  "artist" | "imageUrl"
+  "artist" | "imageUrl" | "rating"
 >;
 
 type BaseProps = {
+  rating?: number;
   className?: string;
   imageClassName?: string;
   clickable?: boolean;
@@ -20,12 +21,12 @@ type BaseProps = {
 type LoadingProps =
   | ({
       loading: true;
-      artist?: Album["artist"] | false;
+      artist?: Partial<Album["artist"]> | false;
     } & Partial<AlbumWithoutArtist>)
   | ({
       loading?: false;
       imageUrl?: string;
-      artist: Album["artist"] | false;
+      artist: Partial<Album["artist"]> | false;
     } & AlbumWithoutArtist &
       (
         | { placeholder: "empty" }
@@ -120,7 +121,13 @@ const AlbumCard = ({
         </WithData>
         <WithData val={rating} width="w-10">
           <div className={`overflow-hidden text-ellipsis ${otherSize}`}>
-            <b>{rating}</b> / 10
+            {rating ? (
+              <>
+                <b>{rating}</b> / 10
+              </>
+            ) : (
+              "N/A"
+            )}
           </div>
         </WithData>
         <WithData val={rating} width="w-9" bg={yearBG}>

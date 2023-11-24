@@ -28,7 +28,8 @@
     @apply relative;
     @apply min-h-fullscreen;
   }
-  [type="radio"] {
+  [type="radio"],
+  [type="checkbox"] {
     @apply w-4;
     @apply accent-red;
   }

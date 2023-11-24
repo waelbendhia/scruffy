@@ -8,8 +8,9 @@ import { headers } from "next/headers";
 
 type Album = API["/album"]["/"]["data"][number];
 
-type Props = Omit<Album, "imageUrl" | "artist"> & {
-  artist: Album["artist"];
+type Props = Omit<Album, "imageUrl" | "artist" | "rating"> & {
+  rating?: number;
+  artist: Partial<Album["artist"]>;
   displayArtist: boolean;
   className?: string;
   imageClassName?: string;
@@ -28,9 +29,12 @@ const shouldUseAdminURL = async () => {
 };
 
 const AlbumWithBlur = async ({ artist, displayArtist, ...props }: Props) => {
-  const adminURL = (await shouldUseAdminURL())
-    ? `/admin/artists${artist.url.split(".")[0]}/album/${props.name}`
-    : undefined;
+  const adminURL =
+    artist.url && (await shouldUseAdminURL())
+      ? `/admin/artists${artist.url.split(".")[0]}/album/${encodeURIComponent(
+          props.name,
+        )}`
+      : undefined;
 
   if (!props.imageUrl) {
     return (
