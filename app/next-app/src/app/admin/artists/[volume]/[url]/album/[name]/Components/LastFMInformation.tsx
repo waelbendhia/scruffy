@@ -51,7 +51,7 @@ const gt = (b: ImageSize, a: ImageSize) => {
 
 const getBiggest = (album: LastFMAlbum) =>
   album.album.image.reduce<Image | undefined>(
-    (p, c) => (!p || gt(c.size, p.size) ? c : p),
+    (p, c) => (!p || (gt(c.size, p.size) && c["#text"] !== "") ? c : p),
     undefined,
   );
 
