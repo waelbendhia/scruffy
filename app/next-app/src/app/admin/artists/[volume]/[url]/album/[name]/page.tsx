@@ -8,6 +8,9 @@ import SpotifyInformation from "./Components/SpotifyInformation";
 import LastFMInformation from "./Components/LastFMInformation";
 import { updaterBaseURL } from "@/api";
 import { revalidateTag } from "next/cache";
+import { headers } from "next/headers";
+import { Suspense } from "react";
+import { getArtistName } from "@/app/artists/[volume]/[url]/api";
 
 type Props = {
   params: { volume: string; url: string; name: string };
@@ -20,12 +23,16 @@ const submitSelection = async (formData: FormData) => {
     return redirect("/login", RedirectType.replace);
   }
 
+  const referer = formData.get("referer");
+
   const includeName = formData.get("include-name");
   const includeImage = formData.get("include-img");
   const includeYear = formData.get("include-year");
+
   const vol = formData.get("vol");
   const url = formData.get("url");
   const originalName = formData.get("name");
+
   const selected = formData.get("selectedArtist");
   if (
     typeof selected !== "string" ||
@@ -33,7 +40,6 @@ const submitSelection = async (formData: FormData) => {
     typeof url !== "string" ||
     typeof originalName !== "string"
   ) {
-    console.warn("invalid update data", { selected, vol, url });
     return;
   }
 
@@ -49,8 +55,6 @@ const submitSelection = async (formData: FormData) => {
     year: includeYear ? year : undefined,
   };
 
-  console.log(selected);
-  console.log(update);
   const resp = await fetch(
     `${updaterBaseURL}/artist/${vol}/${url}/album/${encodeURIComponent(
       originalName,
@@ -64,12 +68,16 @@ const submitSelection = async (formData: FormData) => {
   if (resp.status === 204) {
     revalidateTag("albums");
     revalidateTag("artists");
-    return redirect(`/artists/${vol}/${url}`, RedirectType.push);
+
+    return redirect(
+      typeof referer === "string" ? referer : `/artists/${vol}/${url}`,
+      RedirectType.push,
+    );
   }
 };
 
 const SelectInputs = () => (
-  <>
+  <BlockContainer className="col-span-3 flex flex-row justify-between items-center">
     <fieldset className="flex flex-row gap-2 items-center">
       <span>Fields to update:</span>
       {[
@@ -92,10 +100,77 @@ const SelectInputs = () => (
       ))}
     </fieldset>
     <button type="submit">Select</button>
-  </>
+  </BlockContainer>
 );
 
-export default function AlbumCorrection({ params, searchParams }: Props) {
+const Search = async ({
+  searchParams,
+  volume,
+  url,
+  name,
+}: Pick<Props, "searchParams"> & Props["params"]) => {
+  "use server";
+
+  const Inputs = ({
+    albumName,
+    artistName,
+    referer,
+  }: {
+    albumName?: string;
+    artistName?: string;
+    referer?: string;
+  }) => (
+    <>
+      {searchParams.referer ?? referer}
+      <input
+        name="referer"
+        hidden
+        defaultValue={searchParams.referer ?? referer}
+      />
+      <Input
+        name="artist"
+        className="flex-1"
+        type="text"
+        placeHolder="Search a different artist"
+        defaultValue={searchParams.name ?? artistName}
+      />
+      <Input
+        name="name"
+        className="flex-1"
+        type="text"
+        placeHolder="Search a different album"
+        defaultValue={searchParams.artist ?? albumName}
+      />
+    </>
+  );
+
+  const AsyncInputs = async () => {
+    const referer = headers().get("referer");
+    const { name: artistName } = await getArtistName({ volume, url });
+
+    return (
+      <Inputs
+        referer={referer ?? undefined}
+        artistName={artistName}
+        albumName={decodeURIComponent(name)}
+      />
+    );
+  };
+
+  return (
+    <BlockContainer className="col-span-3">
+      <form className="flex items-center gap-2" method="get">
+        <Suspense fallback={<Inputs />}>
+          <AsyncInputs />
+        </Suspense>
+        <button type="submit">Search</button>
+      </form>
+    </BlockContainer>
+  );
+};
+
+export default async function AlbumCorrection({ params, searchParams }: Props) {
+  const referer = headers().get("referer");
   const albumName = !!searchParams.name ? searchParams.name : undefined;
   const artistName = !!searchParams.artist ? searchParams.artist : undefined;
 
@@ -112,32 +187,17 @@ export default function AlbumCorrection({ params, searchParams }: Props) {
             name={params.name}
           />
         </BlockContainer>
-        <BlockContainer className="col-span-3">
-          <form className="flex items-center gap-2" method="get">
-            <Input
-              name="artist"
-              className="flex-1"
-              type="text"
-              placeHolder="Search a different artist"
-              defaultValue={artistName}
-            />
-            <Input
-              name="name"
-              className="flex-1"
-              type="text"
-              placeHolder="Search a different album"
-              defaultValue={albumName}
-            />
-            <button type="submit">Search</button>
-          </form>
-        </BlockContainer>
+        <Search {...params} searchParams={searchParams} />
         <form action={submitSelection} className="contents">
           <input name="vol" hidden defaultValue={params.volume} />
           <input name="url" hidden defaultValue={params.url} />
           <input name="name" hidden defaultValue={params.name} />
-          <BlockContainer className="col-span-3 flex flex-row justify-between items-center">
-            <SelectInputs />
-          </BlockContainer>
+          <input
+            name="referer"
+            hidden
+            defaultValue={searchParams.referer ?? referer}
+          />
+          <SelectInputs />
           <DeezerInformation
             params={params}
             albumSearch={albumName}

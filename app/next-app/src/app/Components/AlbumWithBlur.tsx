@@ -2,9 +2,9 @@
 import AlbumCard from "@/components/AlbumCard";
 import LabeledImage from "@/components/LabeledImage";
 import { API } from "@scruffy/api";
-import { getPlaiceholder } from "plaiceholder";
 import { isLoggedIn } from "../actions";
 import { headers } from "next/headers";
+import { getBlurData } from "@/image";
 
 type Album = API["/album"]["/"]["data"][number];
 
@@ -47,9 +47,7 @@ const AlbumWithBlur = async ({ artist, displayArtist, ...props }: Props) => {
     );
   }
 
-  const res = await fetch(props.imageUrl, { next: { revalidate: 7200 } });
-  const buffer = Buffer.from(await res.arrayBuffer());
-  const { base64 } = await getPlaiceholder(buffer);
+  const base64 = await getBlurData(props.imageUrl);
 
   return (
     <AlbumCard

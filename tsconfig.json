@@ -15,7 +15,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "lib": [
-      "es6"
+      "esnext"
     ],
     "baseUrl":".",
     "paths":{

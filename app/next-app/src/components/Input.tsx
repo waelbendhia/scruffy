@@ -5,6 +5,7 @@ type InputPropsBase = {
   placeHolder?: string;
   whiteText?: boolean;
   icon?: string;
+  disabled?: boolean;
 } & Pick<React.ComponentProps<"input">, "name">;
 
 type TextInputProps = {
@@ -26,7 +27,7 @@ type NumberInputProps = {
 type Props = (TextInputProps | NumberInputProps) & InputPropsBase;
 
 const Input = React.forwardRef<HTMLInputElement, Props>(function Input(
-  { className, icon, whiteText, placeHolder, ...props },
+  { className, icon, whiteText, placeHolder, disabled, ...props },
   ref,
 ) {
   const onChange = props.onChange
@@ -56,6 +57,7 @@ const Input = React.forwardRef<HTMLInputElement, Props>(function Input(
           defaultValue={props.defaultValue}
           placeholder={placeHolder}
           name={props.name}
+          disabled={disabled}
         />
         <span
           className={

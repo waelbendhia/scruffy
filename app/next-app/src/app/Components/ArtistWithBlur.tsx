@@ -1,9 +1,9 @@
 import ArtistCard from "@/components/ArtistCard";
 import LabeledImage from "@/components/LabeledImage";
 import { API } from "@scruffy/api";
-import { getPlaiceholder } from "plaiceholder";
 import { isLoggedIn } from "../actions";
 import { headers } from "next/headers";
+import { getBlurData } from "@/image";
 
 type Artist = API["/artist"]["/"]["data"][number];
 
@@ -34,9 +34,8 @@ const ArtistWithBlur = async (props: Props) => {
     return <ArtistCard {...props} adminURL={adminURL} placeholder="empty" />;
   }
 
-  const res = await fetch(props.imageUrl);
-  const buffer = Buffer.from(await res.arrayBuffer());
-  const { base64 } = await getPlaiceholder(buffer);
+  const base64 = await getBlurData(props.imageUrl);
+
   return (
     <ArtistCard
       {...props}
