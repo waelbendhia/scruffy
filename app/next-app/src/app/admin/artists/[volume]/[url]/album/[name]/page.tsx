@@ -121,7 +121,6 @@ const Search = async ({
     referer?: string;
   }) => (
     <>
-      {searchParams.referer ?? referer}
       <input
         name="referer"
         hidden
