@@ -36,7 +36,9 @@ const itShouldReadAlbumsFromRatingPage = ({
     shouldInclude.forEach((album) => expect(albums).toContainEqual(album));
 
     expect(Object.keys(artists).length).toBe(artistLength);
-    artistsShouldInclude.forEach((url) => expect(artists[url]).not.toBeUndefined());
+    artistsShouldInclude.forEach((url) =>
+      expect(artists[url]).not.toBeUndefined(),
+    );
   });
 
 describe("Rating Page readers", () => {
@@ -81,13 +83,20 @@ describe("Rating Page readers", () => {
         artistUrl: "/vol8/1975.html",
         name: "A Brief Inquiry Into Online Relationships",
         rating: 6,
+        year: 2018,
       },
       {
         artistUrl: "/vol7/kurushim.html",
         name: "What is Chaos",
         rating: 7,
+        year: 2018,
       },
-      { artistUrl: "/vol8/zealardo.html", name: "Stranger Fruit", rating: 6 },
+      {
+        artistUrl: "/vol8/zealardo.html",
+        name: "Stranger Fruit",
+        rating: 6,
+        year: 2018,
+      },
     ],
     artistLength: 149,
     artistsShouldInclude: [
@@ -102,9 +111,24 @@ describe("Rating Page readers", () => {
     reader: (content) => readAlbumsFromYearRatingsPage(2000, content),
     length: 687,
     shouldInclude: [
-      { artistUrl: "/vol6/guycalle.html", name: "Essence", rating: 5 },
-      { artistUrl: "/vol5/leatherf.html", name: "Horsebox", rating: 5 },
-      { artistUrl: "/vol4/zoviet.html", name: "Decriminalization", rating: 5 },
+      {
+        artistUrl: "/vol6/guycalle.html",
+        name: "Essence",
+        rating: 5,
+        year: 2000,
+      },
+      {
+        artistUrl: "/vol5/leatherf.html",
+        name: "Horsebox",
+        rating: 5,
+        year: 2000,
+      },
+      {
+        artistUrl: "/vol4/zoviet.html",
+        name: "Decriminalization",
+        rating: 5,
+        year: 2000,
+      },
     ],
     artistLength: 620,
     artistsShouldInclude: [
@@ -119,9 +143,24 @@ describe("Rating Page readers", () => {
     reader: (content) => readAlbumsFromYearRatingsPage(1990, content),
     length: 457,
     shouldInclude: [
-      { artistUrl: "/vol6/guycalle.html", name: "Automanikk", rating: 6 },
-      { artistUrl: "/vol5/antbee.html", name: "Pure Electric Honey", rating: 8, },
-      { artistUrl: "/vol4/zoviet.html", name: "Look Into Me", rating: 4 },
+      {
+        artistUrl: "/vol6/guycalle.html",
+        name: "Automanikk",
+        rating: 6,
+        year: 1990,
+      },
+      {
+        artistUrl: "/vol5/antbee.html",
+        name: "Pure Electric Honey",
+        rating: 8,
+        year: 1990,
+      },
+      {
+        artistUrl: "/vol4/zoviet.html",
+        name: "Look Into Me",
+        rating: 4,
+        year: 1990,
+      },
     ],
     artistLength: 427,
     artistsShouldInclude: [
