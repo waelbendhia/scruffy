@@ -48,11 +48,14 @@ const SearchResult = ({ className, source, ...props }: Props) => {
             <InputContainer key={r.key}>
               <input
                 type="radio"
-                id={r.key}
+                id={`${r.key}`}
                 name="selectedArtist"
-                value={JSON.stringify(r)}
+                value={JSON.stringify({
+                  ...r,
+                  year: !!r.year ? new Date(r.year).getFullYear() : undefined,
+                })}
               />
-              <label className="group" htmlFor={r.key}>
+              <label className="group" htmlFor={`${r.key}`}>
                 <SearchResultItem
                   artistName={r.artistName}
                   name={r.name}

@@ -96,8 +96,8 @@ const SelectInputs = () => (
 );
 
 export default function AlbumCorrection({ params, searchParams }: Props) {
-  const albumName = searchParams.name;
-  const artistName = searchParams.artist;
+  const albumName = !!searchParams.name ? searchParams.name : undefined;
+  const artistName = !!searchParams.artist ? searchParams.artist : undefined;
 
   return (
     <main>
