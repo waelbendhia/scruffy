@@ -62,6 +62,7 @@ const submitSelection = async (formData: FormData) => {
     },
   );
   if (resp.status === 204) {
+    revalidateTag("albums");
     revalidateTag("artists");
     return redirect(`/artists/${vol}/${url}`, RedirectType.push);
   }

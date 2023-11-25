@@ -47,7 +47,7 @@ const AlbumWithBlur = async ({ artist, displayArtist, ...props }: Props) => {
     );
   }
 
-  const res = await fetch(props.imageUrl);
+  const res = await fetch(props.imageUrl, { next: { revalidate: 7200 } });
   const buffer = Buffer.from(await res.arrayBuffer());
   const { base64 } = await getPlaiceholder(buffer);
 
