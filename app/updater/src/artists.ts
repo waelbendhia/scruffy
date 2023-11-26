@@ -19,7 +19,7 @@ import {
   catchError,
   pipe,
 } from "rxjs";
-import { conncurentConnections } from "./env";
+import { concurrency, conncurentConnections } from "./env";
 import { Observed } from "./types";
 import { getBestArtistSearchResult } from "./deezer";
 import { getBiggestLastFMImage, getLastFMAlbum } from "./lastfm";
@@ -130,14 +130,16 @@ export const addImagesAndReleaseYearsFromDeezer = (artist: ReadArtist) =>
 
       return { ...a, imageUrl: searchResult?.picture_xl };
     }),
-    mergeMap((a) =>
-      from(a.albums ?? []).pipe(
-        concatMap((album) =>
-          addAlbumCoverAndReleaseYearFromDeezer(a.name, album),
+    mergeMap(
+      (a) =>
+        from(a.albums ?? []).pipe(
+          concatMap((album) =>
+            addAlbumCoverAndReleaseYearFromDeezer(a.name, album),
+          ),
+          toArray(),
+          map((albums) => ({ ...a, albums })),
         ),
-        toArray(),
-        map((albums) => ({ ...a, albums })),
-      ),
+      concurrency,
     ),
   );
 
@@ -159,7 +161,10 @@ export const addImagesAndReleaseYearsFromSpotify = (artist: ReadArtist) =>
     }),
     concatMap((a) =>
       from(a.albums ?? []).pipe(
-        mergeMap((album) => addAlbumCoverFromSpotify(a.name, album)),
+        mergeMap(
+          (album) => addAlbumCoverFromSpotify(a.name, album),
+          concurrency,
+        ),
         toArray(),
         map((albums) => ({ ...a, albums })),
       ),
@@ -170,8 +175,9 @@ export const addImagesAndReleaseYearsFromMusicBrainz = (artist: ReadArtist) =>
   of(artist).pipe(
     concatMap((a) =>
       from(a.albums ?? []).pipe(
-        mergeMap((album) =>
-          addAlbumCoverAndReleaseYearFromMusicBrainz(a.name, album),
+        mergeMap(
+          (album) => addAlbumCoverAndReleaseYearFromMusicBrainz(a.name, album),
+          concurrency,
         ),
         toArray(),
         map((albums) => ({ ...a, albums })),
@@ -252,45 +258,55 @@ export const insertArtist = (artist: ReadArtistWithImages) =>
 
 export const insertArtistWithImages = () =>
   pipe(
-    mergeMap((url: string) =>
-      readArtist(url).pipe(
-        catchError((e) => {
-          console.debug("error: ", e);
-          return of();
-        }),
-      ),
+    mergeMap(
+      (url: string) =>
+        readArtist(url).pipe(
+          catchError((e) => {
+            console.debug("error: ", e);
+            return of();
+          }),
+        ),
+      concurrency,
     ),
-    mergeMap((a) =>
-      addImagesAndReleaseYearsFromMusicBrainz(a).pipe(
-        catchError((e) => {
-          console.debug("error: ", e);
-          return of();
-        }),
-      ),
+    mergeMap(
+      (a) =>
+        addImagesAndReleaseYearsFromMusicBrainz(a).pipe(
+          catchError((e) => {
+            console.debug("error: ", e);
+            return of();
+          }),
+        ),
+      concurrency,
     ),
-    mergeMap((a) =>
-      addImagesAndReleaseYearsFromSpotify(a).pipe(
-        catchError((e) => {
-          console.debug("error: ", e);
-          return of();
-        }),
-      ),
+    mergeMap(
+      (a) =>
+        addImagesAndReleaseYearsFromSpotify(a).pipe(
+          catchError((e) => {
+            console.debug("error: ", e);
+            return of();
+          }),
+        ),
+      concurrency,
     ),
-    mergeMap((a) =>
-      addImagesAndReleaseYearsFromDeezer(a).pipe(
-        catchError((e) => {
-          console.debug("error: ", e);
-          return of();
-        }),
-      ),
+    mergeMap(
+      (a) =>
+        addImagesAndReleaseYearsFromDeezer(a).pipe(
+          catchError((e) => {
+            console.debug("error: ", e);
+            return of();
+          }),
+        ),
+      concurrency,
     ),
-    mergeMap((a) =>
-      addImagesFromLastFM(a).pipe(
-        catchError((e) => {
-          console.debug("error: ", e);
-          return of();
-        }),
-      ),
+    mergeMap(
+      (a) =>
+        addImagesFromLastFM(a).pipe(
+          catchError((e) => {
+            console.debug("error: ", e);
+            return of();
+          }),
+        ),
+      concurrency,
     ),
     concatMap((v) =>
       insertArtist(v).pipe(

@@ -20,7 +20,7 @@ import {
   repeat,
   delay,
 } from "rxjs";
-import { databaseConcurrency, recheckDelay } from "./env";
+import { databaseConcurrency, recheckDelay, concurrency } from "./env";
 import {
   insertArtistWithImages,
   readJazzPage,
@@ -65,7 +65,7 @@ const loadAndInsertRatingsPages = () =>
     toArray(),
     concatMap((ps) =>
       from(ps).pipe(
-        mergeMap((p) => from(Object.entries(p.data.artists))),
+        mergeMap((p) => from(Object.entries(p.data.artists)), concurrency),
         mergeMap(
           ([url]) =>
             from(prisma.artist.count({ where: { url } })).pipe(
@@ -79,15 +79,22 @@ const loadAndInsertRatingsPages = () =>
         map(() => ps),
       ),
     ),
-    mergeMap((ps) => from(ps)),
-    mergeMap((p) =>
-      from(p.data.albums.map((album) => ({ ...album, pageURL: p.url }))),
+    mergeMap((ps) => from(ps), concurrency),
+    mergeMap(
+      (p) => from(p.data.albums.map((album) => ({ ...album, pageURL: p.url }))),
+      concurrency,
     ),
     takeUntil(watchStopSignal()),
-    mergeMap((a) => addAlbumCoverAndReleaseYearFromMusicBrainz(a.name, a)),
-    mergeMap((a) => addAlbumCoverFromSpotify(a.name, a)),
-    mergeMap((a) => addAlbumCoverAndReleaseYearFromDeezer(a.name, a)),
-    mergeMap((a) => addAlbumCoverFromLastFM(a.name, a)),
+    mergeMap(
+      (a) => addAlbumCoverAndReleaseYearFromMusicBrainz(a.name, a),
+      concurrency,
+    ),
+    mergeMap((a) => addAlbumCoverFromSpotify(a.name, a), concurrency),
+    mergeMap(
+      (a) => addAlbumCoverAndReleaseYearFromDeezer(a.name, a),
+      concurrency,
+    ),
+    mergeMap((a) => addAlbumCoverFromLastFM(a.name, a), concurrency),
     concatMap((a) => insertAlbum(a)),
   );
 
