@@ -18,8 +18,8 @@ const SearchResultItem = ({
   <AlbumSuspended
     layout="horizontal"
     displayArtist
-    className={`${className ?? ""} h-48 my-2`}
-    imageClassName="w-48"
+    className={`${className ?? ""} h-32 my-2`}
+    imageClassName="w-32"
     artist={{ name: artistName }}
     year={year ? new Date(year).getFullYear() : undefined}
     name={name}

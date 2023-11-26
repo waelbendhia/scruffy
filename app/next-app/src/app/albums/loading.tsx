@@ -1,6 +1,6 @@
-import LoadingSpinner from "@/components/Loading";
+import FullPageSpinner from "@/components/FullPageSpinner";
 import React from "react";
 
-const Loading = () => <LoadingSpinner className="flex-1" loading={true} />;
+const Loading = () => <FullPageSpinner />;
 
 export default Loading;

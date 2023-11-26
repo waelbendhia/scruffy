@@ -1,9 +1,8 @@
 import DeezerInformation from "./Components/DeezerInformation";
 import SpotifyInformation from "./Components/SpotifyInformation";
-import BlockContainer from "./Components/BlockContainer";
 import Bio from "@/app/artists/[volume]/[url]/components/Bio";
 import Header from "@/app/artists/[volume]/[url]/components/Header";
-import { searchAlbums, updaterBaseURL } from "@/api";
+import { updaterBaseURL } from "@/api";
 import { redirect, RedirectType } from "next/navigation";
 import { isLoggedIn } from "@/app/actions";
 import { revalidateTag } from "next/cache";
@@ -11,6 +10,7 @@ import Input from "@/components/Input";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 import { getArtistName } from "@/app/artists/[volume]/[url]/api";
+import BlockContainer from "@/components/BlockContainer";
 
 type Props = {
   params: { volume: string; url: string };

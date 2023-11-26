@@ -12,6 +12,51 @@ import { getBiggestSpotifyImage, getSpotifyAlbum } from "./spotify";
 import { readPage } from "./page";
 import { client } from "./scaruffi";
 import { map } from "rxjs";
+import { searchMusicBrainzAlbums } from "./musicbrainz";
+import { MusicBrainzRelease } from "../dist";
+import { incrementAlbum } from "./update-status";
+
+export const addAlbumCoverAndReleaseYearFromMusicBrainz = async <
+  T extends Omit<ReadAlbum, "artistUrl">,
+>(
+  artistName: string,
+  album: T,
+) => {
+  if (album.imageUrl && album.year) {
+    return album;
+  }
+
+  try {
+    const albumSearchResult = await searchMusicBrainzAlbums(
+      artistName,
+      album.name,
+    );
+
+    const topResult = albumSearchResult.releases.reduce<
+      MusicBrainzRelease | undefined
+    >((prev, cur) => {
+      if (!prev || cur.score > prev.score) return cur;
+      if (cur.score === prev.score) {
+        const curYear = new Date(cur.date).getFullYear();
+        const prevYear = new Date(prev.date).getFullYear();
+        if (curYear < prevYear) return cur;
+      }
+      return prev;
+    }, undefined);
+
+    return {
+      ...album,
+      imageUrl: album.imageUrl ?? topResult?.front,
+      year:
+        album.year ??
+        (topResult?.date !== undefined
+          ? new Date(topResult?.date ?? "").getFullYear()
+          : undefined),
+    };
+  } catch (e) {
+    return album;
+  }
+};
 
 export const addAlbumCoverAndReleaseYearFromDeezer = async <
   T extends Omit<ReadAlbum, "artistUrl">,
@@ -106,11 +151,13 @@ export const readNewRatingsPage = () =>
     })),
   );
 
-export const insertAlbum = (album: ReadAlbum & { pageURL: string }) =>
-  prisma.album.upsert({
+export const insertAlbum = (album: ReadAlbum & { pageURL: string }) => {
+  incrementAlbum();
+  return prisma.album.upsert({
     where: {
       artistUrl_name: { artistUrl: album.artistUrl, name: album.name },
     },
     create: { ...album },
     update: { ...album },
   });
+};

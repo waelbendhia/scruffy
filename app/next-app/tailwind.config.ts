@@ -65,6 +65,7 @@ const config: Config = {
         black: "#1A1A1A",
         "black-transparent": "rgba(26, 26, 26, 0.34)",
         red: "#FF3530",
+        "dark-red": "#B60400",
       },
     },
   },

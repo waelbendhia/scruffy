@@ -43,7 +43,7 @@ const getData = async (params: Query) => {
   }
 
   const client = getRedisClient();
-  if (client) {
+  if (client && data.length > 0) {
     await client.mSet(
       data.map((a): [string, string] => [`artist-name-${a.url}`, a.name]),
     );

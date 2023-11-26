@@ -129,14 +129,16 @@ const Latest = async () => {
         />
       ))}
       bnm={
-        <AlbumSuspended
-          {...bnm}
-          layout="vertical"
-          textSize="xl"
-          className={bnmClassname}
-          imageClassName={`h-80`}
-          displayArtist
-        />
+        bnm && (
+          <AlbumSuspended
+            {...bnm}
+            layout="vertical"
+            textSize="xl"
+            className={bnmClassname}
+            imageClassName={`h-80`}
+            displayArtist
+          />
+        )
       }
     />
   );

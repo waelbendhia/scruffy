@@ -119,10 +119,11 @@ export const getArtistsFromVolumePage = (vol: Volume, client?: AxiosInstance) =>
   );
 
 const getNameFromBody = ($: cheerio.Root) => {
-  const header = $("center h1");
-  if (header.length > 0) {
-    return header.text();
-  }
+  const h1 = $("center h1");
+  if (h1.length > 0) return h1.text();
+
+  const h2 = $("center h2");
+  if (h2.length > 0) return h2.text();
 
   return $("center font").first().text();
 };
@@ -185,7 +186,14 @@ const skipSummary = (t: string) => {
   return t;
 };
 
+const shouldReadRightColumn = ($: cheerio.Root) =>
+  $("body[bgcolor=00ff00]").length > 0 ||
+  $("center h2").text()?.trim() === "June of 44" ||
+  $("center>font>i").text()?.trim() === "Aurora";
+
 const getBioElementsByColor = ($: cheerio.Root): cheerio.Element[] => {
+  if (shouldReadRightColumn($)) return $(`td[bgcolor=e6dfaa]`).get();
+
   for (const color of ["eebb88", "#eebb88", "e6dfaa"]) {
     const bioElems = $(`td[bgcolor=${color}]`).get();
     if (bioElems.length > 0) {
@@ -269,21 +277,40 @@ const nameExceptions: Record<string, string> = {
   "/vol7/kem.html": "Kern",
   "/vol4/eae.html": "The Electronic Art Ensemble",
   "/avant/zeier.html": "Marc Zeier",
+  "/vol6/aurora.html": "Aurora Sutra",
 };
+
+// Apparently there are some duplicate pages that do not contain the full info.
+// We want to ignore these. There are also pages that do not contain any
+// particularly interesting data, we'll ignore these as well.
+const blackList: Set<string> = new Set([
+  "/vol6/current.html",
+  "/vol6/petshop.html",
+  "/vol5/knottmik.html",
+  "/vol5/combine.html",
+  "/vol5/thornpau.html",
+  "/vol3/tomrercl.html",
+]);
 
 export const readArtistFromArtistPage = (
   artistUrl: string,
   content: string | Buffer,
 ) => {
-  if (!artistUrlRegex.test(artistUrl)) {
+  if (!artistUrlRegex.test(artistUrl) || blackList.has(artistUrl)) {
     return null;
   }
 
   const $ = cheerio.load(content);
 
-  let name = getNameFromBody($).trim();
-  if (name === "%") {
-    name = nameExceptions[artistUrl] ?? name;
+  if ($("body[bgcolor=FFFFFF]").length > 0) {
+    // It seems pages with a white background only contain a short bio
+    // Italian
+    return null;
+  }
+
+  let name = nameExceptions[artistUrl];
+  if (!name) {
+    name = getNameFromBody($).trim();
   }
 
   return {

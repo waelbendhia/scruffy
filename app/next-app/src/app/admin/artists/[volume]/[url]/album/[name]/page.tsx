@@ -1,5 +1,4 @@
 import { isLoggedIn } from "@/app/actions";
-import BlockContainer from "../../Components/BlockContainer";
 import Input from "@/components/Input";
 import { RedirectType, redirect } from "next/navigation";
 import OriginalAlbum from "./Components/OriginalAlbum";
@@ -11,6 +10,8 @@ import { revalidateTag } from "next/cache";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 import { getArtistName } from "@/app/artists/[volume]/[url]/api";
+import MusicBrainzInformation from "./Components/MusicBrainzInformation";
+import BlockContainer from "@/components/BlockContainer";
 
 type Props = {
   params: { volume: string; url: string; name: string };
@@ -77,7 +78,7 @@ const submitSelection = async (formData: FormData) => {
 };
 
 const SelectInputs = () => (
-  <BlockContainer className="col-span-3 flex flex-row justify-between items-center">
+  <BlockContainer className="col-span-4 flex flex-row justify-between items-center">
     <fieldset className="flex flex-row gap-2 items-center">
       <span>Fields to update:</span>
       {[
@@ -131,14 +132,14 @@ const Search = async ({
         className="flex-1"
         type="text"
         placeHolder="Search a different artist"
-        defaultValue={searchParams.name ?? artistName}
+        defaultValue={searchParams.artist ?? artistName}
       />
       <Input
         name="name"
         className="flex-1"
         type="text"
         placeHolder="Search a different album"
-        defaultValue={searchParams.artist ?? albumName}
+        defaultValue={searchParams.name ?? albumName}
       />
     </>
   );
@@ -157,7 +158,7 @@ const Search = async ({
   };
 
   return (
-    <BlockContainer className="col-span-3">
+    <BlockContainer className="col-span-4">
       <form className="flex items-center gap-2" method="get">
         <Suspense fallback={<Inputs />}>
           <AsyncInputs />
@@ -177,10 +178,11 @@ export default async function AlbumCorrection({ params, searchParams }: Props) {
     <main>
       <div
         className={`
-          grid grid-cols-[22rem_1fr_1fr_1fr] gap-4 p-4 grid-rows-[82px_82px_1fr]
+          grid grid-cols-[22rem_1fr_1fr_1fr_1fr] p-4 grid-rows-[82px_82px_1fr]
+          gap-4
         `}
       >
-        <BlockContainer className="row-span-3 w-[22rem]" title="Original data">
+        <BlockContainer className="row-span-4 w-[22rem]" title="Original data">
           <OriginalAlbum
             artist={{ vol: params.volume, url: params.url }}
             name={params.name}
@@ -197,6 +199,11 @@ export default async function AlbumCorrection({ params, searchParams }: Props) {
             defaultValue={searchParams.referer ?? referer}
           />
           <SelectInputs />
+          <MusicBrainzInformation
+            params={params}
+            albumSearch={albumName}
+            artistSearch={artistName}
+          />
           <DeezerInformation
             params={params}
             albumSearch={albumName}

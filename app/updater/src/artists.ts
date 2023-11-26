@@ -19,7 +19,7 @@ import {
   catchError,
   pipe,
 } from "rxjs";
-import { conncurentConnections, databaseConcurrency } from "./env";
+import { conncurentConnections } from "./env";
 import { Observed } from "./types";
 import { getBestArtistSearchResult } from "./deezer";
 import { getBiggestLastFMImage, getLastFMAlbum } from "./lastfm";
@@ -27,10 +27,16 @@ import { readPage } from "./page";
 import { URL } from "url";
 import {
   addAlbumCoverAndReleaseYearFromDeezer,
+  addAlbumCoverAndReleaseYearFromMusicBrainz,
   addAlbumCoverFromSpotify,
 } from "./album";
 import { client } from "./scaruffi";
 import { getBiggestSpotifyImage, getSpotifyArtist } from "./spotify";
+import {
+  incrementAlbum,
+  incrementArtist,
+  incrementPages,
+} from "./update-status";
 
 type PageData = Awaited<ReturnType<typeof getPage>>;
 
@@ -59,7 +65,7 @@ export const readArtist = (url: string) =>
     concatMap(({ data, ...page }) => {
       const artist = readArtistFromArtistPage(url, data);
       if (!artist || !artist?.name) {
-        console.debug(`no change for ${artist?.url}`);
+        console.debug(`invalid artist ${url}`);
         return of();
       }
 
@@ -160,6 +166,19 @@ export const addImagesAndReleaseYearsFromSpotify = (artist: ReadArtist) =>
     ),
   );
 
+export const addImagesAndReleaseYearsFromMusicBrainz = (artist: ReadArtist) =>
+  of(artist).pipe(
+    concatMap((a) =>
+      from(a.albums ?? []).pipe(
+        mergeMap((album) =>
+          addAlbumCoverAndReleaseYearFromMusicBrainz(a.name, album),
+        ),
+        toArray(),
+        map((albums) => ({ ...a, albums })),
+      ),
+    ),
+  );
+
 export const addImagesAndReleaseYears = (artist: ReadArtist) =>
   of(artist).pipe(
     concatMap(addImagesAndReleaseYearsFromSpotify),
@@ -176,6 +195,7 @@ export const insertArtist = (artist: ReadArtistWithImages) =>
     prisma.$transaction(async (tx) => {
       const now = new Date();
 
+      incrementPages();
       await tx.updateHistory.upsert({
         where: { pageURL: artist.url },
         create: {
@@ -220,6 +240,8 @@ export const insertArtist = (artist: ReadArtistWithImages) =>
         albums,
       };
 
+      incrementArtist();
+      incrementAlbum(artist.albums.length);
       return await tx.artist.upsert({
         where: { url: artist.url },
         create: createOrUpdateInput,
@@ -232,6 +254,14 @@ export const insertArtistWithImages = () =>
   pipe(
     mergeMap((url: string) =>
       readArtist(url).pipe(
+        catchError((e) => {
+          console.debug("error: ", e);
+          return of();
+        }),
+      ),
+    ),
+    mergeMap((a) =>
+      addImagesAndReleaseYearsFromMusicBrainz(a).pipe(
         catchError((e) => {
           console.debug("error: ", e);
           return of();
@@ -262,14 +292,12 @@ export const insertArtistWithImages = () =>
         }),
       ),
     ),
-    mergeMap(
-      (v) =>
-        insertArtist(v).pipe(
-          catchError((e) => {
-            console.debug("error: ", e);
-            return of();
-          }),
-        ),
-      databaseConcurrency,
+    concatMap((v) =>
+      insertArtist(v).pipe(
+        catchError((e) => {
+          console.debug("error: ", e);
+          return of();
+        }),
+      ),
     ),
   );

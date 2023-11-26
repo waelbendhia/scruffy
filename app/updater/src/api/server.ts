@@ -22,10 +22,18 @@ import {
 import { KeysOf, UndefinedToUnknown } from "fastify/types/type-provider";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Static, Type } from "@sinclair/typebox";
+import {
+  MusicBrainzReleaseSearchResult,
+  searchMusicBrainzAlbums,
+} from "../musicbrainz";
+import { getUpdateStatus, watchUpdates } from "../update-status";
+import { startUpdate, stopUpdate } from "../start-stop-signal";
+import FastifySSEPlugin from "fastify-sse-v2";
 
 export const api = Fastify({
   logger: true,
 }).withTypeProvider<TypeBoxTypeProvider>();
+api.register(FastifySSEPlugin);
 
 type ArtistRoute<T> = {
   Params: {
@@ -118,6 +126,11 @@ api.get<AlbumRoute<SpotifyAlbumSearchResult>>(
   getAlbumHandler(searchSpotifyAlbums),
 );
 
+api.get<AlbumRoute<MusicBrainzReleaseSearchResult>>(
+  "/musicbrainz/artist/:artist/album/:album",
+  getAlbumHandler(searchMusicBrainzAlbums),
+);
+
 const TUpdateArtist = Type.Object({
   name: Type.Optional(Type.String()),
   imageUrl: Type.Optional(Type.String()),
@@ -137,7 +150,7 @@ api.put<{
       response: { 204: Type.Null() },
     },
   },
-  async function (req, reply) {
+  async (req, reply) => {
     const { vol, path } = req.params;
     const artistURL = `/${vol}/${path}.html`;
     console.log("updating", artistURL);
@@ -176,7 +189,7 @@ api.put<{
       response: { 204: Type.Null() },
     },
   },
-  async function (req, reply) {
+  async (req, reply) => {
     const { vol, path, name: encodedName } = req.params;
     const name = decodeURIComponent(encodedName);
     const artistUrl = `/${vol}/${path}.html`;
@@ -194,3 +207,55 @@ api.put<{
     reply.code(204);
   },
 );
+
+type UpdateStatus = ReturnType<typeof getUpdateStatus>;
+
+api.get<{ Reply: { 200: UpdateStatus } }>("/update/status", (_, reply) => {
+  reply.code(200).send(getUpdateStatus());
+});
+
+api.put<{ Reply: { 200: UpdateStatus } }>("/update/stop", (_, reply) => {
+  if (getUpdateStatus().isUpdating) {
+    stopUpdate();
+  }
+
+  reply.code(200).send(getUpdateStatus());
+});
+
+api.put<{ Reply: { 200: UpdateStatus } }>("/update/start", (_, reply) => {
+  if (!getUpdateStatus().isUpdating) {
+    startUpdate();
+  }
+
+  reply.code(200).send(getUpdateStatus());
+});
+
+api.post<{ Reply: { 200: UpdateStatus } }>(
+  "/update/start",
+  async (_, reply) => {
+    if (!getUpdateStatus().isUpdating) {
+      await prisma.updateHistory.deleteMany({ where: {} });
+      startUpdate();
+    }
+
+    reply.code(200).send(getUpdateStatus());
+  },
+);
+
+api.delete<{ Reply: { 204: null } }>("/all-data", async (_, reply) => {
+  await prisma.$transaction(async (tx) => {
+    await tx.album.deleteMany({ where: {} });
+    await tx.artist.deleteMany({ where: {} });
+    await tx.updateHistory.deleteMany({ where: {} });
+  });
+  reply.code(204);
+});
+
+api.get("/update/live", {}, (req, reply) => {
+  const sub = watchUpdates().subscribe((u) =>
+    reply.sse({ data: JSON.stringify(u) }),
+  );
+  req.socket.on("close", () => {
+    sub.unsubscribe();
+  });
+});

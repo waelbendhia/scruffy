@@ -56,7 +56,7 @@ const SpotifyInformationAsync = async ({
     ),
   ].map((a) => ({
     key: a.uri,
-    artistName: "",
+    artistName: a.artists?.[0]?.name,
     imageUrl: biggestImage(a.images)?.url,
     name: a.name,
     year: a.release_date,

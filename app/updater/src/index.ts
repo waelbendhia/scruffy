@@ -11,3 +11,8 @@ export {
   SpotifyArtistSearchResult,
   SpotifyArtist,
 } from "./spotify";
+export {
+  MusicBrainzRelease,
+  MusicBrainzReleaseSearchResult,
+} from "./musicbrainz";
+export { UpdateInfo } from "./update-status";

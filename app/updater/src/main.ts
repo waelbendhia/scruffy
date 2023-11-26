@@ -1,8 +1,12 @@
 import { prisma } from "@scruffy/database";
 import {
+  incrementPages,
+  markUpdateEnd,
+  markUpdateStart,
+} from "./update-status";
+import {
   concatMap,
   from,
-  interval,
   map,
   merge,
   mergeMap,
@@ -11,6 +15,10 @@ import {
   toArray,
   reduce,
   count,
+  finalize,
+  takeUntil,
+  repeat,
+  delay,
 } from "rxjs";
 import { databaseConcurrency, recheckDelay } from "./env";
 import {
@@ -21,6 +29,7 @@ import {
 } from "./artists";
 import {
   addAlbumCoverAndReleaseYearFromDeezer,
+  addAlbumCoverAndReleaseYearFromMusicBrainz,
   addAlbumCoverFromLastFM,
   addAlbumCoverFromSpotify,
   insertAlbum,
@@ -28,6 +37,7 @@ import {
   readYearRatingsPage,
 } from "./album";
 import { api } from "./api/server";
+import { watchStartSignal, watchStopSignal } from "./start-stop-signal";
 
 const range = (start: number, end: number): number[] => {
   let a = [];
@@ -42,17 +52,16 @@ const loadAndInsertRatingsPages = () =>
     ...range(1990, new Date().getFullYear()).map(readYearRatingsPage),
     readNewRatingsPage(),
   ).pipe(
-    mergeMap(
-      (p) =>
-        prisma.updateHistory
-          .upsert({
-            where: { pageURL: p.url },
-            create: { pageURL: p.url, hash: p.hash },
-            update: { hash: p.hash, checkedOn: new Date() },
-          })
-          .then(() => p),
-      databaseConcurrency,
-    ),
+    concatMap(async (p) => {
+      incrementPages();
+      await prisma.updateHistory.upsert({
+        where: { pageURL: p.url },
+        create: { pageURL: p.url, hash: p.hash },
+        update: { hash: p.hash, checkedOn: new Date() },
+      });
+
+      return p;
+    }),
     toArray(),
     concatMap((ps) =>
       from(ps).pipe(
@@ -64,6 +73,7 @@ const loadAndInsertRatingsPages = () =>
             ),
           databaseConcurrency,
         ),
+        takeUntil(watchStopSignal()),
         insertArtistWithImages(),
         count(),
         map(() => ps),
@@ -73,10 +83,12 @@ const loadAndInsertRatingsPages = () =>
     mergeMap((p) =>
       from(p.data.albums.map((album) => ({ ...album, pageURL: p.url }))),
     ),
+    takeUntil(watchStopSignal()),
+    mergeMap((a) => addAlbumCoverAndReleaseYearFromMusicBrainz(a.name, a)),
     mergeMap((a) => addAlbumCoverFromSpotify(a.name, a)),
     mergeMap((a) => addAlbumCoverAndReleaseYearFromDeezer(a.name, a)),
     mergeMap((a) => addAlbumCoverFromLastFM(a.name, a)),
-    mergeMap((a) => insertAlbum(a), databaseConcurrency),
+    concatMap((a) => insertAlbum(a)),
   );
 
 const loadAndInsertFromArtistPages = () =>
@@ -92,17 +104,17 @@ const loadAndInsertFromArtistPages = () =>
     readVolumePage(7),
     readVolumePage(8),
   ).pipe(
-    mergeMap(
-      (p) =>
-        prisma.updateHistory
-          .upsert({
-            where: { pageURL: p.url },
-            create: { pageURL: p.url, hash: p.hash },
-            update: { hash: p.hash, checkedOn: new Date() },
-          })
-          .then(() => p),
-      databaseConcurrency,
-    ),
+    takeUntil(watchStopSignal()),
+    concatMap(async (p) => {
+      incrementPages();
+      await prisma.updateHistory.upsert({
+        where: { pageURL: p.url },
+        create: { pageURL: p.url, hash: p.hash },
+        update: { hash: p.hash, checkedOn: new Date() },
+      });
+
+      return p;
+    }),
     concatMap(({ artists }) =>
       from(
         Object.entries(artists).map(([url, o]) => ({
@@ -113,44 +125,43 @@ const loadAndInsertFromArtistPages = () =>
       ),
     ),
     distinct((v) => `${v.type}-${v.url}`),
+    takeUntil(watchStopSignal()),
     toArray(),
     concatMap((as) => {
       console.debug(`discovered ${as.length} unique artists`);
       return from(as);
     }),
     map(({ url }) => url),
+    takeUntil(watchStopSignal()),
     insertArtistWithImages(),
-    reduce((total, _): number => {
-      console.debug(`inserted ${total + 1} artists`);
-      return total + 1;
-    }, 0),
+    reduce((p) => p, 0),
   );
 
 const fullUpdate = () =>
-  loadAndInsertRatingsPages().pipe(
+  of("").pipe(
+    map(() => markUpdateStart()),
+    concatMap(() => loadAndInsertRatingsPages()),
     reduce((p) => p, 0),
     concatMap(() => loadAndInsertFromArtistPages()),
+    takeUntil(watchStopSignal()),
     reduce((p) => p, 0),
+    finalize(() => {
+      markUpdateEnd();
+    }),
   );
 
 const sub = fullUpdate()
   .pipe(
-    map(() => {
-      console.log("check complete");
-    }),
-    concatMap(() => interval(recheckDelay * 1000)),
-    map(() => {
-      console.debug("rechecking");
-    }),
-    concatMap(() => fullUpdate()),
-    map(() => {
-      console.log("check complete");
+    repeat({
+      delay: () =>
+        merge(of("start").pipe(delay(recheckDelay * 1000)), watchStartSignal()),
     }),
   )
   .subscribe(() => {});
 
 const exit = async () => {
   sub.unsubscribe();
+  await api.close();
   await prisma.$disconnect();
   process.exit(0);
 };

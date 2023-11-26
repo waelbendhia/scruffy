@@ -27,6 +27,12 @@ const nextConfig = {
         port: "",
         pathname: "/i/**",
       },
+      {
+        protocol: "https",
+        hostname: "archive.org",
+        port: "",
+        pathname: "/download/**",
+      },
     ],
   },
 };

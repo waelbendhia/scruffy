@@ -29,7 +29,7 @@ const itShouldReadAlbumsFromRatingPage = ({
   artistLength,
 }: RatingPageTestCase) =>
   it(`should read albums from ${filepath}`, async () => {
-    const content = await readFileRel(filepath);
+    const content = await readFileRel(`list-pages/${filepath}`);
     const { artists, albums } = reader(content);
 
     expect(albums.length).toBe(length);
@@ -43,7 +43,7 @@ const itShouldReadAlbumsFromRatingPage = ({
 
 describe("Rating Page readers", () => {
   itShouldReadAlbumsFromRatingPage({
-    filepath: "./new.html",
+    filepath: "new.html",
     reader: readAlbumsFromNewRatingsPage,
     length: 581,
     shouldInclude: [
@@ -75,7 +75,7 @@ describe("Rating Page readers", () => {
   });
 
   itShouldReadAlbumsFromRatingPage({
-    filepath: "./2018.html",
+    filepath: "2018.html",
     reader: (content) => readAlbumsFromYearRatingsPage(2018, content),
     length: 163,
     shouldInclude: [
@@ -107,7 +107,7 @@ describe("Rating Page readers", () => {
   });
 
   itShouldReadAlbumsFromRatingPage({
-    filepath: "./2000.html",
+    filepath: "2000.html",
     reader: (content) => readAlbumsFromYearRatingsPage(2000, content),
     length: 687,
     shouldInclude: [
@@ -139,7 +139,7 @@ describe("Rating Page readers", () => {
   });
 
   itShouldReadAlbumsFromRatingPage({
-    filepath: "./1990.html",
+    filepath: "1990.html",
     reader: (content) => readAlbumsFromYearRatingsPage(1990, content),
     length: 457,
     shouldInclude: [

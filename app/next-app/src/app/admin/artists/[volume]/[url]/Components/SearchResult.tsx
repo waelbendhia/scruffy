@@ -1,6 +1,6 @@
 import ArtistCard from "@/components/ArtistCard";
 import SearchResultItem from "./SearchResultItem";
-import BlockContainer from "./BlockContainer";
+import BlockContainer from "@/components/BlockContainer";
 
 type Props = { source: string; className?: string } & (
   | {

@@ -1,6 +1,6 @@
 import AlbumCard from "@/components/AlbumCard";
 import SearchResultItem from "./SearchResultItem";
-import BlockContainer from "../../../Components/BlockContainer";
+import BlockContainer from "@/components/BlockContainer";
 
 type Props = { source: string; className?: string } & (
   | {
@@ -35,8 +35,8 @@ const SearchResult = ({ className, source, ...props }: Props) => {
               <input className="w-4" type="radio" disabled />
               <AlbumCard
                 layout="horizontal"
-                className={`h-48 my-2`}
-                imageClassName="w-48"
+                className={`h-32 my-2`}
+                imageClassName="w-32"
                 loading
               />
             </InputContainer>
