@@ -29,6 +29,7 @@ export const markUpdateStart = () => {
 
 export const incrementArtist = () => {
   updateInfo.artists++;
+  updateInfoSubject.next(updateInfo);
 };
 
 export const incrementAlbum = (count?: number) => {

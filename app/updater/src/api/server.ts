@@ -230,18 +230,6 @@ api.put<{ Reply: { 200: UpdateStatus } }>("/update/start", (_, reply) => {
   reply.code(200).send(getUpdateStatus());
 });
 
-api.post<{ Reply: { 200: UpdateStatus } }>(
-  "/update/start",
-  async (_, reply) => {
-    if (!getUpdateStatus().isUpdating) {
-      await prisma.updateHistory.deleteMany({ where: {} });
-      startUpdate();
-    }
-
-    reply.code(200).send(getUpdateStatus());
-  },
-);
-
 api.delete<{ Reply: { 204: null } }>("/all-data", async (_, reply) => {
   await prisma.$transaction(async (tx) => {
     await tx.album.deleteMany({ where: {} });
@@ -252,6 +240,7 @@ api.delete<{ Reply: { 204: null } }>("/all-data", async (_, reply) => {
 });
 
 api.get("/update/live", {}, (req, reply) => {
+  reply.sse({ data: JSON.stringify(getUpdateStatus()) });
   const sub = watchUpdates().subscribe((u) =>
     reply.sse({ data: JSON.stringify(u) }),
   );

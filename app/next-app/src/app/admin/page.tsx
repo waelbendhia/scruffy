@@ -53,13 +53,6 @@ const action = async (formData: FormData) => {
       });
       revalidateTag("updateInfo");
       return;
-    case "update-all":
-      await fetch(`${updaterBaseURL}/update/start`, {
-        method: "POST",
-        next: { revalidate: 0 },
-      });
-      revalidateTag("updateInfo");
-      return;
   }
 };
 
@@ -86,13 +79,6 @@ const UpdateData = async (props: StatsProps) => {
         disabled={props.loading || props.isUpdating}
       >
         Recheck
-      </button>
-      <button
-        name="action"
-        value="update-all"
-        disabled={props.loading || props.isUpdating}
-      >
-        Update All
       </button>
     </form>
   );
