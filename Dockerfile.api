@@ -29,14 +29,15 @@ RUN apt-get update -y && apt-get install -y openssl
 
 WORKDIR /app
 
-COPY --from=builder /base/app/api ./app/api
-COPY --from=builder /base/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /base/app/api/dist ./
+COPY --from=builder /base/packages/database/prisma/schema.prisma ./
+COPY --from=builder /base/node_modules/@prisma/engines/libquery_engine-debian-openssl-3.0.x.so.node ./
 
-ENV PRISMA_QUERY_ENGINE_LIBRARY "node_modules/@prisma/engines/libquery_engine-debian-openssl-3.0.x.so.node"
+ENV PRISMA_QUERY_ENGINE_LIBRARY "/app/libquery_engine-debian-openssl-3.0.x.so.node"
 
 ENV SERVER_PORT 8001
 ENV SERVER_HOST "0.0.0.0"
 
 EXPOSE ${SERVER_PORT}
 
-CMD exec node --require ./app/api/dist/instrumentation.js app/api/dist/server.js
+CMD exec node --require /app/instrumentation.js /app/server.js

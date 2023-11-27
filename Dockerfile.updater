@@ -30,12 +30,15 @@ FROM node:18.17-slim
 
 RUN apt-get update -y && apt-get install -y openssl
 
-COPY --from=builder /base/app/updater ./app/updater
-COPY --from=builder /base/node_modules/@prisma ./node_modules/@prisma
+WORKDIR /app
 
-ENV PRISMA_QUERY_ENGINE_LIBRARY "node_modules/@prisma/engines/libquery_engine-debian-openssl-3.0.x.so.node"
+COPY --from=builder /base/app/updater/dist ./
+COPY --from=builder /base/packages/database/prisma/schema.prisma ./
+COPY --from=builder /base/node_modules/@prisma/engines/libquery_engine-debian-openssl-3.0.x.so.node ./
+
+ENV PRISMA_QUERY_ENGINE_LIBRARY "/app/libquery_engine-debian-openssl-3.0.x.so.node"
 
 ENV LAST_FM_API_KEY ""
 ENV DATABASE_URL ""
 
-CMD exec node app/updater/dist/main.js
+CMD exec node /app/main.js
