@@ -18,7 +18,7 @@ const getBlurFromRedis = async (imageUrl: string) => {
 const generateBlurData = async (imageUrl: string) => {
   const res = await fetch(imageUrl, { next: { revalidate: 0 } });
   const buffer = Buffer.from(await res.arrayBuffer());
-  const { base64 } = await getPlaiceholder(buffer);
+  const { base64 } = await getPlaiceholder(buffer, { size: 32 });
 
   const client = getRedisClient();
   if (client) {
