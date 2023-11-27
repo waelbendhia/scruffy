@@ -38,4 +38,4 @@ ENV PRISMA_QUERY_ENGINE_LIBRARY "node_modules/@prisma/engines/libquery_engine-de
 ENV LAST_FM_API_KEY ""
 ENV DATABASE_URL ""
 
-CMD exec node --require ./app/updater/dist/instrumentation.js app/updater/dist/main.js
+CMD exec node app/updater/dist/main.js
