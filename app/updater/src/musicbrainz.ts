@@ -107,7 +107,7 @@ export const searchMusicBrainzAlbums = async (
     data.releases.map(async (rel) => {
       if (rel.score < 80) return { ...rel, front: undefined };
 
-      const resp = await coverArtClient.get(`/release/${rel.id}/front`);
+      const resp = await coverArtClient.get(`/release/${rel.id}/front-500`);
       if (resp.status !== 307 || !(resp.headers instanceof AxiosHeaders))
         return { ...rel, front: undefined };
 
