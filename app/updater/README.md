@@ -9,3 +9,5 @@ Running from scratch usually takes around 10-ish hours. The components respects 
 It maintains in the database an `updateHistory` table that contains hashes for each page visited so it can detect changes in that page.
 
 It also exposes an API that allows the manual correction of release year and cover art for albums and name and images for artists as well as endpoints that can start or stop updates or clear the database.
+
+You can set the `RECHECK_DELAY` env var to control how often in seconds the server should check for changes.

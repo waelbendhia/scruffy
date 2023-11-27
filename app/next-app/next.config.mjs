@@ -3,6 +3,7 @@ import withPlaiceholder from "@plaiceholder/next";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  compress: false,
   env: {
     GITHUB_SHA: process.env.GITHUB_SHA,
   },
