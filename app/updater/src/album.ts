@@ -11,7 +11,7 @@ import { getBiggestLastFMImage, getLastFMAlbum } from "./lastfm";
 import { getBiggestSpotifyImage, getSpotifyAlbum } from "./spotify";
 import { readPage } from "./page";
 import { client } from "./scaruffi";
-import { map } from "rxjs";
+import { catchError, map, of } from "rxjs";
 import { searchMusicBrainzAlbums } from "./musicbrainz";
 import { MusicBrainzRelease } from "../dist";
 import { incrementAlbum } from "./update-status";
@@ -137,6 +137,10 @@ export const addAlbumCoverFromSpotify = async <
 
 export const readYearRatingsPage = (year: number) =>
   readPage(() => getYearRatingsPage(year, client)).pipe(
+    catchError((e) => {
+      console.error(`could not read ratings page for year ${year}`, e);
+      return of();
+    }),
     map(({ data, ...page }) => ({
       data: readAlbumsFromYearRatingsPage(year, data),
       ...page,
@@ -145,6 +149,10 @@ export const readYearRatingsPage = (year: number) =>
 
 export const readNewRatingsPage = () =>
   readPage(() => getNewRatingsPage(client)).pipe(
+    catchError((e) => {
+      console.error(`could not read new ratings page`, e);
+      return of();
+    }),
     map(({ data, ...page }) => ({
       data: readAlbumsFromNewRatingsPage(data),
       ...page,

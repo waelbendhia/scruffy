@@ -41,21 +41,37 @@ import {
 type PageData = Awaited<ReturnType<typeof getPage>>;
 
 const readArtistsPage = (
+  page: string,
   getter: () => Promise<PageData>,
   reader: (_: string | Buffer) => Record<string, { name: string }>,
 ) =>
   readPage(getter).pipe(
+    catchError((e) => {
+      console.error(`could not read artists from page ${page}`, e);
+      return of();
+    }),
     map(({ data, ...page }) => ({ ...page, artists: reader(data) })),
   );
 
 type Volume = Parameters<typeof readArtistsFromVolumePage>[0];
 
 export const readRockPage = () =>
-  readArtistsPage(() => getRockPage(client), readArtistsFromRockPage);
+  readArtistsPage(
+    "rock page",
+    () => getRockPage(client),
+    readArtistsFromRockPage,
+  );
+
 export const readJazzPage = () =>
-  readArtistsPage(() => getJazzPage(client), readArtistsFromJazzPage);
+  readArtistsPage(
+    "jazz page",
+    () => getJazzPage(client),
+    readArtistsFromJazzPage,
+  );
+  
 export const readVolumePage = (volume: Volume) =>
   readArtistsPage(
+    `volume ${volume}`,
     () => getVolumePage(volume, client),
     (data) => readArtistsFromVolumePage(volume, data),
   );
