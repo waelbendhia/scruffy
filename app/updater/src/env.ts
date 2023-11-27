@@ -23,7 +23,7 @@ export const hasAlbumProvider = (p: AlbumProvider) => albumProviders.has(p);
 export type ArtistProvider = "spotify" | "deezer";
 
 export const artistProviders: Set<ArtistProvider> = new Set(
-  process.env.ALBUM_PROVIDERS?.split(",")
+  process.env.ARTIST_PROVIDERS?.split(",")
     .map((t) => t.trim().toLowerCase())
     .filter((a): a is ArtistProvider => a === "spotify" || a === "deezer") ?? [
     "spotify",

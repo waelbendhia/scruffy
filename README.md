@@ -34,6 +34,8 @@ The project requires a [SQLite](https://www.sqlite.org/index.html) database, you
  - **`UPDATER_PORT`** port [`updater`](./app/updater) will listen on, defaults to `8002`
  - **`REDIS_URL`** url of a Redis instance if you choose to use one.
  - **`PORT`** port the [next-app](./app/updater) will listen on, defaults to `3000`
+ - **`ARTIST_PROVIDERS`** comma seperated list of artist providers. These can be `spotify` or `deezer`, default is `deezer, spotify`
+ - **`ALBUM_PROVIDERS`** comma seperated list of album providers. These can be `spotify`, `deezer`, `musicbrainz` or `lastfm`, default is `musicbrainz`
 
 # TODO
 
