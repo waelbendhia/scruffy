@@ -15,6 +15,7 @@ import { catchError, map, of } from "rxjs";
 import { searchMusicBrainzAlbums } from "./musicbrainz";
 import { MusicBrainzRelease } from "../dist";
 import { incrementAlbum } from "./update-status";
+import { hasAlbumProvider } from "./env";
 
 export const addAlbumCoverAndReleaseYearFromMusicBrainz = async <
   T extends Omit<ReadAlbum, "artistUrl">,
@@ -22,7 +23,7 @@ export const addAlbumCoverAndReleaseYearFromMusicBrainz = async <
   artistName: string,
   album: T,
 ) => {
-  if (album.imageUrl && album.year) {
+  if (!hasAlbumProvider("musicbrainz") || (album.imageUrl && album.year)) {
     return album;
   }
 
@@ -64,7 +65,7 @@ export const addAlbumCoverAndReleaseYearFromDeezer = async <
   artistName: string,
   album: T,
 ) => {
-  if (album.imageUrl && album.year) {
+  if (!hasAlbumProvider("deezer") || (album.imageUrl && album.year)) {
     return album;
   }
 
@@ -94,7 +95,7 @@ export const addAlbumCoverFromLastFM = async <
   artistName: string,
   album: T,
 ) => {
-  if (album.imageUrl) {
+  if (!hasAlbumProvider("lastfm") || !!album.imageUrl) {
     return album;
   }
 
@@ -115,7 +116,7 @@ export const addAlbumCoverFromSpotify = async <
   artistName: string,
   album: T,
 ) => {
-  if (album.imageUrl) {
+  if (!hasAlbumProvider("spotify") || !!album.imageUrl) {
     return album;
   }
 

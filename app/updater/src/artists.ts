@@ -19,7 +19,7 @@ import {
   catchError,
   pipe,
 } from "rxjs";
-import { concurrency, conncurentConnections } from "./env";
+import { concurrency, conncurentConnections, hasAlbumProvider, hasArtistProvider } from "./env";
 import { Observed } from "./types";
 import { getBestArtistSearchResult } from "./deezer";
 import { getBiggestLastFMImage, getLastFMAlbum } from "./lastfm";
@@ -68,7 +68,7 @@ export const readJazzPage = () =>
     () => getJazzPage(client),
     readArtistsFromJazzPage,
   );
-  
+
 export const readVolumePage = (volume: Volume) =>
   readArtistsPage(
     `volume ${volume}`,
@@ -105,7 +105,7 @@ export const addImagesFromLastFM = (artist: ReadArtist) =>
     concatMap((a) =>
       from(a.albums ?? []).pipe(
         mergeMap(async (album) => {
-          if (album.imageUrl) {
+          if (!hasAlbumProvider("lastfm") || !!album.imageUrl) {
             return album;
           }
 
@@ -130,7 +130,7 @@ const deezerDefaultImage = "1000x1000-000000-80-0-0.jpg";
 export const addImagesAndReleaseYearsFromDeezer = (artist: ReadArtist) =>
   of(artist).pipe(
     concatMap(async (a) => {
-      if (!!a.imageUrl) {
+      if (!hasArtistProvider("deezer") || !!a.imageUrl) {
         return a;
       }
 
@@ -162,7 +162,7 @@ export const addImagesAndReleaseYearsFromDeezer = (artist: ReadArtist) =>
 export const addImagesAndReleaseYearsFromSpotify = (artist: ReadArtist) =>
   of(artist).pipe(
     concatMap(async (a) => {
-      if (!!a.imageUrl) {
+      if (!hasArtistProvider("spotify") || !!a.imageUrl) {
         return a;
       }
 
@@ -201,15 +201,8 @@ export const addImagesAndReleaseYearsFromMusicBrainz = (artist: ReadArtist) =>
     ),
   );
 
-export const addImagesAndReleaseYears = (artist: ReadArtist) =>
-  of(artist).pipe(
-    concatMap(addImagesAndReleaseYearsFromSpotify),
-    concatMap(addImagesAndReleaseYearsFromDeezer),
-    concatMap(addImagesFromLastFM),
-  );
-
 type ReadArtistWithImages = Observed<
-  ReturnType<typeof addImagesAndReleaseYears>
+  ReturnType<typeof addImagesAndReleaseYearsFromSpotify>
 >;
 
 export const insertArtist = (artist: ReadArtistWithImages) =>
