@@ -30,7 +30,7 @@ ARG GITHUB_SHA
 RUN yarn workspace @scruffy/next-app add sharp
 RUN yarn workspace @scruffy/next-app run build
 
-FROM node:18.17
+FROM node:18.17-slim
 
 WORKDIR /app
 

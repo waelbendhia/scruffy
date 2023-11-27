@@ -26,10 +26,12 @@ COPY app/updater app/updater
 
 RUN yarn workspace @scruffy/updater run build
 
-FROM node:18.17
+FROM node:18.17-slim
+
+RUN apt-get update -y && apt-get install -y openssl
 
 COPY --from=builder /base/app/updater ./app/updater
-COPY --from=builder /base/node_modules ./node_modules
+COPY --from=builder /base/node_modules/@prisma ./node_modules/@prisma
 
 ENV PRISMA_QUERY_ENGINE_LIBRARY "node_modules/@prisma/engines/libquery_engine-debian-openssl-3.0.x.so.node"
 
