@@ -15,30 +15,30 @@ import {
   of,
   map,
   mergeMap,
-  toArray,
   catchError,
   pipe,
+  Observable,
 } from "rxjs";
-import { concurrency, conncurentConnections, hasAlbumProvider, hasArtistProvider } from "./env";
-import { Observed } from "./types";
+import { concurrency, hasArtistProvider } from "./env";
+import { ReadAlbum, ReadArtist } from "./types";
 import { getBestArtistSearchResult } from "./deezer";
-import { getBiggestLastFMImage, getLastFMAlbum } from "./lastfm";
 import { readPage } from "./page";
 import { URL } from "url";
-import {
-  addAlbumCoverAndReleaseYearFromDeezer,
-  addAlbumCoverAndReleaseYearFromMusicBrainz,
-  addAlbumCoverFromSpotify,
-} from "./album";
 import { client } from "./scaruffi";
 import { getBiggestSpotifyImage, getSpotifyArtist } from "./spotify";
-import {
-  incrementAlbum,
-  incrementArtist,
-  incrementPages,
-} from "./update-status";
+import { addError, incrementArtist, incrementPages } from "./update-status";
 
 type PageData = Awaited<ReturnType<typeof getPage>>;
+
+const catchArtistError = <T>(
+  artistURL: string,
+): ((o: Observable<T>) => Observable<T>) =>
+  pipe(
+    catchError((e) => {
+      addError(`artistURL: ${artistURL}`, e);
+      return of();
+    }),
+  );
 
 const readArtistsPage = (
   page: string,
@@ -46,10 +46,7 @@ const readArtistsPage = (
   reader: (_: string | Buffer) => Record<string, { name: string }>,
 ) =>
   readPage(getter).pipe(
-    catchError((e) => {
-      console.error(`could not read artists from page ${page}`, e);
-      return of();
-    }),
+    catchArtistError(page),
     map(({ data, ...page }) => ({ ...page, artists: reader(data) })),
   );
 
@@ -76,7 +73,7 @@ export const readVolumePage = (volume: Volume) =>
     (data) => readArtistsFromVolumePage(volume, data),
   );
 
-export const readArtist = (url: string) =>
+export const readDataFromArtistPage = (url: string) =>
   readPage(() => getPage(url, client)).pipe(
     concatMap(({ data, ...page }) => {
       const artist = readArtistFromArtistPage(url, data);
@@ -85,244 +82,114 @@ export const readArtist = (url: string) =>
         return of();
       }
 
-      return of({ ...page, ...artist });
+      const { albums, ...a } = artist;
+
+      return from([
+        { type: "artist" as const, page, ...a } satisfies ReadArtist,
+        ...albums.map(
+          (album): ReadAlbum => ({
+            ...album,
+            page,
+            type: "album" as const,
+            artistName: artist.name,
+            artistUrl: a.url,
+          }),
+        ),
+      ]);
     }),
-  );
-
-type ReadArtistWithoutImage = Observed<ReturnType<typeof readArtist>>;
-type ReadAlbum = ReadArtistWithoutImage["albums"][number] & {
-  imageUrl?: string;
-};
-
-type ReadArtist = Omit<ReadArtistWithoutImage, "albums"> & {
-  imageUrl?: string | undefined;
-  albums: ReadAlbum[];
-};
-
-export const addImagesFromLastFM = (artist: ReadArtist) =>
-  of(artist).pipe(
-    catchError(() => of(artist)),
-    concatMap((a) =>
-      from(a.albums ?? []).pipe(
-        mergeMap(async (album) => {
-          if (!hasAlbumProvider("lastfm") || !!album.imageUrl) {
-            return album;
-          }
-
-          try {
-            const albumSearchResult = await getLastFMAlbum(a.name, album.name);
-
-            const cover = getBiggestLastFMImage(albumSearchResult?.album.image);
-
-            return { ...album, imageUrl: cover?.["#text"] };
-          } catch (e) {
-            return album;
-          }
-        }, conncurentConnections),
-        toArray(),
-        map((albums) => ({ ...a, albums })),
-      ),
-    ),
+    catchArtistError(url),
   );
 
 const deezerDefaultImage = "1000x1000-000000-80-0-0.jpg";
 
-export const addImagesAndReleaseYearsFromDeezer = (artist: ReadArtist) =>
-  of(artist).pipe(
-    concatMap(async (a) => {
-      if (!hasArtistProvider("deezer") || !!a.imageUrl) {
-        return a;
-      }
+const withCatch =
+  <Arg extends ReadArtist, Res>(f: (_: Arg) => Promise<Res>) =>
+  (a: Arg) =>
+    of(a).pipe(concatMap(f), catchArtistError(a.url));
 
-      const searchResult = await getBestArtistSearchResult(a.name);
-      if (!searchResult) {
-        return a;
-      }
+export const addArtistImageFromDeezer = withCatch(
+  async <T extends ReadArtist>(a: T) => {
+    if (!hasArtistProvider("deezer") || !!a.imageUrl) {
+      return a;
+    }
 
-      const path = new URL(searchResult.picture_xl).pathname.split("/");
-      if (path[path.length - 1] === deezerDefaultImage) {
-        return a;
-      }
+    const searchResult = await getBestArtistSearchResult(a.name);
+    if (!searchResult) {
+      return a;
+    }
 
-      return { ...a, imageUrl: searchResult?.picture_xl };
-    }),
-    mergeMap(
-      (a) =>
-        from(a.albums ?? []).pipe(
-          concatMap((album) =>
-            addAlbumCoverAndReleaseYearFromDeezer(a.name, album),
-          ),
-          toArray(),
-          map((albums) => ({ ...a, albums })),
-        ),
-      concurrency,
-    ),
-  );
+    const path = new URL(searchResult.picture_xl).pathname.split("/");
+    if (path[path.length - 1] === deezerDefaultImage) {
+      return a;
+    }
 
-export const addImagesAndReleaseYearsFromSpotify = (artist: ReadArtist) =>
-  of(artist).pipe(
-    concatMap(async (a) => {
-      if (!hasArtistProvider("spotify") || !!a.imageUrl) {
-        return a;
-      }
+    return { ...a, imageUrl: searchResult?.picture_xl };
+  },
+);
 
-      const bestMatch = await getSpotifyArtist(a.name);
-      if (!bestMatch) {
-        return a;
-      }
+export const addArtistImageFromSpotify = withCatch(
+  async <T extends ReadArtist>(a: T) => {
+    if (!hasArtistProvider("spotify") || !!a.imageUrl) {
+      return a;
+    }
 
-      const image = getBiggestSpotifyImage(bestMatch.images);
+    const bestMatch = await getSpotifyArtist(a.name);
+    if (!bestMatch) {
+      return a;
+    }
 
-      return { ...a, imageUrl: image?.url };
-    }),
-    concatMap((a) =>
-      from(a.albums ?? []).pipe(
-        mergeMap(
-          (album) => addAlbumCoverFromSpotify(a.name, album),
-          concurrency,
-        ),
-        toArray(),
-        map((albums) => ({ ...a, albums })),
-      ),
-    ),
-  );
+    const image = getBiggestSpotifyImage(bestMatch.images);
 
-export const addImagesAndReleaseYearsFromMusicBrainz = (artist: ReadArtist) =>
-  of(artist).pipe(
-    concatMap((a) =>
-      from(a.albums ?? []).pipe(
-        mergeMap(
-          (album) => addAlbumCoverAndReleaseYearFromMusicBrainz(a.name, album),
-          concurrency,
-        ),
-        toArray(),
-        map((albums) => ({ ...a, albums })),
-      ),
-    ),
-  );
+    return { ...a, imageUrl: image?.url };
+  },
+);
 
-type ReadArtistWithImages = Observed<
-  ReturnType<typeof addImagesAndReleaseYearsFromSpotify>
->;
+export const addArtistImage: <T extends ReadArtist>(
+  source: Observable<T>,
+) => Observable<T> = pipe(
+  mergeMap(addArtistImageFromSpotify, concurrency),
+  mergeMap(addArtistImageFromDeezer, concurrency),
+);
 
-export const insertArtist = (artist: ReadArtistWithImages) =>
-  from(
-    prisma.$transaction(async (tx) => {
-      const now = new Date();
+export const insertArtist = withCatch(<T extends ReadArtist>(artist: T) =>
+  prisma.$transaction(async (tx) => {
+    const now = new Date();
 
-      incrementPages();
-      await tx.updateHistory.upsert({
-        where: { pageURL: artist.url },
-        create: {
-          checkedOn: now,
-          hash: artist.hash,
-          pageURL: artist.url,
-        },
-        update: {
-          checkedOn: now,
-          hash: artist.hash,
-          pageURL: artist.url,
-        },
-      });
+    incrementPages();
+    await tx.updateHistory.upsert({
+      where: { pageURL: artist.url },
+      create: {
+        checkedOn: now,
+        hash: artist.page.hash,
+        pageURL: artist.url,
+      },
+      update: {
+        checkedOn: now,
+        hash: artist.page.hash,
+        pageURL: artist.url,
+      },
+    });
 
-      const albums: Prisma.AlbumCreateNestedManyWithoutArtistInput = {
-        connectOrCreate: artist.albums.map(
-          (album): Prisma.AlbumCreateOrConnectWithoutArtistInput => ({
-            where: {
-              artistUrl_name: {
-                artistUrl: artist.url,
-                name: album.name,
-              },
-            },
-            create: {
-              name: album.name,
-              year: album.year,
-              rating: album.rating,
-              imageUrl: album.imageUrl,
-              fromUpdate: { connect: { pageURL: artist.url } },
-            },
-          }),
-        ),
-      };
+    const createOrUpdateInput: Prisma.ArtistCreateInput &
+      Prisma.ArtistUpdateInput = {
+      name: artist.name,
+      imageUrl: artist.imageUrl,
+      lastModified: artist.page.lastModified,
+      bio: artist.bio,
+      fromUpdate: { connect: { pageURL: artist.url } },
+    };
 
-      const createOrUpdateInput: Prisma.ArtistCreateInput &
-        Prisma.ArtistUpdateInput = {
-        name: artist.name,
-        imageUrl: artist.imageUrl,
-        lastModified: artist.lastModified,
-        bio: artist.bio,
-        fromUpdate: { connect: { pageURL: artist.url } },
-        albums,
-      };
+    incrementArtist();
+    return await tx.artist.upsert({
+      where: { url: artist.url },
+      create: createOrUpdateInput,
+      update: createOrUpdateInput,
+    });
+  }),
+);
 
-      incrementArtist();
-      incrementAlbum(artist.albums.length);
-      return await tx.artist.upsert({
-        where: { url: artist.url },
-        create: createOrUpdateInput,
-        update: createOrUpdateInput,
-      });
-    }),
-  );
-
-export const insertArtistWithImages = () =>
-  pipe(
-    mergeMap(
-      (url: string) =>
-        readArtist(url).pipe(
-          catchError((e) => {
-            console.debug("error: ", e);
-            return of();
-          }),
-        ),
-      concurrency,
-    ),
-    mergeMap(
-      (a) =>
-        addImagesAndReleaseYearsFromMusicBrainz(a).pipe(
-          catchError((e) => {
-            console.debug("error: ", e);
-            return of();
-          }),
-        ),
-      concurrency,
-    ),
-    mergeMap(
-      (a) =>
-        addImagesAndReleaseYearsFromSpotify(a).pipe(
-          catchError((e) => {
-            console.debug("error: ", e);
-            return of();
-          }),
-        ),
-      concurrency,
-    ),
-    mergeMap(
-      (a) =>
-        addImagesAndReleaseYearsFromDeezer(a).pipe(
-          catchError((e) => {
-            console.debug("error: ", e);
-            return of();
-          }),
-        ),
-      concurrency,
-    ),
-    mergeMap(
-      (a) =>
-        addImagesFromLastFM(a).pipe(
-          catchError((e) => {
-            console.debug("error: ", e);
-            return of();
-          }),
-        ),
-      concurrency,
-    ),
-    concatMap((v) =>
-      insertArtist(v).pipe(
-        catchError((e) => {
-          console.debug("error: ", e);
-          return of();
-        }),
-      ),
-    ),
-  );
+export const processArtist = pipe(
+  mergeMap(addArtistImageFromSpotify, concurrency),
+  mergeMap(addArtistImageFromDeezer, concurrency),
+  concatMap(insertArtist),
+);

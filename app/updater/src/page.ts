@@ -9,7 +9,7 @@ const is404Error = (e: unknown) =>
   isAxiosError(e) && e.response?.status === 404;
 
 /** Read page if no previous updateHistory entry is found or it does not match */
-export const readPage = (getter: () => Promise<PageData | null>) =>
+export const readPage = <T extends PageData>(getter: () => Promise<T | null>) =>
   from(getter()).pipe(
     retry({
       count: 10,
@@ -21,15 +21,20 @@ export const readPage = (getter: () => Promise<PageData | null>) =>
         return null;
       }
 
-      const prev = await prisma.updateHistory.findUnique({
-        where: { pageURL: page.url },
-      });
-      if (prev?.hash === page.hash) {
-        console.debug(`no update for page ${page.url}, skipping.`);
-        return null;
-      }
+      try {
+        const prev = await prisma.updateHistory.findUnique({
+          where: { pageURL: page.url },
+        });
+        if (prev?.hash === page.hash) {
+          console.debug(`no update for page ${page.url}, skipping.`);
+          return null;
+        }
 
-      return page;
+        return page;
+      } catch (e) {
+        console.error(`page check failed`, page.url, page.hash);
+        throw e;
+      }
     }),
-    filter((page): page is Exclude<typeof page, null> => page !== null),
+    filter((page): page is NonNullable<typeof page> => page !== null),
   );

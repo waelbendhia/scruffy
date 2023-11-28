@@ -1,13 +1,25 @@
+// @ts-check
 import withPlaiceholder from "@plaiceholder/next";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const GITHUB_SHA = process.env.GITHUB_SHA;
+const REDIS_URL = process.env.REDIS_URL;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
   compress: false,
-  env: {
-    GITHUB_SHA: process.env.GITHUB_SHA,
+  env: GITHUB_SHA ? { GITHUB_SHA } : undefined,
+  experimental: {
+    instrumentationHook: true,
+    incrementalCacheHandlerPath: REDIS_URL
+      ? path.join(__dirname, "./cache-handler.js")
+      : undefined,
   },
-  experimental: { instrumentationHook: true },
   images: {
     remotePatterns: [
       {

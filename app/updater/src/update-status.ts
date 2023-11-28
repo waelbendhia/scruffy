@@ -7,17 +7,22 @@ export type UpdateInfo = {
   artists: number;
   albums: number;
   pages: number;
+  errors: {
+    context: string;
+    error: unknown;
+  }[];
 };
 
 const updateInfoSubject = new Subject<UpdateInfo>();
 
-export const watchUpdates = () => updateInfoSubject.asObservable()
+export const watchUpdates = () => updateInfoSubject.asObservable();
 
 let updateInfo: UpdateInfo = {
   isUpdating: false,
   artists: 0,
   albums: 0,
   pages: 0,
+  errors: [],
 };
 
 export const getUpdateStatus = (): Readonly<typeof updateInfo> => updateInfo;
@@ -46,6 +51,12 @@ export const incrementPages = () => {
   updateInfoSubject.next(updateInfo);
 };
 
+export const addError = (context: string, error: unknown) => {
+  console.error(`error updating: ${context}`, error);
+  updateInfo.errors.push({ context, error });
+  updateInfoSubject.next(updateInfo);
+};
+
 export const markUpdateEnd = () => {
   if (!updateInfo.updateStart) {
     return;
@@ -58,6 +69,7 @@ export const markUpdateEnd = () => {
     isUpdating: false,
     updateStart: updateInfo.updateStart,
     updateEnd: new Date(),
+    errors: [],
   };
   updateInfoSubject.next(updateInfo);
 };

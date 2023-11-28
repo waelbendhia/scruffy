@@ -967,6 +967,19 @@
     semver "^7.3.5"
     tar "^6.1.11"
 
+"@neshca/cache-handler@^0.5.3":
+  version "0.5.3"
+  resolved "https://registry.yarnpkg.com/@neshca/cache-handler/-/cache-handler-0.5.3.tgz#800106baae4b91f05bed288c37920562011582e2"
+  integrity sha512-66NfitJrC43eA/lHQXzFRyk9onF+zEPPO7Cfj9Em/LIGEFNYrNpRLCtxTN9alspc+LAKCBpOoYVDMQGAHU0qdQ==
+  dependencies:
+    "@neshca/json-replacer-reviver" "*"
+    lru-cache "10.1.0"
+
+"@neshca/json-replacer-reviver@*", "@neshca/json-replacer-reviver@^1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@neshca/json-replacer-reviver/-/json-replacer-reviver-1.1.0.tgz#7d57c1211a0f858259b2367d68e3a17c61582956"
+  integrity sha512-2WU0fd15k+IAJdNB0yK4VxPbjcbwDKGLW9qfehm5u8Bavhg+QGphn4YBiKtO6yfnGK2b+ihmNK8laWIvL/l44w==
+
 "@next/env@14.0.3":
   version "14.0.3"
   resolved "https://registry.yarnpkg.com/@next/env/-/env-14.0.3.tgz#9a58b296e7ae04ffebce8a4e5bd0f87f71de86bd"
@@ -7642,6 +7655,11 @@ lowercase-keys@^1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/lowercase-keys/-/lowercase-keys-1.0.1.tgz#6f9e30b47084d971a7c820ff15a6c5167b74c26f"
   integrity sha512-G2Lj61tXDnVFFOi8VZds+SoQjtQC3dgokKdDG2mTm1tx4m50NUHBOZSBwQQHyy0V12A0JTG4icfZQH+xPyh8VA==
+
+lru-cache@10.1.0:
+  version "10.1.0"
+  resolved "https://registry.yarnpkg.com/lru-cache/-/lru-cache-10.1.0.tgz#2098d41c2dc56500e6c88584aa656c84de7d0484"
+  integrity sha512-/1clY/ui8CzjKFyjdvwPWJUYKiFVXG2I2cY0ssG7h4+hwk+XOIX7ZSG9Q7TW8TW3Kp3BUSqgFWBLgL4PJ+Blag==
 
 lru-cache@^4.0.1:
   version "4.1.5"

@@ -107,14 +107,25 @@ export const searchMusicBrainzAlbums = async (
     data.releases.map(async (rel) => {
       if (rel.score < 80) return { ...rel, front: undefined };
 
-      const resp = await coverArtClient.get(`/release/${rel.id}/front-500`);
-      if (resp.status !== 307 || !(resp.headers instanceof AxiosHeaders))
-        return { ...rel, front: undefined };
+      for (const url of [
+        `/release/${rel.id}/front-500`,
+        `/release/${rel.id}/front-250`,
+        `/release/${rel.id}/front`,
+      ]) {
+        const resp = await coverArtClient.get(url);
+        if (resp.status !== 307 || !(resp.headers instanceof AxiosHeaders)) {
+          continue;
+        }
 
-      const imageURL = resp.headers.get("Location");
-      if (typeof imageURL !== "string") return { ...rel, front: undefined };
+        const imageURL = resp.headers.get("Location");
+        if (typeof imageURL !== "string") {
+          continue;
+        }
 
-      return { ...rel, front: imageURL };
+        return { ...rel, front: imageURL };
+      }
+
+      return { ...rel, front: undefined };
     }),
   );
 

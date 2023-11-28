@@ -1,10 +1,5 @@
 import { prisma } from "@scruffy/database";
 import {
-  incrementPages,
-  markUpdateEnd,
-  markUpdateStart,
-} from "./update-status";
-import {
   concatMap,
   from,
   map,
@@ -12,17 +7,20 @@ import {
   mergeMap,
   of,
   distinct,
-  toArray,
-  reduce,
   count,
-  finalize,
-  takeUntil,
   repeat,
   delay,
+  partition,
+  finalize,
+  takeUntil,
+  defer,
 } from "rxjs";
-import { databaseConcurrency, recheckDelay, concurrency } from "./env";
+import { concurrency, recheckDelay } from "./env";
 import {
-  insertArtistWithImages,
+  addArtistImageFromDeezer,
+  addArtistImageFromSpotify,
+  insertArtist,
+  readDataFromArtistPage,
   readJazzPage,
   readRockPage,
   readVolumePage,
@@ -30,14 +28,17 @@ import {
 import {
   addAlbumCoverAndReleaseYearFromDeezer,
   addAlbumCoverAndReleaseYearFromMusicBrainz,
+  addAlbumCoverAndReleaseYearFromSpotify,
   addAlbumCoverFromLastFM,
-  addAlbumCoverFromSpotify,
   insertAlbum,
   readNewRatingsPage,
   readYearRatingsPage,
+  splitRatingsPageData,
 } from "./album";
 import { api } from "./api/server";
 import { watchStartSignal, watchStopSignal } from "./start-stop-signal";
+import { ReadArtist } from "./types";
+import { markUpdateEnd, markUpdateStart } from "./update-status";
 
 const range = (start: number, end: number): number[] => {
   let a = [];
@@ -47,58 +48,13 @@ const range = (start: number, end: number): number[] => {
   return a;
 };
 
-const loadAndInsertRatingsPages = () =>
+const readRatingsPages = () =>
   merge(
     ...range(1990, new Date().getFullYear()).map(readYearRatingsPage),
     readNewRatingsPage(),
-  ).pipe(
-    concatMap(async (p) => {
-      incrementPages();
-      await prisma.updateHistory.upsert({
-        where: { pageURL: p.url },
-        create: { pageURL: p.url, hash: p.hash },
-        update: { hash: p.hash, checkedOn: new Date() },
-      });
-
-      return p;
-    }),
-    toArray(),
-    concatMap((ps) =>
-      from(ps).pipe(
-        mergeMap((p) => from(Object.entries(p.data.artists)), concurrency),
-        mergeMap(
-          ([url]) =>
-            from(prisma.artist.count({ where: { url } })).pipe(
-              concatMap((c) => (c > 0 ? of() : of(url))),
-            ),
-          databaseConcurrency,
-        ),
-        takeUntil(watchStopSignal()),
-        insertArtistWithImages(),
-        count(),
-        map(() => ps),
-      ),
-    ),
-    mergeMap((ps) => from(ps), concurrency),
-    mergeMap(
-      (p) => from(p.data.albums.map((album) => ({ ...album, pageURL: p.url }))),
-      concurrency,
-    ),
-    takeUntil(watchStopSignal()),
-    mergeMap(
-      (a) => addAlbumCoverAndReleaseYearFromMusicBrainz(a.name, a),
-      concurrency,
-    ),
-    mergeMap((a) => addAlbumCoverFromSpotify(a.name, a), concurrency),
-    mergeMap(
-      (a) => addAlbumCoverAndReleaseYearFromDeezer(a.name, a),
-      concurrency,
-    ),
-    mergeMap((a) => addAlbumCoverFromLastFM(a.name, a), concurrency),
-    concatMap((a) => insertAlbum(a)),
   );
 
-const loadAndInsertFromArtistPages = () =>
+const readArtistPages = () =>
   merge(
     readRockPage(),
     readJazzPage(),
@@ -110,54 +66,73 @@ const loadAndInsertFromArtistPages = () =>
     readVolumePage(6),
     readVolumePage(7),
     readVolumePage(8),
-  ).pipe(
-    takeUntil(watchStopSignal()),
-    concatMap(async (p) => {
-      incrementPages();
-      await prisma.updateHistory.upsert({
-        where: { pageURL: p.url },
-        create: { pageURL: p.url, hash: p.hash },
-        update: { hash: p.hash, checkedOn: new Date() },
-      });
+  );
 
-      return p;
-    }),
-    concatMap(({ artists }) =>
+const performFullUpdate = () => {
+  const [artistURLsFromRatings, albums] = splitRatingsPageData(
+    readRatingsPages(),
+  );
+  const artistURLs = readArtistPages().pipe(
+    concatMap((d) =>
       from(
-        Object.entries(artists).map(([url, o]) => ({
-          ...o,
-          url,
+        Object.entries(d.artists).map(([url]) => ({
           type: "artist" as const,
+          url,
         })),
       ),
     ),
-    distinct((v) => `${v.type}-${v.url}`),
-    takeUntil(watchStopSignal()),
-    toArray(),
-    concatMap((as) => {
-      console.debug(`discovered ${as.length} unique artists`);
-      return from(as);
-    }),
-    map(({ url }) => url),
-    takeUntil(watchStopSignal()),
-    insertArtistWithImages(),
-    reduce((p) => p, 0),
   );
 
-const fullUpdate = () =>
-  of("").pipe(
-    map(() => markUpdateStart()),
-    concatMap(() => loadAndInsertRatingsPages()),
-    reduce((p) => p, 0),
-    concatMap(() => loadAndInsertFromArtistPages()),
+  const artistsAndAlbumsFromArtistPages = merge(
+    artistURLs,
+    artistURLsFromRatings,
+  ).pipe(
+    distinct((v) => v.url),
+    mergeMap((a) => readDataFromArtistPage(a.url), concurrency),
+  );
+
+  const [artists, albumsFromArtistsPage] = partition(
+    artistsAndAlbumsFromArtistPages,
+    (a): a is ReadArtist => a.type === "artist",
+  );
+
+  return artists.pipe(
+    mergeMap(addArtistImageFromSpotify, concurrency),
+    mergeMap(addArtistImageFromDeezer, concurrency),
+    concatMap(insertArtist),
+    count(),
+    map((c) => {
+      console.debug(`inserted ${c} artists.`);
+    }),
+    concatMap(() => merge(albums, albumsFromArtistsPage)),
+    distinct((a) => `${a.artistUrl}-${a.name}`),
+    mergeMap(addAlbumCoverAndReleaseYearFromMusicBrainz, concurrency),
+    mergeMap(addAlbumCoverAndReleaseYearFromSpotify, concurrency),
+    mergeMap(addAlbumCoverAndReleaseYearFromDeezer, concurrency),
+    mergeMap(addAlbumCoverFromLastFM, concurrency),
+    concatMap(insertAlbum),
+    count(),
     takeUntil(watchStopSignal()),
-    reduce((p) => p, 0),
+    map((c) => {
+      console.debug(`inserted ${c} artists.`);
+    }),
+    finalize(() => {
+      markUpdateEnd();
+    }),
+  );
+};
+
+const performFullUpdateWithStatusUpdates = () =>
+  defer(() => {
+    markUpdateStart();
+    return performFullUpdate();
+  }).pipe(
     finalize(() => {
       markUpdateEnd();
     }),
   );
 
-const sub = fullUpdate()
+const sub = performFullUpdateWithStatusUpdates()
   .pipe(
     repeat({
       delay: () =>

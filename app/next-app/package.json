@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@neshca/cache-handler": "^0.5.3",
+    "@neshca/json-replacer-reviver": "^1.1.0",
     "@plaiceholder/next": "^3.0.0",
     "@scruffy/api": "*",
     "@scruffy/updater": "*",

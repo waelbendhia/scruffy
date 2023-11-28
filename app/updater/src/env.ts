@@ -31,7 +31,7 @@ export const artistProviders: Set<ArtistProvider> = new Set(
   ],
 );
 
-export const hasArtistProvider = (p: ArtistProvider) => albumProviders.has(p);
+export const hasArtistProvider = (p: ArtistProvider) => artistProviders.has(p);
 
 export const conncurentConnections =
   parseIntFromEnv("CONCURRENT_CONNECTIONS") ?? 10;

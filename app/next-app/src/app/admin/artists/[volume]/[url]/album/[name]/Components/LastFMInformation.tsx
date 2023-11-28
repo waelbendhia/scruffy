@@ -84,7 +84,9 @@ const LastFMInformationAsync = async ({
                 artistName: lastfm.album.artist,
                 name: lastfm.album.name,
                 imageUrl: getBiggest(lastfm)?.["#text"],
-                key: !!lastfm.album.mbid ? lastfm.album.mbid : lastfm.album.url,
+                key: !!lastfm.album.mbid
+                  ? `lfm-${lastfm.album.mbid}`
+                  : lastfm.album.url,
               },
             ]
       }
