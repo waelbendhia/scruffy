@@ -14,6 +14,7 @@ import {
   finalize,
   takeUntil,
   defer,
+  filter,
 } from "rxjs";
 import { concurrency, recheckDelay } from "./env";
 import {
@@ -88,6 +89,7 @@ const performFullUpdate = () => {
     artistURLsFromRatings,
   ).pipe(
     distinct((v) => v.url),
+    filter((v) => v.url !== "/vol5/x.html"),
     mergeMap((a) => readDataFromArtistPage(a.url), concurrency),
   );
 
