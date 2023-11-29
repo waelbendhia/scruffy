@@ -18,6 +18,7 @@
   html {
     @apply min-h-full;
     @apply h-full;
+    @apply overflow-auto;
   }
   body {
     @apply min-h-full;
