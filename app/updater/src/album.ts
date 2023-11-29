@@ -229,6 +229,13 @@ export const readNewRatingsPage = () =>
 export const insertAlbum = withCatch(({ page, ...album }: ReadAlbum) =>
   from(
     prisma.$transaction(async (tx) => {
+      const a = await tx.artist.count({
+        where: { url: album.artistUrl },
+      });
+      if (a === 0) {
+        return { page, ...album };
+      }
+
       await tx.updateHistory.upsert({
         where: { pageURL: page.url },
         create: { pageURL: page.url, hash: page.hash },
@@ -240,16 +247,7 @@ export const insertAlbum = withCatch(({ page, ...album }: ReadAlbum) =>
         year: album.year ?? null,
         rating: album.rating,
         imageUrl: album.imageUrl ?? null,
-        artist: {
-          connectOrCreate: {
-            where: { url: album.artistUrl },
-            create: {
-              url: album.artistUrl,
-              name: "",
-              lastModified: new Date(),
-            },
-          },
-        },
+        artist: { connect: { url: album.artistUrl } },
         fromUpdate: { connect: { pageURL: page.url } },
       };
 

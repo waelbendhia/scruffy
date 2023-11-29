@@ -2,6 +2,7 @@ import { prisma } from "@scruffy/database";
 import { getPage } from "@scruffy/scraper";
 import { isAxiosError } from "axios";
 import { concatMap, filter, from, of, retry, timer } from "rxjs";
+import { incrementPages } from "./update-status";
 
 export type PageData = Awaited<ReturnType<typeof getPage>>;
 
@@ -18,6 +19,8 @@ export const readPage = <T extends PageData>(getter: () => Promise<T | null>) =>
           return of();
         }
 
+        console.log("retrying page read", count);
+
         return timer(1_000 * 1.5 ** count);
       },
     }),
@@ -32,7 +35,17 @@ export const readPage = <T extends PageData>(getter: () => Promise<T | null>) =>
         }),
       ).pipe(
         retry({ count: 10, delay: 5_000 }),
-        concatMap((prev) => (prev?.hash === page.hash ? of() : of(page))),
+        concatMap((prev) => {
+          // I really should be using HEAD to check for last-modified header.
+          if (prev?.hash === page.hash) {
+            console.debug(`skipping page ${page.url}`);
+            return of();
+          }
+
+          incrementPages();
+
+          return of(page);
+        }),
       );
     }),
     filter((page): page is NonNullable<typeof page> => page !== null),

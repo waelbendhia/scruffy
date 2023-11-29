@@ -26,7 +26,7 @@ import { readPage } from "./page";
 import { URL } from "url";
 import { client } from "./scaruffi";
 import { getBiggestSpotifyImage, getSpotifyArtist } from "./spotify";
-import { addError, incrementArtist, incrementPages } from "./update-status";
+import { addError, incrementArtist } from "./update-status";
 
 type PageData = Awaited<ReturnType<typeof getPage>>;
 
@@ -101,8 +101,6 @@ export const readDataFromArtistPage = (url: string) =>
     catchArtistError(url),
   );
 
-const deezerDefaultImage = "1000x1000-000000-80-0-0.jpg";
-
 const withCatch =
   <T extends ReadArtist>(f: (_: T) => Promise<T>) =>
   (a: T) =>
@@ -111,6 +109,12 @@ const withCatch =
 export const addArtistImageFromDeezer = withCatch(
   async <T extends ReadArtist>(a: T) => {
     if (!hasArtistProvider("deezer") || !!a.imageUrl) {
+      console.log(
+        "has deezer",
+        hasArtistProvider("deezer"),
+        "image url",
+        a.imageUrl,
+      );
       return a;
     }
 
@@ -120,11 +124,11 @@ export const addArtistImageFromDeezer = withCatch(
     }
 
     const path = new URL(searchResult.picture_xl).pathname.split("/");
-    if (path[path.length - 1] === deezerDefaultImage) {
+    if (path[path.length - 2] === "") {
       return a;
     }
 
-    return { ...a, imageUrl: searchResult?.picture_xl };
+    return { ...a, imageUrl: searchResult.picture_xl };
   },
 );
 
@@ -156,7 +160,6 @@ export const insertArtist = withCatch(<T extends ReadArtist>(artist: T) =>
   prisma.$transaction(async (tx) => {
     const now = new Date();
 
-    incrementPages();
     await tx.updateHistory.upsert({
       where: { pageURL: artist.url },
       create: {

@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, isAxiosError } from "axios";
-import { rateLimitClient } from "./rate-limit";
 import { defer, delay, expand, retry } from "rxjs";
+import { Readable } from "stream";
 
 type AccessToken = {
   access_token: string;
@@ -63,10 +63,49 @@ const withAuth = (client: AxiosInstance) => {
   return client;
 };
 
-const client = rateLimitClient(
+const withWatch429 = (client: AxiosInstance) => {
+  const retryStream = new Readable({
+    objectMode: true,
+    read() {
+      return true;
+    },
+  });
+  retryStream.push("send");
+
+  client.interceptors.request.use(async (req) => {
+    await new Promise<void>((resolve) =>
+      retryStream.once("data", () => resolve()),
+    );
+
+    return req;
+  });
+
+  client.interceptors.response.use(
+    (resp) => resp,
+    (err) => {
+      if (!isAxiosError(err) || !err.response) {
+        throw err;
+      }
+      const resp = err.response;
+      let retryDelay = 0;
+      if (resp.status === 429) {
+        const retryHeader = resp.headers["retry-after"];
+        retryDelay = parseInt(retryHeader ?? "0", 10);
+      }
+
+      setTimeout(() => {
+        retryStream.push("send");
+      }, retryDelay);
+
+      throw err;
+    },
+  );
+
+  return client;
+};
+
+const client = withWatch429(
   withAuth(axios.create({ baseURL: "https://api.spotify.com/v1/" })),
-  1500,
-  30_000,
 );
 
 export type SpotifyArtist = {

@@ -1,4 +1,26 @@
 import { Subject } from "rxjs";
+import { createClient } from "redis";
+
+const redisURL = process.env.REDIS_URL;
+const client = redisURL ? createClient({ url: redisURL }) : undefined;
+const TAGS_MANIFEST_KEY = "sharedTagsManifest";
+
+client
+  ?.connect()
+  .then(() => {
+    console.log("Redis connected");
+  })
+  .catch((e) => {
+    console.error("Redis connection error:", e.message);
+  });
+
+const revalidate = async (tag: "artists" | "albums") => {
+  if (!client) {
+    return;
+  }
+
+  await client.hSet(TAGS_MANIFEST_KEY, { [tag]: new Date().getTime() });
+};
 
 export type UpdateInfo = {
   isUpdating: boolean;
@@ -35,6 +57,7 @@ export const markUpdateStart = () => {
 export const incrementArtist = () => {
   updateInfo.artists++;
   updateInfoSubject.next(updateInfo);
+  revalidate("artists");
 };
 
 export const incrementAlbum = (count?: number) => {
@@ -44,6 +67,7 @@ export const incrementAlbum = (count?: number) => {
     updateInfo.albums++;
   }
   updateInfoSubject.next(updateInfo);
+  revalidate("albums");
 };
 
 export const incrementPages = () => {

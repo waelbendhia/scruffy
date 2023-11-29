@@ -158,8 +158,12 @@ const performFullUpdateWithStatusUpdates = () =>
     }),
   );
 
-const sub = performFullUpdateWithStatusUpdates()
+const sub = from(prisma.$queryRaw`PRAGMA journal_mode = WAL`)
   .pipe(
+    concatMap((res) => {
+      console.log(res);
+      return performFullUpdateWithStatusUpdates();
+    }),
     repeat({
       delay: () =>
         merge(of("start").pipe(delay(recheckDelay * 1000)), watchStartSignal()),

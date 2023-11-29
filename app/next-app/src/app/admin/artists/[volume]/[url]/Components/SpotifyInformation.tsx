@@ -11,7 +11,7 @@ const getSpotifyData = async (name: string) => {
   const resp = await fetch(
     `${updaterBaseURL}/spotify/artist/${encodeURIComponent(name)}`,
   );
-  const res: SpotifyArtistSearchResult = await resp.json();
+  const res: SpotifyArtistSearchResult | null = await resp.json();
 
   return res;
 };
@@ -41,11 +41,11 @@ const SpotifyInformationAsync = async ({ params, searchValue }: Props) => {
   }
 
   const spotify = await getSpotifyData(name);
-  const bestMatchIDs = spotify.best_match.items.map((a) => a.uri);
+  const bestMatchIDs = spotify?.best_match.items.map((a) => a.uri);
   const results = [
-    ...spotify.best_match.items,
-    ...spotify.artists.items.filter(
-      (a) => !bestMatchIDs.some((uri) => a.uri === uri),
+    ...(spotify?.best_match.items ?? []),
+    ...(spotify?.artists.items ?? []).filter(
+      (a) => !bestMatchIDs?.some((uri) => a.uri === uri),
     ),
   ].map((a) => ({
     key: a.uri,
