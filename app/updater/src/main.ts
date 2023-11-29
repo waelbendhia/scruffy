@@ -53,6 +53,16 @@ const readRatingsPages = () =>
   merge(
     ...range(1990, new Date().getFullYear()).map(readYearRatingsPage),
     readNewRatingsPage(),
+  ).pipe(
+    concatMap((p) =>
+      prisma.updateHistory
+        .upsert({
+          where: { pageURL: p.url },
+          create: { pageURL: p.url, hash: p.hash, checkedOn: new Date() },
+          update: { pageURL: p.url, hash: p.hash, checkedOn: new Date() },
+        })
+        .then(() => p),
+    ),
   );
 
 const readArtistPages = () =>
@@ -67,6 +77,16 @@ const readArtistPages = () =>
     readVolumePage(6),
     readVolumePage(7),
     readVolumePage(8),
+  ).pipe(
+    concatMap((p) =>
+      prisma.updateHistory
+        .upsert({
+          where: { pageURL: p.url },
+          create: { pageURL: p.url, hash: p.hash, checkedOn: new Date() },
+          update: { pageURL: p.url, hash: p.hash, checkedOn: new Date() },
+        })
+        .then(() => p),
+    ),
   );
 
 const performFullUpdate = () => {
