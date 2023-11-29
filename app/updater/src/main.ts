@@ -15,6 +15,7 @@ import {
   takeUntil,
   defer,
   filter,
+  retry,
 } from "rxjs";
 import { concurrency, recheckDelay } from "./env";
 import {
@@ -79,13 +80,16 @@ const readArtistPages = () =>
     readVolumePage(8),
   ).pipe(
     concatMap((p) =>
-      prisma.updateHistory
-        .upsert({
+      of(
+        prisma.updateHistory.upsert({
           where: { pageURL: p.url },
           create: { pageURL: p.url, hash: p.hash, checkedOn: new Date() },
           update: { pageURL: p.url, hash: p.hash, checkedOn: new Date() },
-        })
-        .then(() => p),
+        }),
+      ).pipe(
+        retry({ count: 50, delay: 5_000 }),
+        map(() => p),
+      ),
     ),
   );
 
