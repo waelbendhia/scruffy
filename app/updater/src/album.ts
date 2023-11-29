@@ -30,18 +30,19 @@ import { ReadAlbum } from "./types";
 const catchAlbumError = <T>(
   artistURL: string,
   albumName: string,
+  recoverWith?: T,
 ): ((o: Observable<T>) => Observable<T>) =>
   pipe(
     catchError((e) => {
       addError(`artistURL: ${artistURL}, albumName: ${albumName}`, e);
-      return of();
+      return !!recoverWith ? of(recoverWith) : of();
     }),
   );
 
 const withCatch =
-  <Arg extends ReadAlbum, Res>(f: (_: Arg) => Promise<Res>) =>
-  (a: Arg) =>
-    of(a).pipe(concatMap(f), catchAlbumError(a.artistUrl, a.name));
+  <T extends ReadAlbum>(f: (_: T) => Promise<T>) =>
+  (a: T) =>
+    of(a).pipe(concatMap(f), catchAlbumError(a.artistUrl, a.name, a));
 
 export const addAlbumCoverAndReleaseYearFromMusicBrainz = withCatch(
   async <T extends ReadAlbum>(album: T) => {
@@ -250,12 +251,14 @@ export const insertAlbum = withCatch(({ page, ...album }: ReadAlbum) =>
     };
 
     incrementAlbum();
-    return await prisma.album.upsert({
+    await prisma.album.upsert({
       where: {
         artistUrl_name: { artistUrl: album.artistUrl, name: album.name },
       },
       create: input,
       update: input,
     });
+
+    return { page, ...album };
   }),
 );

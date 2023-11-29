@@ -32,11 +32,12 @@ type PageData = Awaited<ReturnType<typeof getPage>>;
 
 const catchArtistError = <T>(
   artistURL: string,
+  recoverWith?: T,
 ): ((o: Observable<T>) => Observable<T>) =>
   pipe(
     catchError((e) => {
       addError(`artistURL: ${artistURL}`, e);
-      return of();
+      return !!recoverWith ? of(recoverWith) : of();
     }),
   );
 
@@ -103,9 +104,9 @@ export const readDataFromArtistPage = (url: string) =>
 const deezerDefaultImage = "1000x1000-000000-80-0-0.jpg";
 
 const withCatch =
-  <Arg extends ReadArtist, Res>(f: (_: Arg) => Promise<Res>) =>
-  (a: Arg) =>
-    of(a).pipe(concatMap(f), catchArtistError(a.url));
+  <T extends ReadArtist>(f: (_: T) => Promise<T>) =>
+  (a: T) =>
+    of(a).pipe(concatMap(f), catchArtistError(a.url, a));
 
 export const addArtistImageFromDeezer = withCatch(
   async <T extends ReadArtist>(a: T) => {
@@ -180,11 +181,13 @@ export const insertArtist = withCatch(<T extends ReadArtist>(artist: T) =>
     };
 
     incrementArtist();
-    return await tx.artist.upsert({
+    await tx.artist.upsert({
       where: { url: artist.url },
       create: createOrUpdateInput,
       update: createOrUpdateInput,
     });
+
+    return artist;
   }),
 );
 

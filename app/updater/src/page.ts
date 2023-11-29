@@ -13,8 +13,15 @@ export const readPage = <T extends PageData>(getter: () => Promise<T | null>) =>
   from(getter()).pipe(
     retry({
       count: 10,
-      delay: (err, count) =>
-        is404Error(err) ? of() : timer(1_000 * 1.5 ** count),
+      delay: (err, count) => {
+        if (count >= 10 || is404Error(err)) {
+          return of();
+        }
+
+        console.log("retrying again");
+
+        return timer(1_000 * 1.5 ** count);
+      },
     }),
     concatMap(async (page) => {
       if (page === null) {

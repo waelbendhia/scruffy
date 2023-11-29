@@ -1,29 +1,61 @@
 import axios, { AxiosInstance, isAxiosError } from "axios";
 import { rateLimitClient } from "./rate-limit";
+import { defer, delay, expand, retry } from "rxjs";
 
 type AccessToken = {
-  clientId: string;
-  accessToken: string;
-  accessTokenExpirationTimestampMs: number;
-  isAnonymous: true;
+  access_token: string;
+  token_type: string;
+  expires_in: number;
 };
 
-const withAnonymousAuth = (client: AxiosInstance) => {
+const clientID = process.env.SPOTIFY_CLIENT_ID;
+const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+
+const getToken = defer(async () => {
+  console.debug("getting token");
+  try {
+    const res = await axios.post<AccessToken>(
+      "https://accounts.spotify.com/api/token",
+      `grant_type=client_credentials&client_id=${clientID}&client_secret=${clientSecret}`,
+      {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      },
+    );
+    console.log(res.data);
+    return res;
+  } catch (e) {
+    console.error(clientID, clientSecret, e);
+    throw e;
+  }
+});
+
+const getTokenForever = defer(() =>
+  getToken.pipe(
+    retry({ delay: 10_000 }),
+    expand((resp) => getToken.pipe(delay(900 * resp.data.expires_in))),
+  ),
+);
+
+const withAuth = (client: AxiosInstance) => {
   let token: AccessToken;
+  let resolver: ((_: AccessToken) => void) | undefined;
+  const tokenPromise = new Promise<AccessToken>((res) => {
+    resolver = res;
+  });
+
+  getTokenForever.subscribe((resp) => {
+    token = resp.data;
+    if (resolver !== undefined) {
+      resolver(resp.data);
+      resolver = undefined;
+    }
+  });
 
   client.interceptors.request.use(async (req) => {
-    if ((token?.accessTokenExpirationTimestampMs ?? 0) < new Date().getTime()) {
-      console.debug("getting access token");
-      const { data } = await axios.get<AccessToken>(
-        "https://open.spotify.com/get_access_token",
-        {
-          params: { reason: "transport", productType: "web_player" },
-        },
-      );
-      token = data;
-    }
-
-    req.headers.set("authorization", `Bearer ${token?.accessToken}`);
+    req.headers.set(
+      "authorization",
+      `Bearer ${(token ?? (await tokenPromise)).access_token}`,
+    );
 
     return req;
   });
@@ -32,9 +64,9 @@ const withAnonymousAuth = (client: AxiosInstance) => {
 };
 
 const client = rateLimitClient(
-  withAnonymousAuth(axios.create({ baseURL: "https://api.spotify.com/v1/" })),
-  50,
-  5000,
+  withAuth(axios.create({ baseURL: "https://api.spotify.com/v1/" })),
+  150,
+  30_000,
 );
 
 export type SpotifyArtist = {
