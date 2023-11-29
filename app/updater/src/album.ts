@@ -12,6 +12,7 @@ import { readPage } from "./page";
 import { client } from "./scaruffi";
 import {
   Observable,
+  ObservableInput,
   catchError,
   concatMap,
   from,
@@ -20,6 +21,7 @@ import {
   of,
   partition,
   pipe,
+  retry,
 } from "rxjs";
 import { searchMusicBrainzAlbums } from "./musicbrainz";
 import { MusicBrainzRelease } from "../dist";
@@ -40,7 +42,7 @@ const catchAlbumError = <T>(
   );
 
 const withCatch =
-  <T extends ReadAlbum>(f: (_: T) => Promise<T>) =>
+  <T extends ReadAlbum>(f: (_: T) => ObservableInput<T>) =>
   (a: T) =>
     of(a).pipe(concatMap(f), catchAlbumError(a.artistUrl, a.name, a));
 
@@ -225,40 +227,42 @@ export const readNewRatingsPage = () =>
   );
 
 export const insertAlbum = withCatch(({ page, ...album }: ReadAlbum) =>
-  prisma.$transaction(async (tx) => {
-    await tx.updateHistory.upsert({
-      where: { pageURL: page.url },
-      create: { pageURL: page.url, hash: page.hash },
-      update: {},
-    });
+  from(
+    prisma.$transaction(async (tx) => {
+      await tx.updateHistory.upsert({
+        where: { pageURL: page.url },
+        create: { pageURL: page.url, hash: page.hash },
+        update: {},
+      });
 
-    const input: Prisma.AlbumCreateInput = {
-      name: album.name,
-      year: album.year ?? null,
-      rating: album.rating,
-      imageUrl: album.imageUrl ?? null,
-      artist: {
-        connectOrCreate: {
-          where: { url: album.artistUrl },
-          create: {
-            url: album.artistUrl,
-            name: "",
-            lastModified: new Date(),
+      const input: Prisma.AlbumCreateInput = {
+        name: album.name,
+        year: album.year ?? null,
+        rating: album.rating,
+        imageUrl: album.imageUrl ?? null,
+        artist: {
+          connectOrCreate: {
+            where: { url: album.artistUrl },
+            create: {
+              url: album.artistUrl,
+              name: "",
+              lastModified: new Date(),
+            },
           },
         },
-      },
-      fromUpdate: { connect: { pageURL: page.url } },
-    };
+        fromUpdate: { connect: { pageURL: page.url } },
+      };
 
-    incrementAlbum();
-    await prisma.album.upsert({
-      where: {
-        artistUrl_name: { artistUrl: album.artistUrl, name: album.name },
-      },
-      create: input,
-      update: input,
-    });
+      incrementAlbum();
+      await prisma.album.upsert({
+        where: {
+          artistUrl_name: { artistUrl: album.artistUrl, name: album.name },
+        },
+        create: input,
+        update: input,
+      });
 
-    return { page, ...album };
-  }),
+      return { page, ...album };
+    }),
+  ).pipe(retry({ count: 50, delay: 5_000 })),
 );
