@@ -18,8 +18,6 @@ export const readPage = <T extends PageData>(getter: () => Promise<T | null>) =>
           return of();
         }
 
-        console.log("retrying again");
-
         return timer(1_000 * 1.5 ** count);
       },
     }),
