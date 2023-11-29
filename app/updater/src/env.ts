@@ -37,4 +37,4 @@ export const conncurentConnections =
   parseIntFromEnv("CONCURRENT_CONNECTIONS") ?? 10;
 export const databaseConcurrency = parseIntFromEnv("DATABASE_CONCURRENCY") ?? 2;
 export const concurrency = parseIntFromEnv("CONCURRENCY") ?? 10;
-export const recheckDelay = parseIntFromEnv("RECHECK_DELAY") ?? 1800;
+export const recheckDelay = parseIntFromEnv("RECHECK_DELAY") ?? 24 * 3_600;

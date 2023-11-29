@@ -3,7 +3,7 @@ import * as crypto from "crypto";
 
 const defaultClient = axios.create();
 
-const basePath = "http://scaruffi.com";
+const basePath = "https://scaruffi.com";
 
 export const scruffyPath = (pathname: string) =>
   new URL(pathname, basePath).href;

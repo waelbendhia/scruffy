@@ -20,6 +20,7 @@ export default defineConfig([
       "axios",
       "fastify",
       "fastify-sse-v2",
+      "redis",
       "@sinclair/typebox",
     ],
     entry: ["src/main.ts"],

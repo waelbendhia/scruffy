@@ -55,11 +55,11 @@ const getAndRead = async (
  * volums 1-9 and Avant.
  */
 export const getRockPage = (client?: AxiosInstance) =>
-  getPage("music/groups.html", client);
+  getPage("/music/groups.html", client);
 
 /** Parses artists from the music/groups.html page */
 export const readArtistsFromRockPage = (content: string | Buffer) =>
-  readArtistsFromPage(content, "music/groups.html", ($) =>
+  readArtistsFromPage(content, "/music/groups.html", ($) =>
     $("table:nth-of-type(3) a").get(),
   );
 
@@ -69,7 +69,7 @@ export const getArtistsFromRockPage = (client?: AxiosInstance) =>
 
 /** This is the page with all Jazz artists ever reviewed. */
 export const getJazzPage = (client?: AxiosInstance) =>
-  getPage("jazz/musician.html", client);
+  getPage("/jazz/musician.html", client);
 
 /** Parses artists from the jazz/musician.html page */
 export const readArtistsFromJazzPage = (content: string | Buffer) =>
@@ -79,20 +79,20 @@ export const readArtistsFromJazzPage = (content: string | Buffer) =>
 
 /** Loads and parses artists from the jazz/musician.html page */
 export const getArtistsFromJazzPage = (client?: AxiosInstance) =>
-  getAndRead("jazz/musician.html", readArtistsFromJazzPage, client);
+  getAndRead("/jazz/musician.html", readArtistsFromJazzPage, client);
 
 type Volume = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 /** This is the page with all artists ever reviewed in a specific volume. */
 export const getVolumePage = (vol: Volume, client?: AxiosInstance) =>
-  getPage(`vol${vol}/`, client);
+  getPage(`/vol${vol}/`, client);
 
 /** Parses artists from the vol{vol} page */
 export const readArtistsFromVolumePage = (
   vol: Volume,
   content: string | Buffer,
 ) =>
-  readArtistsFromPage(content, `vol${vol}/`, ($) => {
+  readArtistsFromPage(content, `/vol${vol}/`, ($) => {
     let elems: string[] = [];
     $("select").each(
       (_, elem) =>

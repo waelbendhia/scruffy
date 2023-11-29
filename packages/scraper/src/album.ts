@@ -112,7 +112,7 @@ export const getYearRatingsPage = async (
 ) => {
   const max = new Date().getFullYear();
   if (year >= 1990 && year <= max) {
-    return getPage(`cdreview/${year}.html`, client);
+    return getPage(`/cdreview/${year}.html`, client);
   }
 
   return null;
@@ -128,7 +128,7 @@ export const readAlbumsFromYearRatingsPage = (
       year >= 2000
         ? `table[bgcolor=ffa000] > tbody > tr`
         : `table > tbody > tr`,
-      `cdreview/${year}.html`,
+      `/cdreview/${year}.html`,
       content,
     );
     return { artists, albums: albums.map((a) => ({ ...a, year })) };
@@ -138,12 +138,12 @@ export const readAlbumsFromYearRatingsPage = (
 };
 
 export const getNewRatingsPage = (client?: AxiosInstance) =>
-  getPage("cdreview/new.html", client);
+  getPage("/cdreview/new.html", client);
 
 export const readAlbumsFromNewRatingsPage = (content: string | Buffer) =>
   readRatingsFromCDReview(
     `table[bgcolor=ffa000]:first > tbody > tr`,
-    "cdreview/new.html",
+    "/cdreview/new.html",
     content,
   );
 
