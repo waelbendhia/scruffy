@@ -22,6 +22,7 @@ import {
   partition,
   pipe,
   retry,
+  share,
 } from "rxjs";
 import { searchMusicBrainzAlbums } from "./musicbrainz";
 import { MusicBrainzRelease } from "../dist";
@@ -181,6 +182,7 @@ export const splitRatingsPageData = (
         })),
       ]),
     ),
+    share({ resetOnRefCountZero: false, resetOnComplete: false }),
   );
 
   return partition(
@@ -257,7 +259,7 @@ export const insertAlbum = withCatch(({ page, ...album }: ReadAlbum) =>
           artistUrl_name: { artistUrl: album.artistUrl, name: album.name },
         },
         create: input,
-        update: input,
+        update: album.artistUrl === page.url ? input : {},
       });
 
       return { page, ...album };

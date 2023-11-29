@@ -10,13 +10,17 @@ import {
   count,
   repeat,
   delay,
-  partition,
   finalize,
   takeUntil,
   defer,
   filter,
-  retry,
-  toArray,
+  take,
+  mergeWith,
+  reduce,
+  Observable,
+  OperatorFunction,
+  pipe,
+  tap,
 } from "rxjs";
 import { concurrency, recheckDelay } from "./env";
 import {
@@ -36,11 +40,10 @@ import {
   insertAlbum,
   readNewRatingsPage,
   readYearRatingsPage,
-  splitRatingsPageData,
 } from "./album";
 import { api } from "./api/server";
 import { watchStartSignal, watchStopSignal } from "./start-stop-signal";
-import { ReadArtist } from "./types";
+import { ReadAlbum, ReadArtist } from "./types";
 import { markUpdateEnd, markUpdateStart } from "./update-status";
 
 const range = (start: number, end: number): number[] => {
@@ -56,6 +59,7 @@ const readRatingsPages = () =>
     ...range(1990, new Date().getFullYear()).map(readYearRatingsPage),
     readNewRatingsPage(),
   ).pipe(
+    take(1),
     concatMap((p) =>
       prisma.updateHistory
         .upsert({
@@ -80,80 +84,115 @@ const readArtistPages = () =>
     readVolumePage(7),
     readVolumePage(8),
   ).pipe(
+    take(1),
     concatMap((p) =>
-      from(
-        prisma.updateHistory
-          .upsert({
-            where: { pageURL: p.url },
-            create: { pageURL: p.url, hash: p.hash, checkedOn: new Date() },
-            update: { pageURL: p.url, hash: p.hash, checkedOn: new Date() },
-          })
-          .then(() => p),
-      ).pipe(
-        retry({ count: 50, delay: 5_000 }),
-      ),
+      prisma.updateHistory
+        .upsert({
+          where: { pageURL: p.url },
+          create: { pageURL: p.url, hash: p.hash, checkedOn: new Date() },
+          update: { pageURL: p.url, hash: p.hash, checkedOn: new Date() },
+        })
+        .then(() => p),
     ),
   );
 
-const performFullUpdate = () => {
-  const [artistURLsFromRatings, albums] = splitRatingsPageData(
-    readRatingsPages(),
-  );
-  const artistURLs = readArtistPages().pipe(
-    concatMap((d) =>
-      from(
-        Object.entries(d.artists).map(([url]) => ({
-          type: "artist" as const,
-          url,
-        })),
+type SplitArrays<T, U> = {
+  match: T[];
+  rest: U[];
+};
+
+const partitionToArrays =
+  <T, U extends T>(p: (x: T) => x is U) =>
+  (o: Observable<T>): Observable<SplitArrays<U, Exclude<T, U>>> =>
+    o.pipe(
+      reduce<T, SplitArrays<U, Exclude<T, U>>>(
+        ({ match, rest }, c) => {
+          if (p(c)) {
+            return { match: [...match, c], rest };
+          } else {
+            return { match, rest: [...rest, c as Exclude<T, U>] };
+          }
+        },
+        { match: [], rest: [] },
       ),
-    ),
-  );
+    );
 
-  const artistsAndAlbumsFromArtistPages = merge(
-    artistURLs,
-    artistURLsFromRatings,
-  ).pipe(
-    distinct((v) => v.url),
-    filter((v) => v.url !== "/vol5/x.html"),
-    toArray(),
-    concatMap((as) => {
-      console.log(`found ${as.length} unique artists`);
-      return from(as);
-    }),
-    mergeMap((a) => readDataFromArtistPage(a.url), concurrency),
-  );
-
-  const [artists, albumsFromArtistsPage] = partition(
-    artistsAndAlbumsFromArtistPages,
-    (a): a is ReadArtist => a.type === "artist",
-  );
-
-  return artists.pipe(
+const processArtists = (): OperatorFunction<ReadArtist, number> =>
+  pipe(
     mergeMap(addArtistImageFromSpotify, concurrency),
     mergeMap(addArtistImageFromDeezer, concurrency),
     concatMap(insertArtist),
     count(),
-    map((c) => {
-      console.debug(`inserted ${c} artists.`);
-    }),
-    concatMap(() => merge(albums, albumsFromArtistsPage)),
-    distinct((a) => `${a.artistUrl}-${a.name}`),
+    tap((c) => console.debug(`inserted ${c} artists.`)),
+  );
+
+const processAlbums = () =>
+  pipe(
+    distinct((a: ReadAlbum) => `${a.artistUrl}-${a.name}`),
     mergeMap(addAlbumCoverAndReleaseYearFromMusicBrainz, concurrency),
     mergeMap(addAlbumCoverAndReleaseYearFromSpotify, concurrency),
     mergeMap(addAlbumCoverAndReleaseYearFromDeezer, concurrency),
     mergeMap(addAlbumCoverFromLastFM, concurrency),
     concatMap(insertAlbum),
     count(),
-    takeUntil(watchStopSignal()),
-    map((c) => {
-      console.debug(`inserted ${c} artists.`);
-    }),
+    tap((c) => console.debug(`inserted ${c} albums.`)),
+  );
+
+const performFullUpdate = () =>
+  readRatingsPages().pipe(
+    mergeMap(({ data, ...page }) =>
+      from([
+        ...Object.entries(data.artists).map(([url]) => ({
+          url,
+          type: "artist" as const,
+        })),
+        ...data.albums.map((a) => ({
+          ...a,
+          type: "album" as const,
+          artistName: data.artists[a.artistUrl]?.name ?? "",
+          page,
+        })),
+      ]),
+    ),
+    partitionToArrays(
+      (a): a is { type: "artist"; url: string } => a.type === "artist",
+    ),
+    concatMap(({ match: artistURLsFromRatings, rest: albums }) =>
+      readArtistPages().pipe(
+        concatMap((d) =>
+          from(
+            Object.entries(d.artists).map(([url]) => ({
+              type: "artist" as const,
+              url,
+            })),
+          ),
+        ),
+        mergeWith(artistURLsFromRatings),
+        distinct((v) => v.url),
+        filter((v) => v.url !== "/vol5/x.html"),
+        mergeMap((a) => readDataFromArtistPage(a.url), concurrency),
+        partitionToArrays((a): a is ReadArtist => a.type === "artist"),
+        map(({ match: artists, rest: albumsFromArtistsPage }) => ({
+          artists,
+          albums: [...albums, ...albumsFromArtistsPage],
+        })),
+        tap(({ artists }) => console.log(`found ${artists.length} albums`)),
+      ),
+    ),
+    concatMap(({ artists, albums }) =>
+      from(artists).pipe(
+        processArtists(),
+        tap(() => console.log(`found ${albums.length} albums`)),
+        concatMap(() => from(albums)),
+        distinct((a) => `${a.artistUrl}-${a.name}`),
+        processAlbums(),
+        takeUntil(watchStopSignal()),
+      ),
+    ),
     finalize(() => {
       markUpdateEnd();
     }),
   );
-};
 
 const performFullUpdateWithStatusUpdates = () =>
   defer(() => {

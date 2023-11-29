@@ -109,12 +109,6 @@ const withCatch =
 export const addArtistImageFromDeezer = withCatch(
   async <T extends ReadArtist>(a: T) => {
     if (!hasArtistProvider("deezer") || !!a.imageUrl) {
-      console.log(
-        "has deezer",
-        hasArtistProvider("deezer"),
-        "image url",
-        a.imageUrl,
-      );
       return a;
     }
 

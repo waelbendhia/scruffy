@@ -87,13 +87,9 @@ export const markUpdateEnd = () => {
   }
 
   updateInfo = {
-    artists: 0,
-    albums: 0,
-    pages: 0,
+    ...updateInfo,
     isUpdating: false,
-    updateStart: updateInfo.updateStart,
     updateEnd: new Date(),
-    errors: [],
   };
   updateInfoSubject.next(updateInfo);
 };
