@@ -65,7 +65,7 @@ const withAuth = (client: AxiosInstance) => {
 
 const client = rateLimitClient(
   withAuth(axios.create({ baseURL: "https://api.spotify.com/v1/" })),
-  150,
+  1500,
   30_000,
 );
 

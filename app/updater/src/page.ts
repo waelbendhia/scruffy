@@ -23,25 +23,19 @@ export const readPage = <T extends PageData>(getter: () => Promise<T | null>) =>
         return timer(1_000 * 1.5 ** count);
       },
     }),
-    concatMap(async (page) => {
+    concatMap((page) => {
       if (page === null) {
-        return null;
+        return of();
       }
 
-      try {
-        const prev = await prisma.updateHistory.findUnique({
+      return from(
+        prisma.updateHistory.findUnique({
           where: { pageURL: page.url },
-        });
-        if (prev?.hash === page.hash) {
-          console.debug(`no update for page ${page.url}, skipping.`);
-          return null;
-        }
-
-        return page;
-      } catch (e) {
-        console.error(`page check failed`, page.url, page.hash);
-        throw e;
-      }
+        }),
+      ).pipe(
+        retry({ count: 10, delay: 5_000 }),
+        concatMap((prev) => (prev?.hash === page.hash ? of() : of(page))),
+      );
     }),
     filter((page): page is NonNullable<typeof page> => page !== null),
   );
