@@ -192,7 +192,11 @@ export const splitRatingsPageData = (
 };
 
 export const readYearRatingsPage = (year: number) =>
-  readPage(() => getYearRatingsPage(year, client)).pipe(
+  readPage(() =>
+    from(
+      getYearRatingsPage(year, client).then((p) => (p === null ? [] : [p])),
+    ).pipe(concatMap((p) => from(p))),
+  ).pipe(
     catchError((e) => {
       console.error(`could not read ratings page for year ${year}`, e);
       return of();
@@ -217,7 +221,7 @@ export const readYearRatingsPage = (year: number) =>
   );
 
 export const readNewRatingsPage = () =>
-  readPage(() => getNewRatingsPage(client)).pipe(
+  readPage(() => from(getNewRatingsPage(client))).pipe(
     catchError((e) => {
       console.error(`could not read new ratings page`, e);
       return of();

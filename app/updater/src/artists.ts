@@ -37,13 +37,13 @@ const catchArtistError = <T>(
   pipe(
     catchError((e) => {
       addError(`artistURL: ${artistURL}`, e);
-      return !!recoverWith ? of(recoverWith) : of();
+      return recoverWith !== undefined ? of(recoverWith) : of();
     }),
   );
 
 const readArtistsPage = (
   page: string,
-  getter: () => Promise<PageData>,
+  getter: () => Observable<PageData>,
   reader: (_: string | Buffer) => Record<string, { name: string }>,
 ) =>
   readPage(getter).pipe(
@@ -56,26 +56,26 @@ type Volume = Parameters<typeof readArtistsFromVolumePage>[0];
 export const readRockPage = () =>
   readArtistsPage(
     "rock page",
-    () => getRockPage(client),
+    () => from(getRockPage(client)),
     readArtistsFromRockPage,
   );
 
 export const readJazzPage = () =>
   readArtistsPage(
     "jazz page",
-    () => getJazzPage(client),
+    () => from(getJazzPage(client)),
     readArtistsFromJazzPage,
   );
 
 export const readVolumePage = (volume: Volume) =>
   readArtistsPage(
     `volume ${volume}`,
-    () => getVolumePage(volume, client),
+    () => from(getVolumePage(volume, client)),
     (data) => readArtistsFromVolumePage(volume, data),
   );
 
 export const readDataFromArtistPage = (url: string) =>
-  readPage(() => getPage(url, client)).pipe(
+  readPage(() => from(getPage(url, client))).pipe(
     concatMap(({ data, ...page }) => {
       const artist = readArtistFromArtistPage(url, data);
       if (!artist || !artist?.name) {

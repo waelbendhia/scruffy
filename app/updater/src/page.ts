@@ -1,7 +1,16 @@
 import { prisma } from "@scruffy/database";
 import { getPage } from "@scruffy/scraper";
 import { isAxiosError } from "axios";
-import { concatMap, filter, from, of, retry, timer } from "rxjs";
+import {
+  Observable,
+  concatMap,
+  defer,
+  filter,
+  from,
+  of,
+  retry,
+  timer,
+} from "rxjs";
 import { incrementPages } from "./update-status";
 
 export type PageData = Awaited<ReturnType<typeof getPage>>;
@@ -10,8 +19,8 @@ const is404Error = (e: unknown) =>
   isAxiosError(e) && e.response?.status === 404;
 
 /** Read page if no previous updateHistory entry is found or it does not match */
-export const readPage = <T extends PageData>(getter: () => Promise<T | null>) =>
-  from(getter()).pipe(
+export const readPage = <T extends PageData>(getter: () => Observable<T>) =>
+  defer(getter).pipe(
     retry({
       count: 10,
       delay: (err, count) => {

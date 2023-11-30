@@ -20,6 +20,7 @@ import {
   OperatorFunction,
   pipe,
   tap,
+  take,
 } from "rxjs";
 import { concurrency, recheckDelay } from "./env";
 import {
@@ -58,15 +59,14 @@ const readRatingsPages = () =>
     ...range(1990, new Date().getFullYear()).map(readYearRatingsPage),
     readNewRatingsPage(),
   ).pipe(
-    concatMap((p) =>
-      prisma.updateHistory
-        .upsert({
-          where: { pageURL: p.url },
-          create: { pageURL: p.url, hash: p.hash, checkedOn: new Date() },
-          update: { pageURL: p.url, hash: p.hash, checkedOn: new Date() },
-        })
-        .then(() => p),
-    ),
+    concatMap(async (p) => {
+      await prisma.updateHistory.upsert({
+        where: { pageURL: p.url },
+        create: { pageURL: p.url, hash: p.hash, checkedOn: new Date() },
+        update: { pageURL: p.url, hash: p.hash, checkedOn: new Date() },
+      });
+      return p;
+    }),
   );
 
 const readArtistPages = () =>
@@ -82,15 +82,16 @@ const readArtistPages = () =>
     readVolumePage(7),
     readVolumePage(8),
   ).pipe(
-    concatMap((p) =>
-      prisma.updateHistory
-        .upsert({
-          where: { pageURL: p.url },
-          create: { pageURL: p.url, hash: p.hash, checkedOn: new Date() },
-          update: { pageURL: p.url, hash: p.hash, checkedOn: new Date() },
-        })
-        .then(() => p),
-    ),
+    take(0),
+    concatMap(async (p) => {
+      console.log(p);
+      await prisma.updateHistory.upsert({
+        where: { pageURL: p.url },
+        create: { pageURL: p.url, hash: p.hash, checkedOn: new Date() },
+        update: { pageURL: p.url, hash: p.hash, checkedOn: new Date() },
+      });
+      return p;
+    }),
   );
 
 type SplitArrays<T, U> = {
@@ -159,7 +160,6 @@ const performFullUpdate = () =>
     ),
     concatMap(({ match: artistURLsFromRatings, rest: albums }) =>
       readArtistPages().pipe(
-        takeUntil(watchStopSignal()),
         concatMap((d) =>
           from(
             Object.entries(d.artists).map(([url]) => ({
@@ -168,7 +168,7 @@ const performFullUpdate = () =>
             })),
           ),
         ),
-        mergeWith(artistURLsFromRatings),
+        mergeWith(from(artistURLsFromRatings)),
         distinct((v) => v.url),
         filter((v) => v.url !== "/vol5/x.html"),
         mergeMap((a) => readDataFromArtistPage(a.url), concurrency),
