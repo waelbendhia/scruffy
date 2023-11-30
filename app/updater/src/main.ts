@@ -58,7 +58,6 @@ const readRatingsPages = () =>
     ...range(1990, new Date().getFullYear()).map(readYearRatingsPage),
     readNewRatingsPage(),
   ).pipe(
-    takeUntil(watchStopSignal()),
     concatMap((p) =>
       prisma.updateHistory
         .upsert({
@@ -83,7 +82,6 @@ const readArtistPages = () =>
     readVolumePage(7),
     readVolumePage(8),
   ).pipe(
-    takeUntil(watchStopSignal()),
     concatMap((p) =>
       prisma.updateHistory
         .upsert({
@@ -141,6 +139,7 @@ const processAlbums = (): OperatorFunction<ReadAlbum, number> =>
 
 const performFullUpdate = () =>
   readRatingsPages().pipe(
+    takeUntil(watchStopSignal()),
     mergeMap(({ data, ...page }) =>
       from([
         ...Object.entries(data.artists).map(([url]) => ({
@@ -160,6 +159,7 @@ const performFullUpdate = () =>
     ),
     concatMap(({ match: artistURLsFromRatings, rest: albums }) =>
       readArtistPages().pipe(
+        takeUntil(watchStopSignal()),
         concatMap((d) =>
           from(
             Object.entries(d.artists).map(([url]) => ({
@@ -177,7 +177,7 @@ const performFullUpdate = () =>
           artists,
           albums: [...albums, ...albumsFromArtistsPage],
         })),
-        tap(({ artists }) => console.log(`found ${artists.length} albums`)),
+        tap(({ artists }) => console.log(`found ${artists.length} artists`)),
       ),
     ),
     concatMap(({ artists, albums }) =>

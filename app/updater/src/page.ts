@@ -43,6 +43,7 @@ export const readPage = <T extends PageData>(getter: () => Promise<T | null>) =>
           }
 
           incrementPages();
+          console.debug(`reading page ${page.url}`);
 
           return of(page);
         }),
