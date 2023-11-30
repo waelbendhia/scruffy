@@ -93,9 +93,11 @@ const withWatch429 = (client: AxiosInstance) => {
         retryDelay = parseInt(retryHeader ?? "0", 10);
       }
 
+      console.log(`delaying request ${retryDelay}`);
+
       setTimeout(() => {
         retryStream.push("send");
-      }, retryDelay);
+      }, retryDelay * 1000);
 
       throw err;
     },

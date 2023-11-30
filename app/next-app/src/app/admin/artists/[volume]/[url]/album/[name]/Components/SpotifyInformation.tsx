@@ -12,7 +12,7 @@ const getSpotifyData = async (artistName: string, albumName: string) => {
       artistName,
     )}/album/${encodeURIComponent(albumName)}`,
   );
-  const res: SpotifyAlbumSearchResult = await resp.json();
+  const res: SpotifyAlbumSearchResult | null = await resp.json();
 
   return res;
 };
@@ -48,11 +48,11 @@ const SpotifyInformationAsync = async ({
   }
 
   const spotify = await getSpotifyData(artistName, albumName);
-  const bestMatchIDs = spotify.best_match.items.map((a) => a.uri);
+  const bestMatchIDs = spotify?.best_match.items.map((a) => a.uri);
   const results = [
-    ...spotify.best_match.items,
-    ...spotify.albums.items.filter(
-      (a) => !bestMatchIDs.some((uri) => a.uri === uri),
+    ...(spotify?.best_match.items ?? []),
+    ...(spotify?.albums.items ?? []).filter(
+      (a) => !bestMatchIDs?.some((uri) => a.uri === uri),
     ),
   ].map((a) => ({
     key: a.uri,

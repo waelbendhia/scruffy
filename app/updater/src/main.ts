@@ -14,7 +14,6 @@ import {
   takeUntil,
   defer,
   filter,
-  take,
   mergeWith,
   reduce,
   Observable,
@@ -59,7 +58,7 @@ const readRatingsPages = () =>
     ...range(1990, new Date().getFullYear()).map(readYearRatingsPage),
     readNewRatingsPage(),
   ).pipe(
-    take(1),
+    takeUntil(watchStopSignal()),
     concatMap((p) =>
       prisma.updateHistory
         .upsert({
@@ -84,7 +83,7 @@ const readArtistPages = () =>
     readVolumePage(7),
     readVolumePage(8),
   ).pipe(
-    take(1),
+    takeUntil(watchStopSignal()),
     concatMap((p) =>
       prisma.updateHistory
         .upsert({
@@ -119,23 +118,25 @@ const partitionToArrays =
 
 const processArtists = (): OperatorFunction<ReadArtist, number> =>
   pipe(
+    takeUntil(watchStopSignal()),
     mergeMap(addArtistImageFromSpotify, concurrency),
     mergeMap(addArtistImageFromDeezer, concurrency),
     concatMap(insertArtist),
+    takeUntil(watchStopSignal()),
     count(),
-    tap((c) => console.debug(`inserted ${c} artists.`)),
   );
 
-const processAlbums = () =>
+const processAlbums = (): OperatorFunction<ReadAlbum, number> =>
   pipe(
     distinct((a: ReadAlbum) => `${a.artistUrl}-${a.name}`),
+    takeUntil(watchStopSignal()),
     mergeMap(addAlbumCoverAndReleaseYearFromMusicBrainz, concurrency),
     mergeMap(addAlbumCoverAndReleaseYearFromSpotify, concurrency),
     mergeMap(addAlbumCoverAndReleaseYearFromDeezer, concurrency),
     mergeMap(addAlbumCoverFromLastFM, concurrency),
     concatMap(insertAlbum),
+    takeUntil(watchStopSignal()),
     count(),
-    tap((c) => console.debug(`inserted ${c} albums.`)),
   );
 
 const performFullUpdate = () =>
@@ -182,11 +183,12 @@ const performFullUpdate = () =>
     concatMap(({ artists, albums }) =>
       from(artists).pipe(
         processArtists(),
+        tap((c) => console.debug(`inserted ${c} artists.`)),
         tap(() => console.log(`found ${albums.length} albums`)),
         concatMap(() => from(albums)),
         distinct((a) => `${a.artistUrl}-${a.name}`),
         processAlbums(),
-        takeUntil(watchStopSignal()),
+        tap((c: number) => console.debug(`inserted ${c} albums.`)),
       ),
     ),
     finalize(() => {
