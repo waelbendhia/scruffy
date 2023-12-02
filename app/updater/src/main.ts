@@ -6,7 +6,6 @@ import {
   mergeMap,
   of,
   distinct,
-  count,
   repeat,
   delay,
   finalize,
@@ -18,6 +17,7 @@ import {
   pipe,
   tap,
   Subject,
+  reduce,
 } from "rxjs";
 import {
   concurrency,
@@ -165,22 +165,20 @@ const readArtistPages = () =>
     artistPageReader.readVolumePage(8),
   );
 
-const processArtists = (): OperatorFunction<ReadArtist, number> =>
+const processArtists = (): OperatorFunction<ReadArtist, ReadArtist> =>
   pipe(
     rateLimit(5, 1000),
     mergeMap((a) => artistReader.addImage(a), concurrency),
     concatMap((a) => artistReader.insertArtist(a)),
     takeUntil(watchStopSignal()),
-    count(),
   );
 
-const processAlbums = (): OperatorFunction<ReadAlbum, number> =>
+const processAlbums = (): OperatorFunction<ReadAlbum, ReadAlbum> =>
   pipe(
     rateLimit(5, 1000),
     mergeMap((a) => albumReader.addImageAndReleaseYear(a), concurrency),
     concatMap((a) => albumReader.insertAlbum(a)),
     takeUntil(watchStopSignal()),
-    count(),
   );
 
 const fromURLRecord = (artists: Record<string, { name: string }>) =>
@@ -224,20 +222,22 @@ const performFullUpdate = () =>
     mergeMap(
       (a) =>
         a.type === "artist"
-          ? of(a).pipe(
-              processArtists(),
-              takeUntil(watchStopSignal()),
-              concatMap((c) => {
-                console.debug(`inserted ${c} artists.`);
-                return of();
-              }),
-            )
+          ? of(a).pipe(processArtists(), takeUntil(watchStopSignal()))
           : of(a),
       concurrency,
     ),
     takeUntil(watchStopSignal()),
     processAlbums(),
-    tap((c: number) => console.debug(`inserted ${c} albums.`)),
+    reduce(
+      ({ artists, albums }, a) =>
+        a.type === "artist"
+          ? { artists: artists + 1, albums }
+          : { artists, albums: albums + 1 },
+      { artists: 0, albums: 0 },
+    ),
+    tap(({ artists, albums }) => {
+      console.debug(`inserted ${artists} artists and ${albums} albums.`);
+    }),
   );
 
 const performFullUpdateWithStatusUpdates = () =>
