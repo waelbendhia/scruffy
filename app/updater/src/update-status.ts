@@ -1,95 +1,113 @@
-import { Subject } from "rxjs";
-import { createClient } from "redis";
+import { Subject, share } from "rxjs";
+import { StaticDecode, StaticEncode, Type } from "@sinclair/typebox";
 
-const redisURL = process.env.REDIS_URL;
-const client = redisURL ? createClient({ url: redisURL }) : undefined;
 const TAGS_MANIFEST_KEY = "sharedTagsManifest";
 
-client
-  ?.connect()
-  .then(() => {
-    console.log("Redis connected");
-  })
-  .catch((e) => {
-    console.error("Redis connection error:", e.message);
-  });
+const DateString = () =>
+  Type.Transform(Type.String())
+    .Decode((value) => new Date(value))
+    .Encode((value) => value.toLocaleString("en-us"));
 
-const revalidate = async (tag: "artists" | "albums") => {
-  if (!client) {
-    return;
+export const UpdateInfo = Type.Object({
+  isUpdating: Type.Boolean(),
+  updateStart: Type.Optional(DateString()),
+  updateEnd: Type.Optional(DateString()),
+  artists: Type.Number(),
+  albums: Type.Number(),
+  pages: Type.Number(),
+  errors: Type.Array(
+    Type.Object({
+      context: Type.String(),
+      error: Type.Unknown(),
+    }),
+  ),
+});
+
+export type UpdateInfoDec = StaticDecode<typeof UpdateInfo>;
+export type UpdateInfoEnc = StaticEncode<typeof UpdateInfo>;
+
+interface Client {
+  connect(): Promise<unknown>;
+  hSet(k: string, v: Record<string, string | number>): Promise<unknown>;
+}
+
+export class StatusUpdater {
+  #updateInfo: UpdateInfoDec;
+  #updateInfoSubject: Subject<UpdateInfoDec>;
+  #redis: Client | undefined;
+
+  constructor(updateInfoSubject?: Subject<UpdateInfoDec>, redis?: Client) {
+    this.#updateInfo = {
+      isUpdating: false,
+      artists: 0,
+      albums: 0,
+      pages: 0,
+      errors: [],
+    };
+
+    this.#updateInfoSubject = updateInfoSubject ?? new Subject<UpdateInfoDec>();
+
+    this.#redis = redis;
   }
 
-  await client.hSet(TAGS_MANIFEST_KEY, { [tag]: new Date().getTime() });
-};
+  private async revalidate(tag: "artists" | "albums") {
+    if (!this.#redis) {
+      return;
+    }
 
-export type UpdateInfo = {
-  isUpdating: boolean;
-  updateStart?: Date;
-  updateEnd?: Date;
-  artists: number;
-  albums: number;
-  pages: number;
-  errors: {
-    context: string;
-    error: unknown;
-  }[];
-};
-
-const updateInfoSubject = new Subject<UpdateInfo>();
-
-export const watchUpdates = () => updateInfoSubject.asObservable();
-
-let updateInfo: UpdateInfo = {
-  isUpdating: false,
-  artists: 0,
-  albums: 0,
-  pages: 0,
-  errors: [],
-};
-
-export const getUpdateStatus = (): Readonly<typeof updateInfo> => updateInfo;
-
-export const markUpdateStart = () => {
-  updateInfo = { ...updateInfo, isUpdating: true, updateStart: new Date() };
-  updateInfoSubject.next(updateInfo);
-};
-
-export const incrementArtist = () => {
-  updateInfo.artists++;
-  updateInfoSubject.next(updateInfo);
-  revalidate("artists");
-};
-
-export const incrementAlbum = (count?: number) => {
-  if (count !== undefined) {
-    updateInfo.albums += count;
-  } else {
-    updateInfo.albums++;
-  }
-  updateInfoSubject.next(updateInfo);
-  revalidate("albums");
-};
-
-export const incrementPages = () => {
-  updateInfo.pages++;
-  updateInfoSubject.next(updateInfo);
-};
-
-export const addError = (context: string, error: unknown) => {
-  console.error(`error updating: ${context}`, error);
-  updateInfo.errors.push({ context, error });
-  updateInfoSubject.next(updateInfo);
-};
-
-export const markUpdateEnd = () => {
-  if (!updateInfo.updateStart) {
-    return;
+    await this.#redis.hSet(TAGS_MANIFEST_KEY, { [tag]: new Date().getTime() });
   }
 
-  updateInfo = {
-    ...updateInfo,
-    isUpdating: false,
-    updateEnd: new Date(),
-  };
-  updateInfoSubject.next(updateInfo);
-};
+  watchUpdates() {
+    return this.#updateInfoSubject.asObservable().pipe(share());
+  }
+
+  getUpdateStatus(): Readonly<UpdateInfoDec> {
+    return this.#updateInfo;
+  }
+
+  startUpdate() {
+    this.#updateInfo = {
+      ...this.#updateInfo,
+      isUpdating: true,
+      updateStart: new Date(),
+    };
+    this.#updateInfoSubject.next(this.#updateInfo);
+  }
+
+  incrementArtist(count?: number) {
+    this.#updateInfo.artists += count ?? 1;
+    this.#updateInfoSubject.next(this.#updateInfo);
+    this.revalidate("artists");
+  }
+
+  incrementAlbum(count?: number) {
+    this.#updateInfo.albums += count ?? 1;
+    this.#updateInfoSubject.next(this.#updateInfo);
+    this.revalidate("albums");
+  }
+
+  incrementPages() {
+    this.#updateInfo.pages++;
+    this.#updateInfoSubject.next(this.#updateInfo);
+  }
+
+  addError(context: string, error: unknown) {
+    console.error(`error updating: ${context}`, error);
+    this.#updateInfo.errors.push({ context, error });
+    this.#updateInfoSubject.next(this.#updateInfo);
+  }
+
+  endUpdate() {
+    if (!this.#updateInfo.updateStart) {
+      return;
+    }
+
+    this.#updateInfo = {
+      ...this.#updateInfo,
+      isUpdating: false,
+      updateEnd: new Date(),
+    };
+    this.#updateInfoSubject.next(this.#updateInfo);
+  }
+}

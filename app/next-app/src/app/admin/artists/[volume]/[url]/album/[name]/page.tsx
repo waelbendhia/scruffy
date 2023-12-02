@@ -2,16 +2,13 @@ import { isLoggedIn } from "@/app/actions";
 import Input from "@/components/Input";
 import { RedirectType, redirect } from "next/navigation";
 import OriginalAlbum from "./Components/OriginalAlbum";
-import DeezerInformation from "./Components/DeezerInformation";
-import SpotifyInformation from "./Components/SpotifyInformation";
-import LastFMInformation from "./Components/LastFMInformation";
 import { updaterBaseURL } from "@/api";
 import { revalidateTag } from "next/cache";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 import { getArtistName } from "@/app/artists/[volume]/[url]/api";
-import MusicBrainzInformation from "./Components/MusicBrainzInformation";
 import BlockContainer from "@/components/BlockContainer";
+import ProviderInformation from "./Components/ProviderInformation";
 
 type Props = {
   params: { volume: string; url: string; name: string };
@@ -199,22 +196,30 @@ export default async function AlbumCorrection({ params, searchParams }: Props) {
             defaultValue={searchParams.referer ?? referer}
           />
           <SelectInputs />
-          <MusicBrainzInformation
+          <ProviderInformation
+            provider="musicbrainz"
+            label="MusicBrainz"
             params={params}
             albumSearch={albumName}
             artistSearch={artistName}
           />
-          <DeezerInformation
+          <ProviderInformation
+            provider="spotify"
+            label="Spotify"
             params={params}
             albumSearch={albumName}
             artistSearch={artistName}
           />
-          <SpotifyInformation
+          <ProviderInformation
+            provider="deezer"
+            label="Deezer"
             params={params}
             albumSearch={albumName}
             artistSearch={artistName}
           />
-          <LastFMInformation
+          <ProviderInformation
+            provider="lastfm"
+            label="last.fm"
             params={params}
             albumSearch={albumName}
             artistSearch={artistName}

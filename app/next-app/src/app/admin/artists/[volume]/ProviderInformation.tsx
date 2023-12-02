@@ -1,14 +1,14 @@
 import { updaterBaseURL } from "@/api";
 import { getArtist } from "@/app/artists/[volume]/[url]/api";
 import { ArtistResult } from "@scruffy/updater";
-import SearchResult from "./SearchResult";
 import { Suspense } from "react";
+import SearchResult from "./[url]/Components/SearchResult";
 
 type Params = { volume: string; url: string };
 
-const getSpotifyData = async (name: string) => {
+const getProviderData = async (provider: string, name: string) => {
   const resp = await fetch(
-    `${updaterBaseURL}/spotify/artist/${encodeURIComponent(name)}`,
+    `${updaterBaseURL}/${provider}/artist/${encodeURIComponent(name)}`,
   );
   const res: ArtistResult[] = await resp.json();
 
@@ -17,10 +17,17 @@ const getSpotifyData = async (name: string) => {
 
 type Props = {
   params: Params;
+  provider: string;
+  label: string;
   searchValue?: string;
 };
 
-const SpotifyInformationAsync = async ({ params, searchValue }: Props) => {
+const SpotifyInformationAsync = async ({
+  provider,
+  label,
+  params,
+  searchValue,
+}: Props) => {
   let name = searchValue;
   if (!name) {
     const artist = await getArtist(params);
@@ -30,11 +37,9 @@ const SpotifyInformationAsync = async ({ params, searchValue }: Props) => {
     name = artist.name;
   }
 
-  const spotifyResults = await getSpotifyData(name);
+  const results = await getProviderData(provider, name);
 
-  return (
-    <SearchResult source="Spotify" loading={false} results={spotifyResults} />
-  );
+  return <SearchResult source={label} loading={false} results={results} />;
 };
 
 export default function SpotifyInformation({ params, searchValue }: Props) {

@@ -1,6 +1,7 @@
 import AlbumCard from "@/components/AlbumCard";
 import SearchResultItem from "./SearchResultItem";
 import BlockContainer from "@/components/BlockContainer";
+import { AlbumResult } from "@scruffy/updater";
 
 type Props = { source: string; className?: string } & (
   | {
@@ -8,13 +9,7 @@ type Props = { source: string; className?: string } & (
     }
   | {
       loading: false;
-      results: {
-        artistName: string;
-        name: string;
-        imageUrl?: string;
-        year?: string;
-        key: string | number;
-      }[];
+      results: AlbumResult[];
     }
 );
 
@@ -45,22 +40,19 @@ const SearchResult = ({ className, source, ...props }: Props) => {
       ) : (
         <fieldset className="contents">
           {props.results.map((r) => (
-            <InputContainer key={r.key}>
+            <InputContainer key={r.id}>
               <input
                 type="radio"
-                id={`${r.key}`}
+                id={r.id}
                 name="selectedArtist"
-                value={JSON.stringify({
-                  ...r,
-                  year: !!r.year ? new Date(r.year).getFullYear() : undefined,
-                })}
+                value={JSON.stringify({ ...r, year: r.releaseYear })}
               />
-              <label className="group" htmlFor={`${r.key}`}>
+              <label className="group" htmlFor={r.id}>
                 <SearchResultItem
                   artistName={r.artistName}
                   name={r.name}
-                  year={r.year}
-                  imageUrl={r.imageUrl}
+                  year={r.releaseYear}
+                  imageUrl={r.coverURL}
                 />
               </label>
             </InputContainer>

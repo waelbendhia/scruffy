@@ -1,4 +1,8 @@
-import { Prisma, prisma } from "@scruffy/database";
+import {
+  Prisma,
+  PrismaClient,
+  prisma as globalPrisma,
+} from "@scruffy/database";
 import {
   getJazzPage,
   getPage,
@@ -14,182 +18,209 @@ import {
   from,
   of,
   map,
-  mergeMap,
   catchError,
   pipe,
   Observable,
+  tap,
+  retry,
+  ObservableInput,
 } from "rxjs";
-import { concurrency, hasArtistProvider } from "./env";
 import { ReadAlbum, ReadArtist } from "./types";
-import { getBestArtistSearchResult } from "./deezer";
-import { readPage } from "./page";
-import { URL } from "url";
+import { PageReader } from "./page";
 import { client } from "./scaruffi";
-import { getBiggestSpotifyImage, getSpotifyArtist } from "./spotify";
-import { addError, incrementArtist } from "./update-status";
+import { StatusUpdater } from "./update-status";
+import { ArtistProvider } from "./providers";
 
 type PageData = Awaited<ReturnType<typeof getPage>>;
 
-const catchArtistError = <T>(
-  artistURL: string,
-  recoverWith?: T,
-): ((o: Observable<T>) => Observable<T>) =>
-  pipe(
-    catchError((e) => {
-      addError(`artistURL: ${artistURL}`, e);
-      return recoverWith !== undefined ? of(recoverWith) : of();
-    }),
-  );
+export class ArtistReader {
+  #providers: ArtistProvider[];
+  #statusUpdater: StatusUpdater;
+  #pageReader: PageReader;
+  #prisma: PrismaClient;
 
-const readArtistsPage = (
-  page: string,
-  getter: () => Observable<PageData>,
-  reader: (_: string | Buffer) => Record<string, { name: string }>,
-) =>
-  readPage(getter).pipe(
-    catchArtistError(page),
-    map(({ data, ...page }) => ({ ...page, artists: reader(data) })),
-  );
+  constructor(
+    providers: ArtistProvider[],
+    statusUpdater: StatusUpdater,
+    pageReader: PageReader,
+    prisma?: PrismaClient,
+  ) {
+    this.#providers = providers;
+    this.#statusUpdater = statusUpdater;
+    this.#pageReader = pageReader;
+    this.#prisma = prisma ?? globalPrisma;
+  }
+
+  catchArtistError<T>(
+    pageURL: string,
+    recoverWith?: T,
+  ): (o: Observable<T>) => Observable<T> {
+    return pipe(
+      catchError((e) => {
+        this.#statusUpdater.addError(`artistUrl: ${pageURL}`, e);
+        return recoverWith !== undefined ? of(recoverWith) : of();
+      }),
+    );
+  }
+
+  readDataFromArtistPage(url: string) {
+    return this.#pageReader
+      .readPage(() => from(getPage(url, client)))
+      .pipe(
+        concatMap(({ data, ...page }) => {
+          const artist = readArtistFromArtistPage(url, data);
+          if (!artist || !artist?.name) {
+            console.debug(`invalid artist ${url}`);
+            return of();
+          }
+
+          const { albums, ...a } = artist;
+
+          return from([
+            { type: "artist" as const, page, ...a } satisfies ReadArtist,
+            ...albums.map(
+              (album): ReadAlbum => ({
+                ...album,
+                page,
+                type: "album" as const,
+                artistName: artist.name,
+                artistUrl: a.url,
+              }),
+            ),
+          ]);
+        }),
+        this.catchArtistError(url),
+      );
+  }
+
+  withCatch<T extends ReadArtist>(f: (_: T) => ObservableInput<T>) {
+    return (a: T) => of(a).pipe(concatMap(f), this.catchArtistError(a.url, a));
+  }
+
+  addImage<T extends ReadArtist>(artist: T) {
+    // TODO: run these in parallel and find a way to determine the best result.
+    let o = of(artist);
+
+    for (const provider of this.#providers) {
+      o = o.pipe(
+        concatMap(
+          this.withCatch<T>(async (a) => {
+            const res = await provider.searchArtist(a.name);
+            const cover = res.find((a) => !!a.imageURL)?.imageURL;
+            return { ...a, imageUrl: a.imageUrl ?? cover };
+          }),
+        ),
+      );
+    }
+    return o;
+  }
+
+  private insertArtistDB<T extends ReadArtist>(artist: T) {
+    return this.#prisma.$transaction(async (tx) => {
+      const now = new Date();
+
+      await tx.updateHistory.upsert({
+        where: { pageURL: artist.url },
+        create: {
+          checkedOn: now,
+          hash: artist.page.hash,
+          pageURL: artist.url,
+        },
+        update: {
+          checkedOn: now,
+          hash: artist.page.hash,
+          pageURL: artist.url,
+        },
+      });
+
+      const createOrUpdateInput: Prisma.ArtistCreateInput &
+        Prisma.ArtistUpdateInput = {
+        name: artist.name,
+        imageUrl: artist.imageUrl,
+        lastModified: artist.page.lastModified,
+        bio: artist.bio,
+        fromUpdate: { connect: { pageURL: artist.url } },
+      };
+
+      await tx.artist.upsert({
+        where: { url: artist.url },
+        create: createOrUpdateInput,
+        update: createOrUpdateInput,
+      });
+
+      return artist;
+    });
+  }
+
+  insertArtist<T extends ReadArtist>(a: T) {
+    const runInsert = pipe(
+      this.withCatch((a) =>
+        from(this.insertArtistDB(a)).pipe(retry({ count: 50, delay: 5_000 })),
+      ),
+      tap(() => {
+        this.#statusUpdater.incrementArtist();
+      }),
+    );
+
+    return runInsert(a);
+  }
+}
 
 type Volume = Parameters<typeof readArtistsFromVolumePage>[0];
 
-export const readRockPage = () =>
+export class ArtistPageReader {
+  #pageReader: PageReader;
+  #statusUpdater: StatusUpdater;
+
+  constructor(statusUpdater: StatusUpdater, pageReader: PageReader) {
+    this.#statusUpdater = statusUpdater;
+    this.#pageReader = pageReader;
+  }
+
+  catchArtistsPageError<T>(
+    pageURL: string,
+    recoverWith?: T,
+  ): (o: Observable<T>) => Observable<T> {
+    return pipe(
+      catchError((e) => {
+        this.#statusUpdater.addError(`artistsPageURL: ${pageURL}`, e);
+        return recoverWith !== undefined ? of(recoverWith) : of();
+      }),
+    );
+  }
+
   readArtistsPage(
-    "rock page",
-    () => from(getRockPage(client)),
-    readArtistsFromRockPage,
-  );
+    page: string,
+    getter: () => Observable<PageData>,
+    reader: (_: string | Buffer) => Record<string, { name: string }>,
+  ) {
+    return this.#pageReader.readPage(getter).pipe(
+      this.catchArtistsPageError(page),
+      map(({ data, ...page }) => ({ ...page, artists: reader(data) })),
+    );
+  }
 
-export const readJazzPage = () =>
-  readArtistsPage(
-    "jazz page",
-    () => from(getJazzPage(client)),
-    readArtistsFromJazzPage,
-  );
+  readRockPage() {
+    return this.readArtistsPage(
+      "rock page",
+      () => from(getRockPage(client)),
+      readArtistsFromRockPage,
+    );
+  }
 
-export const readVolumePage = (volume: Volume) =>
-  readArtistsPage(
-    `volume ${volume}`,
-    () => from(getVolumePage(volume, client)),
-    (data) => readArtistsFromVolumePage(volume, data),
-  );
+  readJazzPage() {
+    return this.readArtistsPage(
+      "jazz page",
+      () => from(getJazzPage(client)),
+      readArtistsFromJazzPage,
+    );
+  }
 
-export const readDataFromArtistPage = (url: string) =>
-  readPage(() => from(getPage(url, client))).pipe(
-    concatMap(({ data, ...page }) => {
-      const artist = readArtistFromArtistPage(url, data);
-      if (!artist || !artist?.name) {
-        console.debug(`invalid artist ${url}`);
-        return of();
-      }
-
-      const { albums, ...a } = artist;
-
-      return from([
-        { type: "artist" as const, page, ...a } satisfies ReadArtist,
-        ...albums.map(
-          (album): ReadAlbum => ({
-            ...album,
-            page,
-            type: "album" as const,
-            artistName: artist.name,
-            artistUrl: a.url,
-          }),
-        ),
-      ]);
-    }),
-    catchArtistError(url),
-  );
-
-const withCatch =
-  <T extends ReadArtist>(f: (_: T) => Promise<T>) =>
-  (a: T) =>
-    of(a).pipe(concatMap(f), catchArtistError(a.url, a));
-
-export const addArtistImageFromDeezer = withCatch(
-  async <T extends ReadArtist>(a: T) => {
-    if (!hasArtistProvider("deezer") || !!a.imageUrl) {
-      return a;
-    }
-
-    const searchResult = await getBestArtistSearchResult(a.name);
-    if (!searchResult) {
-      return a;
-    }
-
-    const path = new URL(searchResult.picture_xl).pathname.split("/");
-    if (path[path.length - 2] === "") {
-      return a;
-    }
-
-    return { ...a, imageUrl: searchResult.picture_xl };
-  },
-);
-
-export const addArtistImageFromSpotify = withCatch(
-  async <T extends ReadArtist>(a: T) => {
-    if (!hasArtistProvider("spotify") || !!a.imageUrl) {
-      return a;
-    }
-
-    const bestMatch = await getSpotifyArtist(a.name);
-    if (!bestMatch) {
-      return a;
-    }
-
-    const image = getBiggestSpotifyImage(bestMatch.images);
-
-    return { ...a, imageUrl: image?.url };
-  },
-);
-
-export const addArtistImage: <T extends ReadArtist>(
-  source: Observable<T>,
-) => Observable<T> = pipe(
-  mergeMap(addArtistImageFromSpotify, concurrency),
-  mergeMap(addArtistImageFromDeezer, concurrency),
-);
-
-export const insertArtist = withCatch(<T extends ReadArtist>(artist: T) =>
-  prisma.$transaction(async (tx) => {
-    const now = new Date();
-
-    await tx.updateHistory.upsert({
-      where: { pageURL: artist.url },
-      create: {
-        checkedOn: now,
-        hash: artist.page.hash,
-        pageURL: artist.url,
-      },
-      update: {
-        checkedOn: now,
-        hash: artist.page.hash,
-        pageURL: artist.url,
-      },
-    });
-
-    const createOrUpdateInput: Prisma.ArtistCreateInput &
-      Prisma.ArtistUpdateInput = {
-      name: artist.name,
-      imageUrl: artist.imageUrl,
-      lastModified: artist.page.lastModified,
-      bio: artist.bio,
-      fromUpdate: { connect: { pageURL: artist.url } },
-    };
-
-    incrementArtist();
-    await tx.artist.upsert({
-      where: { url: artist.url },
-      create: createOrUpdateInput,
-      update: createOrUpdateInput,
-    });
-
-    return artist;
-  }),
-);
-
-export const processArtist = pipe(
-  mergeMap(addArtistImageFromSpotify, concurrency),
-  mergeMap(addArtistImageFromDeezer, concurrency),
-  concatMap(insertArtist),
-);
+  readVolumePage(volume: Volume) {
+    return this.readArtistsPage(
+      `volume ${volume}`,
+      () => from(getVolumePage(volume, client)),
+      (data) => readArtistsFromVolumePage(volume, data),
+    );
+  }
+}

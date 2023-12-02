@@ -52,7 +52,7 @@
     @apply disabled:bg-dark-gray;
     @apply hover:text-red;
     @apply hover:text-red;
-    @apply hover:drop-shadow-md;
+    @apply hover:drop-shadow-button;
     @apply transition-all;
     @apply text-lg;
     @apply uppercase;

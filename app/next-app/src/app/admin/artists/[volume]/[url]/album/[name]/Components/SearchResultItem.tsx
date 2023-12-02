@@ -4,7 +4,7 @@ type Props = {
   className?: string;
   artistName: string;
   name: string;
-  year?: string;
+  year?: number;
   imageUrl?: string;
 };
 

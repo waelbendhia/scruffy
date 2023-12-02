@@ -1,17 +1,5 @@
-import axios from "axios";
+import { AxiosInstance } from "axios";
 import { URL } from "url";
-import { rateLimitClient } from "./rate-limit";
-
-const apiKey = process.env.LAST_FM_API_KEY;
-
-const client = rateLimitClient(
-  axios.create({
-    baseURL: "https://ws.audioscrobbler.com/2.0/",
-    params: { api_key: apiKey, format: "json" },
-  }),
-  5,
-  1000,
-);
 
 type LastFMImage = {
   "#text": string;
@@ -92,7 +80,7 @@ type Error = {
   message: string;
 };
 
-export const getLastFMArtist = async (name: string) => {
+export const getLastFMArtist = async (client: AxiosInstance, name: string) => {
   try {
     const resp = await client.get<LastFMArtist | Error>("", {
       params: {
@@ -146,7 +134,11 @@ export type LastFMAlbum = {
   };
 };
 
-export const getLastFMAlbum = async (artist: string, name: string) => {
+export const getLastFMAlbum = async (
+  client: AxiosInstance,
+  artist: string,
+  name: string,
+) => {
   try {
     const resp = await client.get<LastFMAlbum | Error>("", {
       params: {

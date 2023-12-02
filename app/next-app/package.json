@@ -19,6 +19,7 @@
     "axios": "^1.6.0",
     "bcrypt": "^5.1.1",
     "canvas": "^2.11.2",
+    "eventsource": "^2.0.2",
     "next": "^14.0.1",
     "plaiceholder": "^3.0.0",
     "react": "^18",
@@ -28,6 +29,7 @@
     "sharp": "^0.32.6"
   },
   "devDependencies": {
+    "@types/eventsource": "^1.1.15",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",

@@ -8,42 +8,49 @@ type AccessToken = {
   expires_in: number;
 };
 
-const clientID = process.env.SPOTIFY_CLIENT_ID;
-const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+const getToken = (clientID: string, clientSecret: string) =>
+  defer(async () => {
+    console.debug("getting token");
+    try {
+      const res = await axios.post<AccessToken>(
+        "https://accounts.spotify.com/api/token",
+        `grant_type=client_credentials&client_id=${clientID}&client_secret=${clientSecret}`,
+        {
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        },
+      );
+      console.log(res.data);
+      return res;
+    } catch (e) {
+      console.error(clientID, clientSecret, e);
+      throw e;
+    }
+  });
 
-const getToken = defer(async () => {
-  console.debug("getting token");
-  try {
-    const res = await axios.post<AccessToken>(
-      "https://accounts.spotify.com/api/token",
-      `grant_type=client_credentials&client_id=${clientID}&client_secret=${clientSecret}`,
-      {
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      },
-    );
-    console.log(res.data);
-    return res;
-  } catch (e) {
-    console.error(clientID, clientSecret, e);
-    throw e;
-  }
-});
+const getTokenForever = (clientID: string, clientSecret: string) =>
+  defer(() =>
+    getToken(clientID, clientSecret).pipe(
+      retry({ delay: 10_000 }),
+      expand((resp) =>
+        getToken(clientID, clientSecret).pipe(
+          delay(900 * resp.data.expires_in),
+        ),
+      ),
+    ),
+  );
 
-const getTokenForever = defer(() =>
-  getToken.pipe(
-    retry({ delay: 10_000 }),
-    expand((resp) => getToken.pipe(delay(900 * resp.data.expires_in))),
-  ),
-);
-
-const withAuth = (client: AxiosInstance) => {
+export const withAuth = (
+  client: AxiosInstance,
+  clientID: string,
+  clientSecret: string,
+) => {
   let token: AccessToken;
   let resolver: ((_: AccessToken) => void) | undefined;
   const tokenPromise = new Promise<AccessToken>((res) => {
     resolver = res;
   });
 
-  getTokenForever.subscribe((resp) => {
+  getTokenForever(clientID, clientSecret).subscribe((resp) => {
     token = resp.data;
     if (resolver !== undefined) {
       resolver(resp.data);
@@ -63,7 +70,7 @@ const withAuth = (client: AxiosInstance) => {
   return client;
 };
 
-const withWatch429 = (client: AxiosInstance) => {
+export const withWatch429 = (client: AxiosInstance) => {
   const retryStream = new Readable({
     objectMode: true,
     read() {
@@ -105,10 +112,6 @@ const withWatch429 = (client: AxiosInstance) => {
 
   return client;
 };
-
-const client = withWatch429(
-  withAuth(axios.create({ baseURL: "https://api.spotify.com/v1/" })),
-);
 
 export type SpotifyArtist = {
   genres: string[];
@@ -170,6 +173,7 @@ type QueryResult<T extends "album" | "artist"> = T extends "album"
   : never;
 
 const search = async <T extends "album" | "artist">(
+  client: AxiosInstance,
   type: T,
   name: string,
   limit = 10,
@@ -196,10 +200,11 @@ const search = async <T extends "album" | "artist">(
 };
 
 const getBestMatch = async <T extends "album" | "artist">(
+  client: AxiosInstance,
   type: T,
   name: string,
 ) => {
-  const data = await search(type, name, 1);
+  const data = await search(client, type, name, 1);
 
   return data.best_match.items?.[0];
 };
@@ -209,19 +214,27 @@ export type SpotifyArtistSearchResult = BestMatch<
   "artist"
 >;
 
-export const searchSpotifyArtist = async (name: string) =>
-  search("artist", name);
+export const searchSpotifyArtist = async (
+  client: AxiosInstance,
+  name: string,
+) => search(client, "artist", name);
 
-export const getSpotifyArtist = async (name: string) =>
-  getBestMatch("artist", name);
+export const getSpotifyArtist = async (client: AxiosInstance, name: string) =>
+  getBestMatch(client, "artist", name);
 
 export type SpotifyAlbumSearchResult = BestMatch<QueryResult<"album">, "album">;
 
-export const searchSpotifyAlbums = async (artist: string, album: string) =>
-  search("album", `${artist} ${album}`);
+export const searchSpotifyAlbums = async (
+  client: AxiosInstance,
+  artist: string,
+  album: string,
+) => search(client, "album", `${artist} ${album}`);
 
-export const getSpotifyAlbum = async (artist: string, album: string) =>
-  getBestMatch("album", `${artist} ${album}`);
+export const getSpotifyAlbum = async (
+  client: AxiosInstance,
+  artist: string,
+  album: string,
+) => getBestMatch(client, "album", `${artist} ${album}`);
 
 export const getBiggestSpotifyImage = (images: SpotifyAlbum["images"]) =>
   images.reduce<SpotifyAlbum["images"][number] | undefined>((prev, cur) => {

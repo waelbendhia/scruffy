@@ -1,30 +1,37 @@
 import { updaterBaseURL } from "@/api";
-import { DeezerAlbumSearchResult } from "@scruffy/updater";
+import { AlbumResult } from "@scruffy/updater";
 import SearchResult from "./SearchResult";
 import { Suspense } from "react";
 import { getAlbum } from "../api";
 
 type Params = { volume: string; url: string; name: string };
 
-const getDeezerData = async (artistName: string, albumName: string) => {
+const getProviderData = async (
+  provider: string,
+  artistName: string,
+  albumName: string,
+) => {
   const resp = await fetch(
-    `${updaterBaseURL}/deezer/artist/${encodeURIComponent(
+    `${updaterBaseURL}/${provider}/artist/${encodeURIComponent(
       artistName,
     )}/album/${encodeURIComponent(albumName)}`,
   );
-  const res: DeezerAlbumSearchResult = await resp.json();
-
+  const res: AlbumResult[] = await resp.json();
   return res;
 };
 
 type Props = {
   params: Params;
+  provider: string;
+  label: string;
   artistSearch?: string;
   albumSearch?: string;
 };
 
-const DeezerInformationAsync = async ({
+const ProviderInformationAsync = async ({
   params,
+  provider,
+  label,
   artistSearch,
   albumSearch,
 }: Props) => {
@@ -38,27 +45,17 @@ const DeezerInformationAsync = async ({
     artistName = album.artist.name;
   }
 
-  const deezer = await getDeezerData(artistName, albumName);
+  const spotifyResults = await getProviderData(provider, artistName, albumName);
 
   return (
-    <SearchResult
-      loading={false}
-      source="Deezer"
-      results={deezer.data.map((a) => ({
-        key: a.id,
-        artistName: a.artist.name,
-        name: a.title,
-        year: undefined,
-        imageUrl: a.cover_xl,
-      }))}
-    />
+    <SearchResult loading={false} source={label} results={spotifyResults} />
   );
 };
 
-export default function DeezerInformation(props: Props) {
+export default function ProviderInformation(props: Props) {
   return (
-    <Suspense fallback={<SearchResult loading source="Deezer" />}>
-      <DeezerInformationAsync {...props} />
+    <Suspense fallback={<SearchResult loading source={props.label} />}>
+      <ProviderInformationAsync {...props} />
     </Suspense>
   );
 }

@@ -1,11 +1,4 @@
-import axios from "axios";
-import { rateLimitClient } from "./rate-limit";
-
-const client = rateLimitClient(
-  axios.create({ baseURL: "https://api.deezer.com" }),
-  50,
-  5000,
-);
+import { AxiosInstance } from "axios";
 
 export type DeezerArtistSearchResult = {
   data: DeezerArtist[];
@@ -23,15 +16,22 @@ export type DeezerArtist = {
   type: "artist";
 };
 
-export const searchDeezerArtists = async (name: string, limit = 10) => {
+export const searchDeezerArtists = async (
+  client: AxiosInstance,
+  name: string,
+  limit = 10,
+) => {
   const resp = await client.get<DeezerArtistSearchResult>(`/search/artist`, {
     params: { q: `artist:"${name}"`, limit },
   });
   return resp.data;
 };
 
-export const getBestArtistSearchResult = async (name: string) => {
-  const resp = await searchDeezerArtists(name, 1);
+export const getBestArtistSearchResult = async (
+  client: AxiosInstance,
+  name: string,
+) => {
+  const resp = await searchDeezerArtists(client, name, 1);
   const artist = resp.data?.[0];
   // I do this so that TS can infer the return type as DeezerArtist|undefined
   if (!artist) {
@@ -57,7 +57,11 @@ export type DeezerAlbum = {
   type: "album";
 };
 
-export const searchDeezerAlbums = async (artist: string, albumName: string) => {
+export const searchDeezerAlbums = async (
+  client: AxiosInstance,
+  artist: string,
+  albumName: string,
+) => {
   const resp = await client.get<DeezerAlbumSearchResult>(`/search/album`, {
     params: { q: `artist:"${artist}"album:"${albumName}"` },
   });
@@ -65,10 +69,11 @@ export const searchDeezerAlbums = async (artist: string, albumName: string) => {
 };
 
 export const getBestAlbumSearchResult = async (
+  client: AxiosInstance,
   artist: string,
   albumName: string,
 ) => {
-  const resp = await searchDeezerAlbums(artist, albumName);
+  const resp = await searchDeezerAlbums(client, artist, albumName);
   const album = resp.data?.[0];
   // I do this so that TS can infer the return type as DeezerArtist|undefined
   if (!album) {
@@ -104,7 +109,7 @@ type DeezerFullAlbum = DeezerAlbum & {
   contributors: DeezerArtist[];
 };
 
-export const getAlbum = async (albumID: number) => {
+export const getAlbum = async (client: AxiosInstance, albumID: number) => {
   const { data } = await client.get<DeezerFullAlbum>(`album/${albumID}`);
   return data;
 };

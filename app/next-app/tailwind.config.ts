@@ -10,6 +10,12 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      dropShadow: {
+        button: [
+          "0 0px 8px rgba(255, 53, 48, 0.21)",
+          "0 0px  3px rgba(255, 53, 48, 0.18)",
+        ],
+      },
       animation: {
         "spin-slow": "spin 2s linear infinite",
       },

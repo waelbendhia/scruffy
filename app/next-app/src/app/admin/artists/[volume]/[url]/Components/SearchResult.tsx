@@ -8,7 +8,7 @@ type Props = { source: string; className?: string } & (
     }
   | {
       loading: false;
-      results: { name: string; imageUrl?: string; key: string }[];
+      results: { name: string; imageUrl?: string; id: string }[];
     }
 );
 
@@ -39,14 +39,14 @@ const SearchResult = ({ className, source, ...props }: Props) => {
       ) : (
         <fieldset className="contents">
           {props.results.map((r) => (
-            <InputContainer key={r.key}>
+            <InputContainer key={r.id}>
               <input
                 type="radio"
-                id={r.key}
+                id={r.id}
                 name="selectedArtist"
                 value={JSON.stringify(r)}
               />
-              <label className="group" htmlFor={r.key}>
+              <label className="group" htmlFor={r.id}>
                 <SearchResultItem name={r.name} imageUrl={r.imageUrl} />
               </label>
             </InputContainer>

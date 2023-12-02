@@ -1,14 +1,14 @@
-import { getAlbum, getBestAlbumSearchResult } from "./deezer";
-import { Prisma, prisma } from "@scruffy/database";
+import {
+  Prisma,
+  PrismaClient,
+  prisma as globalPrisma,
+} from "@scruffy/database";
 import {
   getNewRatingsPage,
   getYearRatingsPage,
   readAlbumsFromNewRatingsPage,
   readAlbumsFromYearRatingsPage,
 } from "@scruffy/scraper";
-import { getBiggestLastFMImage, getLastFMAlbum } from "./lastfm";
-import { getBiggestSpotifyImage, getSpotifyAlbum } from "./spotify";
-import { readPage } from "./page";
 import { client } from "./scaruffi";
 import {
   Observable,
@@ -23,141 +23,123 @@ import {
   pipe,
   retry,
   share,
+  tap,
 } from "rxjs";
-import { searchMusicBrainzAlbums } from "./musicbrainz";
-import { MusicBrainzRelease } from "../dist";
-import { addError, incrementAlbum } from "./update-status";
-import { hasAlbumProvider } from "./env";
 import { ReadAlbum } from "./types";
-
-const catchAlbumError = <T>(
-  artistURL: string,
-  albumName: string,
-  recoverWith?: T,
-): ((o: Observable<T>) => Observable<T>) =>
-  pipe(
-    catchError((e) => {
-      addError(`artistURL: ${artistURL}, albumName: ${albumName}`, e);
-      return !!recoverWith ? of(recoverWith) : of();
-    }),
-  );
-
-const withCatch =
-  <T extends ReadAlbum>(f: (_: T) => ObservableInput<T>) =>
-  (a: T) =>
-    of(a).pipe(concatMap(f), catchAlbumError(a.artistUrl, a.name, a));
-
-export const addAlbumCoverAndReleaseYearFromMusicBrainz = withCatch(
-  async <T extends ReadAlbum>(album: T) => {
-    if (!hasAlbumProvider("musicbrainz") || (album.imageUrl && album.year)) {
-      return album;
-    }
-
-    try {
-      const albumSearchResult = await searchMusicBrainzAlbums(
-        album.artistName,
-        album.name,
-      );
-
-      const topResult = albumSearchResult.releases.reduce<
-        MusicBrainzRelease | undefined
-      >((prev, cur) => {
-        if (!prev || cur.score > prev.score) return cur;
-        if (cur.score === prev.score) {
-          const curYear = new Date(cur.date).getFullYear();
-          const prevYear = new Date(prev.date).getFullYear();
-          if (curYear < prevYear) return cur;
-        }
-        return prev;
-      }, undefined);
-
-      return {
-        ...album,
-        imageUrl: album.imageUrl ?? topResult?.front,
-        year:
-          album.year ??
-          (topResult?.date !== undefined
-            ? new Date(topResult?.date ?? "").getFullYear()
-            : undefined),
-      };
-    } catch (e) {
-      return album;
-    }
-  },
-);
-
-export const addAlbumCoverAndReleaseYearFromDeezer = withCatch(
-  async <T extends ReadAlbum>(album: T) => {
-    if (!hasAlbumProvider("deezer") || (album.imageUrl && album.year)) {
-      return album;
-    }
-
-    const albumSearchResult = await getBestAlbumSearchResult(
-      album.artistName,
-      album.name,
-    );
-
-    if (album.year || !albumSearchResult) {
-      return { ...album, imageUrl: albumSearchResult?.cover_xl };
-    }
-
-    const deezerAlbum = await getAlbum(albumSearchResult.id);
-
-    return {
-      ...album,
-      imageUrl: album.imageUrl ?? albumSearchResult.cover_xl,
-      year: deezerAlbum?.release_date
-        ? new Date(deezerAlbum.release_date).getFullYear()
-        : undefined,
-    };
-  },
-);
-
-export const addAlbumCoverFromLastFM = withCatch(
-  async <T extends ReadAlbum>(album: T) => {
-    if (!hasAlbumProvider("lastfm") || !!album.imageUrl) {
-      return album;
-    }
-
-    try {
-      const albumSearchResult = await getLastFMAlbum(
-        album.artistName,
-        album.name,
-      );
-
-      const cover = getBiggestLastFMImage(albumSearchResult?.album.image);
-
-      return { ...album, imageUrl: cover?.["#text"] };
-    } catch (e) {
-      return album;
-    }
-  },
-);
-
-export const addAlbumCoverAndReleaseYearFromSpotify = withCatch(
-  async <T extends ReadAlbum>(album: T) => {
-    if (!hasAlbumProvider("spotify") || !!album.imageUrl) {
-      return album;
-    }
-
-    try {
-      const bestMatch = await getSpotifyAlbum(album.artistName, album.name);
-
-      const cover = getBiggestSpotifyImage(bestMatch?.images ?? []);
-      const year = new Date(bestMatch.release_date).getFullYear();
-
-      return {
-        ...album,
-        imageUrl: cover?.url,
-        year: album.year ?? isNaN(year) ? undefined : year,
-      };
-    } catch (e) {
-      return album;
-    }
-  },
-);
+import { StatusUpdater } from "./update-status";
+import { AlbumProvider } from "./providers";
+import { PageReader } from "./page";
 
 type RatingsPageData = ReturnType<typeof readAlbumsFromNewRatingsPage>;
+
+export class AlbumReader {
+  #providers: AlbumProvider[];
+  #statusUpdater: StatusUpdater;
+  #prisma: PrismaClient;
+
+  constructor(
+    providers: AlbumProvider[],
+    statusUpdater: StatusUpdater,
+    prisma?: PrismaClient,
+  ) {
+    this.#providers = providers;
+    this.#statusUpdater = statusUpdater;
+    this.#prisma = prisma ?? globalPrisma;
+  }
+
+  private catchAlbumError<T>(
+    artistURL: string,
+    albumName: string,
+    recoverWith?: T,
+  ): (o: Observable<T>) => Observable<T> {
+    return pipe(
+      catchError((e) => {
+        this.#statusUpdater.addError(
+          `artistURL: ${artistURL}, albumName: ${albumName}`,
+          e,
+        );
+        return !!recoverWith ? of(recoverWith) : of();
+      }),
+    );
+  }
+
+  private withCatch<T extends ReadAlbum>(f: (_: T) => ObservableInput<T>) {
+    return (a: T) =>
+      of(a).pipe(concatMap(f), this.catchAlbumError(a.artistUrl, a.name, a));
+  }
+
+  addImageAndReleaseYear<T extends ReadAlbum>(album: T) {
+    // TODO: run these in parallel and find a way to determine the best result.
+    let o = of(album);
+
+    for (const provider of this.#providers) {
+      o = o.pipe(
+        concatMap(
+          this.withCatch<T>(async (a) => {
+            const res = await provider.searchAlbums(a.artistName, a.name);
+            const cover = res.find((a) => !!a.coverURL)?.coverURL;
+            const year = res.find((a) => !!a.releaseYear)?.releaseYear;
+            return {
+              ...a,
+              imageUrl: a.imageUrl ?? cover,
+              year: a.year ?? year,
+            };
+          }),
+        ),
+      );
+    }
+    return o;
+  }
+
+  private async insertAlbumDB<T extends ReadAlbum>({ page, ...album }: T) {
+    return this.#prisma.$transaction(async (tx) => {
+      const a = await tx.artist.count({
+        where: { url: album.artistUrl },
+      });
+      if (a === 0) {
+        return { page, ...album };
+      }
+
+      await tx.updateHistory.upsert({
+        where: { pageURL: page.url },
+        create: { pageURL: page.url, hash: page.hash },
+        update: {},
+      });
+
+      const input: Prisma.AlbumCreateInput = {
+        name: album.name,
+        year: album.year ?? null,
+        rating: album.rating,
+        imageUrl: album.imageUrl ?? null,
+        artist: { connect: { url: album.artistUrl } },
+        fromUpdate: { connect: { pageURL: page.url } },
+      };
+
+      await this.#prisma.album.upsert({
+        where: {
+          artistUrl_name: { artistUrl: album.artistUrl, name: album.name },
+        },
+        create: input,
+        update: album.artistUrl === page.url ? input : {},
+      });
+
+      return { page, ...album };
+    });
+  }
+
+  insertAlbum<T extends ReadAlbum>(a: T) {
+    const runInsert = pipe(
+      this.withCatch((a) =>
+        from(this.insertAlbumDB(a)).pipe(retry({ count: 50, delay: 5_000 })),
+      ),
+      tap(() => {
+        this.#statusUpdater.incrementAlbum();
+      }),
+    );
+
+    return runInsert(a);
+  }
+}
 
 export const splitRatingsPageData = (
   d: Observable<{
@@ -191,82 +173,57 @@ export const splitRatingsPageData = (
   );
 };
 
-export const readYearRatingsPage = (year: number) =>
-  readPage(() =>
-    from(
-      getYearRatingsPage(year, client).then((p) => (p === null ? [] : [p])),
-    ).pipe(concatMap((p) => from(p))),
-  ).pipe(
-    catchError((e) => {
-      console.error(`could not read ratings page for year ${year}`, e);
-      return of();
-    }),
-    map(({ data, ...page }) => {
-      const { artists, albums } = readAlbumsFromYearRatingsPage(year, data);
-      return {
-        data: {
-          artists,
-          albums: albums.map(
-            (a): ReadAlbum => ({
-              ...a,
-              artistName: artists[a.artistUrl]?.name ?? "",
-              type: "album",
-              page,
-            }),
-          ),
-        },
-        ...page,
-      };
-    }),
-  );
+export class AlbumPageReader {
+  #pageReader: PageReader;
 
-export const readNewRatingsPage = () =>
-  readPage(() => from(getNewRatingsPage(client))).pipe(
-    catchError((e) => {
-      console.error(`could not read new ratings page`, e);
-      return of();
-    }),
-    map(({ data, ...page }) => ({
-      data: readAlbumsFromNewRatingsPage(data),
-      ...page,
-    })),
-  );
+  constructor(pageReader: PageReader) {
+    this.#pageReader = pageReader;
+  }
 
-export const insertAlbum = withCatch(({ page, ...album }: ReadAlbum) =>
-  from(
-    prisma.$transaction(async (tx) => {
-      const a = await tx.artist.count({
-        where: { url: album.artistUrl },
-      });
-      if (a === 0) {
-        return { page, ...album };
-      }
+  readYearRatingsPage(year: number) {
+    return this.#pageReader
+      .readPage(() =>
+        from(
+          getYearRatingsPage(year, client).then((p) => (p === null ? [] : [p])),
+        ).pipe(concatMap((p) => from(p))),
+      )
+      .pipe(
+        catchError((e) => {
+          console.error(`could not read ratings page for year ${year}`, e);
+          return of();
+        }),
+        map(({ data, ...page }) => {
+          const { artists, albums } = readAlbumsFromYearRatingsPage(year, data);
+          return {
+            data: {
+              artists,
+              albums: albums.map(
+                (a): ReadAlbum => ({
+                  ...a,
+                  artistName: artists[a.artistUrl]?.name ?? "",
+                  type: "album",
+                  page,
+                }),
+              ),
+            },
+            ...page,
+          };
+        }),
+      );
+  }
 
-      await tx.updateHistory.upsert({
-        where: { pageURL: page.url },
-        create: { pageURL: page.url, hash: page.hash },
-        update: {},
-      });
-
-      const input: Prisma.AlbumCreateInput = {
-        name: album.name,
-        year: album.year ?? null,
-        rating: album.rating,
-        imageUrl: album.imageUrl ?? null,
-        artist: { connect: { url: album.artistUrl } },
-        fromUpdate: { connect: { pageURL: page.url } },
-      };
-
-      incrementAlbum();
-      await prisma.album.upsert({
-        where: {
-          artistUrl_name: { artistUrl: album.artistUrl, name: album.name },
-        },
-        create: input,
-        update: album.artistUrl === page.url ? input : {},
-      });
-
-      return { page, ...album };
-    }),
-  ).pipe(retry({ count: 50, delay: 5_000 })),
-);
+  readNewRatingsPage() {
+    return this.#pageReader
+      .readPage(() => from(getNewRatingsPage(client)))
+      .pipe(
+        catchError((e) => {
+          console.error(`could not read new ratings page`, e);
+          return of();
+        }),
+        map(({ data, ...page }) => ({
+          data: readAlbumsFromNewRatingsPage(data),
+          ...page,
+        })),
+      );
+  }
+}

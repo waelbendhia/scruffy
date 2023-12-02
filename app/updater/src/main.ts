@@ -20,31 +20,112 @@ import {
   OperatorFunction,
   pipe,
   tap,
-  take,
+  Subject,
 } from "rxjs";
-import { concurrency, recheckDelay } from "./env";
 import {
-  addArtistImageFromDeezer,
-  addArtistImageFromSpotify,
-  insertArtist,
-  readDataFromArtistPage,
-  readJazzPage,
-  readRockPage,
-  readVolumePage,
-} from "./artists";
-import {
-  addAlbumCoverAndReleaseYearFromDeezer,
-  addAlbumCoverAndReleaseYearFromMusicBrainz,
-  addAlbumCoverAndReleaseYearFromSpotify,
-  addAlbumCoverFromLastFM,
-  insertAlbum,
-  readNewRatingsPage,
-  readYearRatingsPage,
-} from "./album";
-import { api } from "./api/server";
+  concurrency,
+  recheckDelay,
+  artistProviders as envArtistProviders,
+  albumProviders as envAlbumProviders,
+} from "./env";
+import { ArtistReader, ArtistPageReader } from "./artists";
+import { AlbumReader, AlbumPageReader } from "./album";
+import { createAPI } from "./api/server";
 import { watchStartSignal, watchStopSignal } from "./start-stop-signal";
 import { ReadAlbum, ReadArtist } from "./types";
-import { markUpdateEnd, markUpdateStart } from "./update-status";
+import { StatusUpdater, UpdateInfoDec } from "./update-status";
+import { createClient } from "redis";
+import {
+  AlbumProvider,
+  ArtistProvider,
+  DeezerProvider,
+  LastFMProvider,
+  MusicBrainzProvider,
+  SpotifyProvider,
+} from "./providers";
+import { PageReader } from "./page";
+
+const redisURL = process.env.REDIS_URL;
+const redis = redisURL ? createClient({ url: redisURL }) : undefined;
+redis
+  ?.connect()
+  .then(() => {
+    console.log("Redis connected");
+  })
+  .catch((e) => {
+    console.error("Redis connection error:", e.message);
+  });
+
+const updateSubjectInfo = new Subject<UpdateInfoDec>();
+const statusUpdater = new StatusUpdater(updateSubjectInfo, redis);
+
+let deezerProvider: DeezerProvider | undefined;
+let spotifyProvider: SpotifyProvider | undefined;
+
+let artistProviders: ArtistProvider[] = [];
+
+for (const p of envArtistProviders) {
+  switch (p) {
+    case "deezer":
+      deezerProvider = new DeezerProvider();
+      artistProviders.push(deezerProvider);
+      break;
+    case "spotify":
+      spotifyProvider = new SpotifyProvider(
+        process.env.SPOTIFY_CLIENT_ID ?? "",
+        process.env.SPOTIFY_CLIENT_SECRET ?? "",
+      );
+      artistProviders.push(spotifyProvider);
+      break;
+  }
+}
+
+const pageReader = new PageReader(statusUpdater);
+
+const artistReader = new ArtistReader(
+  artistProviders,
+  statusUpdater,
+  pageReader,
+);
+
+const artistPageReader = new ArtistPageReader(statusUpdater, pageReader);
+
+let albumProviders: AlbumProvider[] = [];
+
+let lastFMProvider: LastFMProvider | undefined;
+let musicbrainzProvider: MusicBrainzProvider | undefined;
+
+for (const p of envAlbumProviders) {
+  switch (p) {
+    case "musicbrainz":
+      musicbrainzProvider = new MusicBrainzProvider();
+      albumProviders.push(musicbrainzProvider);
+      break;
+    case "spotify":
+      if (!spotifyProvider) {
+        spotifyProvider = new SpotifyProvider(
+          process.env.SPOTIFY_CLIENT_ID ?? "",
+          process.env.SPOTIFY_CLIENT_SECRET ?? "",
+        );
+      }
+      albumProviders.push(spotifyProvider);
+      break;
+    case "deezer":
+      if (!deezerProvider) {
+        deezerProvider = new DeezerProvider();
+      }
+      albumProviders.push(deezerProvider);
+      break;
+    case "lastfm":
+      lastFMProvider = new LastFMProvider(process.env.LAST_FM_API_KEY ?? "");
+      albumProviders.push(lastFMProvider);
+      break;
+  }
+}
+
+const albumReader = new AlbumReader(albumProviders, statusUpdater);
+
+const albumPageReader = new AlbumPageReader(pageReader);
 
 const range = (start: number, end: number): number[] => {
   let a = [];
@@ -56,8 +137,10 @@ const range = (start: number, end: number): number[] => {
 
 const readRatingsPages = () =>
   merge(
-    ...range(1990, new Date().getFullYear()).map(readYearRatingsPage),
-    readNewRatingsPage(),
+    ...range(1990, new Date().getFullYear()).map((y) =>
+      albumPageReader.readYearRatingsPage(y),
+    ),
+    albumPageReader.readNewRatingsPage(),
   ).pipe(
     concatMap(async (p) => {
       await prisma.updateHistory.upsert({
@@ -71,27 +154,16 @@ const readRatingsPages = () =>
 
 const readArtistPages = () =>
   merge(
-    readRockPage(),
-    readJazzPage(),
-    readVolumePage(1),
-    readVolumePage(2),
-    readVolumePage(3),
-    readVolumePage(4),
-    readVolumePage(5),
-    readVolumePage(6),
-    readVolumePage(7),
-    readVolumePage(8),
-  ).pipe(
-    take(0),
-    concatMap(async (p) => {
-      console.log(p);
-      await prisma.updateHistory.upsert({
-        where: { pageURL: p.url },
-        create: { pageURL: p.url, hash: p.hash, checkedOn: new Date() },
-        update: { pageURL: p.url, hash: p.hash, checkedOn: new Date() },
-      });
-      return p;
-    }),
+    artistPageReader.readRockPage(),
+    artistPageReader.readJazzPage(),
+    artistPageReader.readVolumePage(1),
+    artistPageReader.readVolumePage(2),
+    artistPageReader.readVolumePage(3),
+    artistPageReader.readVolumePage(4),
+    artistPageReader.readVolumePage(5),
+    artistPageReader.readVolumePage(6),
+    artistPageReader.readVolumePage(7),
+    artistPageReader.readVolumePage(8),
   );
 
 type SplitArrays<T, U> = {
@@ -118,22 +190,18 @@ const partitionToArrays =
 const processArtists = (): OperatorFunction<ReadArtist, number> =>
   pipe(
     takeUntil(watchStopSignal()),
-    mergeMap(addArtistImageFromSpotify, concurrency),
-    mergeMap(addArtistImageFromDeezer, concurrency),
-    concatMap(insertArtist),
+    mergeMap((a) => artistReader.addImage(a), concurrency),
+    concatMap((a) => artistReader.insertArtist(a)),
     takeUntil(watchStopSignal()),
     count(),
   );
 
 const processAlbums = (): OperatorFunction<ReadAlbum, number> =>
   pipe(
-    distinct((a: ReadAlbum) => `${a.artistUrl}-${a.name}`),
+    distinct((a) => `${a.artistUrl}-${a.name}`),
     takeUntil(watchStopSignal()),
-    mergeMap(addAlbumCoverAndReleaseYearFromMusicBrainz, concurrency),
-    mergeMap(addAlbumCoverAndReleaseYearFromSpotify, concurrency),
-    mergeMap(addAlbumCoverAndReleaseYearFromDeezer, concurrency),
-    mergeMap(addAlbumCoverFromLastFM, concurrency),
-    concatMap(insertAlbum),
+    mergeMap((a) => albumReader.addImageAndReleaseYear(a)),
+    concatMap((a) => albumReader.insertAlbum(a)),
     takeUntil(watchStopSignal()),
     count(),
   );
@@ -158,6 +226,7 @@ const performFullUpdate = () =>
     partitionToArrays(
       (a): a is { type: "artist"; url: string } => a.type === "artist",
     ),
+    takeUntil(watchStopSignal()),
     concatMap(({ match: artistURLsFromRatings, rest: albums }) =>
       readArtistPages().pipe(
         concatMap((d) =>
@@ -171,7 +240,10 @@ const performFullUpdate = () =>
         mergeWith(from(artistURLsFromRatings)),
         distinct((v) => v.url),
         filter((v) => v.url !== "/vol5/x.html"),
-        mergeMap((a) => readDataFromArtistPage(a.url), concurrency),
+        mergeMap(
+          (a) => artistReader.readDataFromArtistPage(a.url),
+          concurrency,
+        ),
         partitionToArrays((a): a is ReadArtist => a.type === "artist"),
         map(({ match: artists, rest: albumsFromArtistsPage }) => ({
           artists,
@@ -180,6 +252,7 @@ const performFullUpdate = () =>
         tap(({ artists }) => console.log(`found ${artists.length} artists`)),
       ),
     ),
+    takeUntil(watchStopSignal()),
     concatMap(({ artists, albums }) =>
       from(artists).pipe(
         processArtists(),
@@ -191,18 +264,15 @@ const performFullUpdate = () =>
         tap((c: number) => console.debug(`inserted ${c} albums.`)),
       ),
     ),
-    finalize(() => {
-      markUpdateEnd();
-    }),
   );
 
 const performFullUpdateWithStatusUpdates = () =>
   defer(() => {
-    markUpdateStart();
+    statusUpdater.startUpdate();
     return performFullUpdate();
   }).pipe(
     finalize(() => {
-      markUpdateEnd();
+      statusUpdater.endUpdate();
     }),
   );
 
@@ -221,8 +291,12 @@ const sub = from(prisma.$queryRaw`PRAGMA journal_mode = WAL`)
 
 const exit = async () => {
   sub.unsubscribe();
+  updateSubjectInfo.complete();
   await api.close();
   await prisma.$disconnect();
+  if (redis) {
+    await redis.disconnect();
+  }
   process.exit(0);
 };
 
@@ -231,6 +305,13 @@ process.on("SIGINT", exit);
 
 const port = parseInt(process.env.UPDATER_PORT || "", 10) || 8002;
 const host = process.env.UPDATER_HOST || "0.0.0.0";
+const api = createAPI(
+  statusUpdater,
+  lastFMProvider,
+  spotifyProvider,
+  deezerProvider,
+  musicbrainzProvider,
+);
 
 api.listen({ port, host }, (err) => {
   if (err) {

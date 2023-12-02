@@ -1,29 +1,4 @@
-import axios, { AxiosHeaders } from "axios";
-import { rateLimitClient } from "./rate-limit";
-
-const userAgent = `scuffy/0.0.0 ( https://scruffy.wbd.tn )`;
-
-const client = rateLimitClient(
-  axios.create({
-    baseURL: "https://musicbrainz.org/ws/2/",
-    headers: { "User-Agent": userAgent },
-    params: { fmt: "json" },
-  }),
-  1,
-  1000,
-);
-
-const coverArtClient = rateLimitClient(
-  axios.create({
-    baseURL: "https://coverartarchive.org",
-    headers: { "User-Agent": userAgent },
-    maxRedirects: 0,
-    validateStatus: (s) => s < 500,
-  }),
-  // I don't know if this is rate limited
-  5,
-  1000,
-);
+import { AxiosHeaders, AxiosInstance } from "axios";
 
 type ReleaseWithoutFront = {
   id: string;
@@ -93,6 +68,8 @@ export type MusicBrainzRelease =
   MusicBrainzReleaseSearchResult["releases"][number];
 
 export const searchMusicBrainzAlbums = async (
+  client: AxiosInstance,
+  coverArtClient: AxiosInstance,
   artist: string,
   album: string,
 ) => {

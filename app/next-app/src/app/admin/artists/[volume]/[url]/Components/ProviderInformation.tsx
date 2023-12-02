@@ -6,9 +6,9 @@ import { Suspense } from "react";
 
 type Params = { volume: string; url: string };
 
-const getSpotifyData = async (name: string) => {
+const getProviderData = async (provider: string, name: string) => {
   const resp = await fetch(
-    `${updaterBaseURL}/spotify/artist/${encodeURIComponent(name)}`,
+    `${updaterBaseURL}/${provider}/artist/${encodeURIComponent(name)}`,
   );
   const res: ArtistResult[] = await resp.json();
 
@@ -17,10 +17,17 @@ const getSpotifyData = async (name: string) => {
 
 type Props = {
   params: Params;
+  provider: string;
+  label: string;
   searchValue?: string;
 };
 
-const SpotifyInformationAsync = async ({ params, searchValue }: Props) => {
+const ProviderInformationAsync = async ({
+  provider,
+  label,
+  params,
+  searchValue,
+}: Props) => {
   let name = searchValue;
   if (!name) {
     const artist = await getArtist(params);
@@ -30,17 +37,16 @@ const SpotifyInformationAsync = async ({ params, searchValue }: Props) => {
     name = artist.name;
   }
 
-  const spotifyResults = await getSpotifyData(name);
+  const results = await getProviderData(provider, name);
+  console.log(provider, results);
 
-  return (
-    <SearchResult source="Spotify" loading={false} results={spotifyResults} />
-  );
+  return <SearchResult source={label} loading={false} results={results} />;
 };
 
-export default function SpotifyInformation({ params, searchValue }: Props) {
+export default function ProviderInformation(props: Props) {
   return (
-    <Suspense fallback={<SearchResult loading source="Spotify" />}>
-      <SpotifyInformationAsync params={params} searchValue={searchValue} />
+    <Suspense fallback={<SearchResult loading source={props.label} />}>
+      <ProviderInformationAsync {...props} />
     </Suspense>
   );
 }

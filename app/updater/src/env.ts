@@ -1,31 +1,42 @@
+import { Static, Type } from "@sinclair/typebox";
+import { Value } from "@sinclair/typebox/value";
+
 const parseIntFromEnv = (key: string) => {
   const env = process.env[key];
   const parsed = env ? parseInt(env) : undefined;
   return parsed && !isNaN(parsed) ? parsed : undefined;
 };
 
-export type AlbumProvider = "musicbrainz" | "spotify" | "deezer" | "lastfm";
+export const AlbumProvider = Type.Enum({
+  musicbrainz: "musicbrainz",
+  spotify: "spotify",
+  deezer: "deezer",
+  lastfm: "lastfm",
+});
+
+export type AlbumProvider = Static<typeof AlbumProvider>;
 
 export const albumProviders: Set<AlbumProvider> = new Set(
   process.env.ALBUM_PROVIDERS?.split(",")
     .map((t) => t.trim().toLowerCase())
-    .filter(
-      (a): a is AlbumProvider =>
-        a === "musicbrainz" ||
-        a === "spotify" ||
-        a === "deezer" ||
-        a === "lastfm",
-    ) ?? ["musicbrainz"],
+    .filter((a): a is AlbumProvider => Value.Check(AlbumProvider, a)) ?? [
+    "musicbrainz",
+  ],
 );
 
 export const hasAlbumProvider = (p: AlbumProvider) => albumProviders.has(p);
 
-export type ArtistProvider = "spotify" | "deezer";
+export const ArtistProvider = Type.Enum({
+  spotify: "spotify",
+  deezer: "deezer",
+});
+
+export type ArtistProvider = Static<typeof ArtistProvider>;
 
 export const artistProviders: Set<ArtistProvider> = new Set(
   process.env.ARTIST_PROVIDERS?.split(",")
     .map((t) => t.trim().toLowerCase())
-    .filter((a): a is ArtistProvider => a === "spotify" || a === "deezer") ?? [
+    .filter((a): a is ArtistProvider => Value.Check(ArtistProvider, a)) ?? [
     "spotify",
     "deezer",
   ],
