@@ -65,4 +65,3 @@ jobs:
           docker compose --project-directory "${COMPOSE_DIRECTORY}" down scruffy-next-app
           docker compose --project-directory "${COMPOSE_DIRECTORY}" pull scruffy-next-app
           docker compose --project-directory "${COMPOSE_DIRECTORY}" up scruffy-next-app -d
-

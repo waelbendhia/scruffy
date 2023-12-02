@@ -7,12 +7,12 @@ const parseIntFromEnv = (key: string) => {
   return parsed && !isNaN(parsed) ? parsed : undefined;
 };
 
-export const AlbumProvider = Type.Enum({
-  musicbrainz: "musicbrainz",
-  spotify: "spotify",
-  deezer: "deezer",
-  lastfm: "lastfm",
-});
+export const AlbumProvider = Type.Union([
+  Type.Literal("musicbrainz"),
+  Type.Literal("spotify"),
+  Type.Literal("deezer"),
+  Type.Literal("lastfm"),
+]);
 
 export type AlbumProvider = Static<typeof AlbumProvider>;
 
@@ -26,10 +26,10 @@ export const albumProviders: Set<AlbumProvider> = new Set(
 
 export const hasAlbumProvider = (p: AlbumProvider) => albumProviders.has(p);
 
-export const ArtistProvider = Type.Enum({
-  spotify: "spotify",
-  deezer: "deezer",
-});
+export const ArtistProvider = Type.Union([
+  Type.Literal("spotify"),
+  Type.Literal("deezer"),
+]);
 
 export type ArtistProvider = Static<typeof ArtistProvider>;
 

@@ -8,7 +8,6 @@ on:
       - 'app/api/**'
       - 'Dockerfile.api'
 
-
 env:
   REGISTRY: ghcr.io
 
