@@ -2,7 +2,6 @@ import { prisma } from "@scruffy/database";
 import {
   concatMap,
   from,
-  map,
   merge,
   mergeMap,
   of,
@@ -15,8 +14,6 @@ import {
   defer,
   filter,
   mergeWith,
-  reduce,
-  Observable,
   OperatorFunction,
   pipe,
   tap,
@@ -44,6 +41,7 @@ import {
   SpotifyProvider,
 } from "./providers";
 import { PageReader } from "./page";
+import { rateLimit } from "./rate-limit";
 
 const redisURL = process.env.REDIS_URL;
 const redis = redisURL ? createClient({ url: redisURL }) : undefined;
@@ -80,7 +78,8 @@ for (const p of envArtistProviders) {
   }
 }
 
-const pageReader = new PageReader(statusUpdater);
+// TODO: filterVisited should be modifiable
+const pageReader = new PageReader(statusUpdater, false);
 
 const artistReader = new ArtistReader(
   artistProviders,
@@ -166,30 +165,9 @@ const readArtistPages = () =>
     artistPageReader.readVolumePage(8),
   );
 
-type SplitArrays<T, U> = {
-  match: T[];
-  rest: U[];
-};
-
-const partitionToArrays =
-  <T, U extends T>(p: (x: T) => x is U) =>
-  (o: Observable<T>): Observable<SplitArrays<U, Exclude<T, U>>> =>
-    o.pipe(
-      reduce<T, SplitArrays<U, Exclude<T, U>>>(
-        ({ match, rest }, c) => {
-          if (p(c)) {
-            return { match: [...match, c], rest };
-          } else {
-            return { match, rest: [...rest, c as Exclude<T, U>] };
-          }
-        },
-        { match: [], rest: [] },
-      ),
-    );
-
 const processArtists = (): OperatorFunction<ReadArtist, number> =>
   pipe(
-    takeUntil(watchStopSignal()),
+    rateLimit(5, 1000),
     mergeMap((a) => artistReader.addImage(a), concurrency),
     concatMap((a) => artistReader.insertArtist(a)),
     takeUntil(watchStopSignal()),
@@ -198,72 +176,68 @@ const processArtists = (): OperatorFunction<ReadArtist, number> =>
 
 const processAlbums = (): OperatorFunction<ReadAlbum, number> =>
   pipe(
-    distinct((a) => `${a.artistUrl}-${a.name}`),
-    takeUntil(watchStopSignal()),
-    mergeMap((a) => albumReader.addImageAndReleaseYear(a)),
+    rateLimit(5, 1000),
+    mergeMap((a) => albumReader.addImageAndReleaseYear(a), concurrency),
     concatMap((a) => albumReader.insertAlbum(a)),
     takeUntil(watchStopSignal()),
     count(),
+  );
+
+const fromURLRecord = (artists: Record<string, { name: string }>) =>
+  from(
+    Object.entries(artists).map(([url]) => ({ url, type: "artist" as const })),
   );
 
 const performFullUpdate = () =>
   readRatingsPages().pipe(
     takeUntil(watchStopSignal()),
     mergeMap(({ data, ...page }) =>
-      from([
-        ...Object.entries(data.artists).map(([url]) => ({
-          url,
-          type: "artist" as const,
-        })),
-        ...data.albums.map((a) => ({
-          ...a,
-          type: "album" as const,
-          artistName: data.artists[a.artistUrl]?.name ?? "",
-          page,
-        })),
-      ]),
-    ),
-    partitionToArrays(
-      (a): a is { type: "artist"; url: string } => a.type === "artist",
-    ),
-    takeUntil(watchStopSignal()),
-    concatMap(({ match: artistURLsFromRatings, rest: albums }) =>
-      readArtistPages().pipe(
-        concatMap((d) =>
-          from(
-            Object.entries(d.artists).map(([url]) => ({
-              type: "artist" as const,
-              url,
-            })),
-          ),
+      merge(
+        fromURLRecord(data.artists),
+        from(
+          data.albums.map((a) => ({
+            ...a,
+            type: "album" as const,
+            artistName: data.artists[a.artistUrl]?.name ?? "",
+            page,
+          })),
         ),
-        mergeWith(from(artistURLsFromRatings)),
-        distinct((v) => v.url),
-        filter((v) => v.url !== "/vol5/x.html"),
-        mergeMap(
-          (a) => artistReader.readDataFromArtistPage(a.url),
-          concurrency,
-        ),
-        partitionToArrays((a): a is ReadArtist => a.type === "artist"),
-        map(({ match: artists, rest: albumsFromArtistsPage }) => ({
-          artists,
-          albums: [...albums, ...albumsFromArtistsPage],
-        })),
-        tap(({ artists }) => console.log(`found ${artists.length} artists`)),
       ),
     ),
     takeUntil(watchStopSignal()),
-    concatMap(({ artists, albums }) =>
-      from(artists).pipe(
-        processArtists(),
-        tap((c) => console.debug(`inserted ${c} artists.`)),
-        tap(() => console.log(`found ${albums.length} albums`)),
-        concatMap(() => from(albums)),
-        distinct((a) => `${a.artistUrl}-${a.name}`),
-        processAlbums(),
-        tap((c: number) => console.debug(`inserted ${c} albums.`)),
-      ),
+    mergeWith(
+      readArtistPages().pipe(concatMap((d) => fromURLRecord(d.artists))),
     ),
+    distinct((v) =>
+      v.type === "artist"
+        ? `${v.type}-${v.url}`
+        : `${v.type}-${v.artistUrl}-${v.name}`,
+    ),
+    filter((v) => v.type !== "artist" || v.url !== "/vol5/x.html"),
+    mergeMap(
+      (a) =>
+        a.type === "artist"
+          ? artistReader.readDataFromArtistPage(a.url)
+          : of(a),
+      concurrency,
+    ),
+    mergeMap(
+      (a) =>
+        a.type === "artist"
+          ? of(a).pipe(
+              processArtists(),
+              takeUntil(watchStopSignal()),
+              concatMap((c) => {
+                console.debug(`inserted ${c} artists.`);
+                return of();
+              }),
+            )
+          : of(a),
+      concurrency,
+    ),
+    takeUntil(watchStopSignal()),
+    processAlbums(),
+    tap((c: number) => console.debug(`inserted ${c} albums.`)),
   );
 
 const performFullUpdateWithStatusUpdates = () =>
