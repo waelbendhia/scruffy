@@ -22,6 +22,7 @@ export default defineConfig([
       "fastify-sse-v2",
       "redis",
       "@sinclair/typebox",
+      "@sinclair/typebox/value",
     ],
     entry: ["src/main.ts"],
     format: ["cjs", "esm"],
