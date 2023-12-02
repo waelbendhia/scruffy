@@ -167,7 +167,7 @@ const readArtistPages = () =>
 
 const processArtists = (): OperatorFunction<ReadArtist, ReadArtist> =>
   pipe(
-    concatMap(artistReader.filterByDate),
+    concatMap((a) => artistReader.filterByDate(a)),
     rateLimit(5, 1000),
     mergeMap((a) => artistReader.addImage(a), concurrency),
     concatMap((a) => artistReader.insertArtist(a)),
@@ -176,7 +176,7 @@ const processArtists = (): OperatorFunction<ReadArtist, ReadArtist> =>
 
 const processAlbums = (): OperatorFunction<ReadAlbum, ReadAlbum> =>
   pipe(
-    concatMap(albumReader.filterByDate),
+    concatMap((a) => albumReader.filterByDate(a)),
     rateLimit(5, 1000),
     mergeMap((a) => albumReader.addImageAndReleaseYear(a), concurrency),
     concatMap((a) => albumReader.insertAlbum(a)),
