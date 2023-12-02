@@ -42,7 +42,7 @@ export class MusicBrainzProvider implements AlbumProvider {
   #coverArtClient: AxiosInstance;
 
   constructor(rateLimit?: Rate) {
-    const { reqs, window } = rateLimit ?? { reqs: 1, window: 1000 };
+    const { reqs, window } = rateLimit ?? { reqs: 1, window: 1200 };
 
     const userAgent = `scruffy/0.0.0 ( https://scruffy.wbd.tn )`;
 

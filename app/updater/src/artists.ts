@@ -115,6 +115,22 @@ export class ArtistReader {
     return o;
   }
 
+  filterByDate<T extends ReadArtist>(a: T) {
+    return from(
+      this.#prisma.artist.findUnique({
+        where: { url: a.url },
+        select: { fromUpdate: true },
+      }),
+    ).pipe(
+      concatMap((dbVal) =>
+        !dbVal ||
+        dbVal.fromUpdate.checkedOn.getTime() > a.page.lastModified.getTime()
+          ? of()
+          : of(a),
+      ),
+    );
+  }
+
   private insertArtistDB<T extends ReadArtist>(artist: T) {
     return this.#prisma.$transaction(async (tx) => {
       const now = new Date();

@@ -167,6 +167,7 @@ const readArtistPages = () =>
 
 const processArtists = (): OperatorFunction<ReadArtist, ReadArtist> =>
   pipe(
+    concatMap(artistReader.filterByDate),
     rateLimit(5, 1000),
     mergeMap((a) => artistReader.addImage(a), concurrency),
     concatMap((a) => artistReader.insertArtist(a)),
@@ -175,6 +176,7 @@ const processArtists = (): OperatorFunction<ReadArtist, ReadArtist> =>
 
 const processAlbums = (): OperatorFunction<ReadAlbum, ReadAlbum> =>
   pipe(
+    concatMap(albumReader.filterByDate),
     rateLimit(5, 1000),
     mergeMap((a) => albumReader.addImageAndReleaseYear(a), concurrency),
     concatMap((a) => albumReader.insertAlbum(a)),
@@ -209,7 +211,10 @@ const performFullUpdate = () =>
     distinct((v) =>
       v.type === "artist"
         ? `${v.type}-${v.url}`
-        : `${v.type}-${v.artistUrl}-${v.name}`,
+        : // I added the rating because some of the album ratings retrieved are
+          // out of date, so we keep ones with different ratings and decide what
+          // to do with them later on.
+          `${v.type}-${v.artistUrl}-${v.name}-${v.rating}`,
     ),
     filter((v) => v.type !== "artist" || v.url !== "/vol5/x.html"),
     mergeMap(

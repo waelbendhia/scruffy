@@ -68,6 +68,24 @@ export class AlbumReader {
       of(a).pipe(concatMap(f), this.catchAlbumError(a.artistUrl, a.name, a));
   }
 
+  filterByDate<T extends ReadAlbum>(a: T) {
+    return from(
+      this.#prisma.album.findUnique({
+        where: {
+          artistUrl_name: { artistUrl: a.artistUrl, name: a.name },
+        },
+        select: { fromUpdate: true },
+      }),
+    ).pipe(
+      concatMap((dbVal) =>
+        !dbVal ||
+        dbVal.fromUpdate.checkedOn.getTime() > a.page.lastModified.getTime()
+          ? of()
+          : of(a),
+      ),
+    );
+  }
+
   addImageAndReleaseYear<T extends ReadAlbum>(album: T) {
     // TODO: run these in parallel and find a way to determine the best result.
     let o = of(album);
@@ -93,10 +111,11 @@ export class AlbumReader {
 
   private async insertAlbumDB<T extends ReadAlbum>({ page, ...album }: T) {
     return this.#prisma.$transaction(async (tx) => {
-      const a = await tx.artist.count({
-        where: { url: album.artistUrl },
-      });
+      const a = await tx.artist.count({ where: { url: album.artistUrl } });
       if (a === 0) {
+        console.error(
+          `could not find artist ${album.artistUrl} for albums ${album.name}`,
+        );
         return { page, ...album };
       }
 
@@ -120,6 +139,8 @@ export class AlbumReader {
           artistUrl_name: { artistUrl: album.artistUrl, name: album.name },
         },
         create: input,
+        // If this rating was retrieved from the artist page we prefer it over
+        // a rating retrieved from a ratings aggregation page.
         update: album.artistUrl === page.url ? input : {},
       });
 
