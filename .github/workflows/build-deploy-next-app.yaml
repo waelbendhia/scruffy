@@ -6,6 +6,7 @@ on:
     branches: [ "main" ]
     paths:
       - 'app/next-app/**'
+      - 'Dockerfile.next-app'
 
 
 env:

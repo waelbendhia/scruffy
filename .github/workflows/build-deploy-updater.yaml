@@ -6,6 +6,7 @@ on:
     branches: [ "main" ]
     paths:
       - 'app/updater/**'
+      - 'Dockerfile.updater'
 
 
 env:
