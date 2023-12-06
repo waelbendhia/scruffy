@@ -31,9 +31,9 @@ func filterPageReadJobs[T any](
 
 	go func() {
 		defer close(out)
-		log := logging.GetLogger(ctx)
 		for job := range in {
-			log := log.With(zap.String("page-path", job.path))
+			ctx := logging.AddField(ctx, zap.String("page-path", job.path))
+			log := logging.GetLogger(ctx)
 			err := u.upsertPage(ctx, job.path, job.page)
 			if errors.Is(err, ErrPageUnchanged) {
 				if filterUnchanged {
@@ -41,15 +41,13 @@ func filterPageReadJobs[T any](
 					continue
 				}
 			} else if err != nil {
-				if !errors.Is(err, context.Canceled) {
-					log.With(zap.Error(err), zap.String("page-path", job.path)).
-						Error("could not upsert UpdateHistory")
-				}
+				u.error(ctx, err, "could not upsert UpdateHistory")
 				continue
 			}
 
 			select {
 			case out <- job:
+				u.pageHook(job.page)
 			case <-ctx.Done():
 				return
 			}
@@ -66,12 +64,11 @@ func (u *Updater) runArtistReadJobs(
 	outAlbums := make(chan scraper.Album, u.concurrency)
 
 	u.doConcurrently(ctx, func() { close(outArtists); close(outAlbums) }, func() error {
-		log := logging.GetLogger(ctx)
 		for job := range in {
+			ctx := logging.AddField(ctx, zap.String("page-path", job.path))
 			res, err := job.reader(ctx, job.path, job.page.Doc)
 			if err != nil {
-				log.With(zap.Error(err), zap.String("page-path", job.path)).
-					Error("could not read page")
+				u.error(ctx, err, "could not read page")
 				continue
 			}
 
@@ -102,12 +99,11 @@ func (u *Updater) runArtistPageReadJobs(ctx context.Context, in <-chan artistsPa
 	out := make(chan string, u.concurrency)
 
 	u.doConcurrently(ctx, func() { close(out) }, func() error {
-		log := logging.GetLogger(ctx)
 		for job := range in {
+			ctx := logging.AddField(ctx, zap.String("page-path", job.path))
 			res, err := job.reader(ctx, job.page.Doc)
 			if err != nil {
-				log.With(zap.Error(err), zap.String("page-path", job.path)).
-					Error("could not read page")
+				u.error(ctx, err, "could not read page")
 				continue
 			}
 
@@ -134,12 +130,11 @@ func (u *Updater) runRatingsPageReadJobs(
 	outAlbum := make(chan scraper.Album, u.concurrency)
 
 	u.doConcurrently(ctx, func() { close(outAlbum); close(outArtist) }, func() error {
-		log := logging.GetLogger(ctx)
 		for job := range in {
+			ctx := logging.AddField(ctx, zap.String("page-path", job.path))
 			res, err := job.reader(ctx, job.page.Doc)
 			if err != nil {
-				log.With(zap.Error(err), zap.String("page-path", job.path)).
-					Error("could not read page")
+				u.error(ctx, err, "could not read page")
 				continue
 			}
 
@@ -156,10 +151,7 @@ func (u *Updater) runRatingsPageReadJobs(
 						return nil
 					}
 				}
-				return nil
-			})
 
-			g.Go(func() error {
 				for a := range as {
 					select {
 					case outArtist <- a:

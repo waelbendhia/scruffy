@@ -18,6 +18,7 @@ var _ interface {
 type (
 	DeezerOption   func(*DeezerProvider)
 	DeezerProvider struct {
+		disableable
 		client *http.Client
 		limit  *rate.Limiter
 	}
@@ -26,7 +27,7 @@ type (
 		Total int `json:"total"`
 	}
 	DeezerArtist struct {
-		ID            string `json:"id"`
+		ID            int    `json:"id"`
 		Name          string `json:"name"`
 		Picture       string `json:"picture"`
 		PictureSmall  string `json:"picture_small"`
@@ -46,6 +47,8 @@ type (
 	}
 )
 
+func (*DeezerProvider) Name() string { return "deezer" }
+
 func DeezerWithClient(client *http.Client) DeezerOption {
 	return func(mbp *DeezerProvider) { mbp.client = client }
 }
@@ -55,20 +58,22 @@ func DeezerWithRateLimiter(l *rate.Limiter) DeezerOption {
 }
 
 func NewDeezerProvider(opts ...DeezerOption) *DeezerProvider {
-	mbp := &DeezerProvider{}
+	dp := &DeezerProvider{}
+	dp.Enable()
+
 	for _, opt := range opts {
-		opt(mbp)
+		opt(dp)
 	}
 
-	if mbp.client == nil {
-		mbp.client = &http.Client{}
+	if dp.client == nil {
+		dp.client = &http.Client{}
 	}
 
-	if mbp.limit == nil {
-		mbp.limit = rate.NewLimiter(50, 5*time.Second)
+	if dp.limit == nil {
+		dp.limit = rate.NewLimiter(50, 5*time.Second)
 	}
 
-	return mbp
+	return dp
 }
 
 func (sa *DeezerAlbum) cover() string {
@@ -105,8 +110,12 @@ func (sp *DeezerProvider) doRequest(
 func (sp *DeezerProvider) SearchAlbums(
 	ctx context.Context, artist string, album string,
 ) ([]AlbumResult, error) {
+	if !sp.Enabled() {
+		return nil, ErrDisabled
+	}
+
 	req, err := http.NewRequestWithContext(
-		ctx, "GET", "https://api.deezer.com/v1/search/album", nil,
+		ctx, "GET", "https://api.deezer.com/search/album", nil,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -145,14 +154,17 @@ func (sp *DeezerProvider) SearchAlbums(
 func (sp *DeezerProvider) SearchArtists(
 	ctx context.Context, artist string,
 ) ([]ArtistResult, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.deezer.com/v1/search/artist", nil)
+	if !sp.Enabled() {
+		return nil, ErrDisabled
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.deezer.com/search/artist", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	q := req.URL.Query()
-	q.Add("q", fmt.Sprintf("artist:%s", artist))
-	q.Add("type", "artist")
+	q.Add("q", fmt.Sprintf("artist:\"%s\"", artist))
 	req.URL.RawQuery = q.Encode()
 
 	resp, err := sp.doRequest(ctx, req)
@@ -168,7 +180,7 @@ func (sp *DeezerProvider) SearchArtists(
 	as := make([]ArtistResult, 0, len(res.Data))
 	for _, a := range res.Data {
 		as = append(as, ArtistResult{
-			ID:         a.ID,
+			ID:         strconv.Itoa(a.ID),
 			Name:       a.Name,
 			ImageURL:   a.image(),
 			Confidence: 100,

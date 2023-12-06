@@ -42,3 +42,36 @@ ON CONFLICT ("url")
   DO UPDATE SET
     "name" = excluded."name", "bio" = excluded."bio", "imageUrl" = excluded."imageUrl",
       "lastModified" = excluded."lastModified";
+
+-- name: UpdateArtistNameAndImage :one
+UPDATE
+  "Artist"
+SET
+  "name" = COALESCE(sqlc.narg (name), "name"),
+  "imageUrl" = COALESCE(sqlc.narg (imageUrl), "imageUrl")
+WHERE
+  "url" = @url
+RETURNING
+  "url",
+  "name",
+  "bio",
+  "imageUrl",
+  "lastModified";
+
+-- name: UpdateAlbum :one
+UPDATE
+  "Album"
+SET
+  "name" = COALESCE(sqlc.narg (newName), "name"),
+  "year" = COALESCE(sqlc.narg (year), "year"),
+  "imageUrl" = COALESCE(sqlc.narg (imageUrl), "imageUrl")
+WHERE
+  "artistUrl" = @artistUrl
+  AND "name" = @name
+RETURNING
+  "name",
+  "year",
+  "rating",
+  "artistUrl",
+  "imageUrl",
+  "pageURL";

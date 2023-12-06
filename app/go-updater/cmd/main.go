@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"runtime"
@@ -11,9 +14,15 @@ import (
 	"syscall"
 	"time"
 
+	ginzap "github.com/gin-contrib/zap"
+	"github.com/gin-gonic/gin"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/redis/go-redis/v9"
 	"github.com/waelbendhia/scruffy/app/go-updater/logging"
 	"github.com/waelbendhia/scruffy/app/go-updater/provider"
+	"github.com/waelbendhia/scruffy/app/go-updater/scraper"
+	"github.com/waelbendhia/scruffy/app/go-updater/server"
+	"github.com/waelbendhia/scruffy/app/go-updater/status"
 	"github.com/waelbendhia/scruffy/app/go-updater/updater"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2/clientcredentials"
@@ -31,28 +40,27 @@ func signalContext() context.Context {
 	return ctx
 }
 
-func initUpdater(ctx context.Context, db *sql.DB) *updater.Updater {
-	opts := []updater.UpdaterOption{updater.WithConcurrency(max(runtime.NumCPU(), 4))}
-
-	spotifyProvider := provider.NewSpotifyProvider(
-		ctx,
-		provider.SpotifyWithClient(
-			(&clientcredentials.Config{
-				ClientID:     os.Getenv("SPOTIFY_CLIENT_ID"),
-				ClientSecret: os.Getenv("SPOTIFY_CLIENT_SECRET"),
-				TokenURL:     "https://accounts.spotify.com/api/token",
-			}).Client(ctx),
-		),
-	)
-	deezerProvider := provider.NewDeezerProvider()
+func initUpdater(
+	ctx context.Context,
+	db *sql.DB,
+	sp *provider.SpotifyProvider,
+	dp *provider.DeezerProvider,
+	mbp *provider.MusicBrainzProvider,
+	su *status.StatusUpdater,
+) *updater.Updater {
+	opts := []updater.UpdaterOption{
+		updater.WithConcurrency(max(runtime.NumCPU(), 4)),
+		updater.WithErrorHook(func(err error) { su.AddError(ctx, err) }),
+		updater.WithPageHook(func(*scraper.ScruffyPage) { su.IncrementPages(ctx) }),
+	}
 
 	for _, p := range strings.Split(",", os.Getenv("ARTIST_PROVIDERS")) {
 		p := strings.ToLower(strings.TrimSpace(p))
 		switch p {
 		case "spotify":
-			opts = append(opts, updater.AddArtistProvider(p, 1, spotifyProvider))
+			opts = append(opts, updater.AddArtistProvider(1, sp))
 		case "deezer":
-			opts = append(opts, updater.AddArtistProvider(p, 1, deezerProvider))
+			opts = append(opts, updater.AddArtistProvider(1, dp))
 		}
 	}
 
@@ -60,11 +68,11 @@ func initUpdater(ctx context.Context, db *sql.DB) *updater.Updater {
 		p := strings.ToLower(strings.TrimSpace(p))
 		switch p {
 		case "spotify":
-			opts = append(opts, updater.AddAlbumProvider(p, 9, spotifyProvider))
+			opts = append(opts, updater.AddAlbumProvider(9, sp))
 		case "deezer":
-			opts = append(opts, updater.AddAlbumProvider(p, 8, deezerProvider))
+			opts = append(opts, updater.AddAlbumProvider(8, dp))
 		case "musicbrainz":
-			opts = append(opts, updater.AddAlbumProvider(p, 10, provider.NewMusicBrainzProvider()))
+			opts = append(opts, updater.AddAlbumProvider(10, mbp))
 		case "lastfm":
 			// TODO: implement LastFM provider
 			logging.GetLogger(ctx).Warn("last.fm provider not implemented")
@@ -80,28 +88,34 @@ type updateRunner struct {
 	*updater.Updater
 	filterUnchanged bool
 	updateInterval  time.Duration
-	onArtist        func(context.Context, updater.ArtistWithImage)
-	onAlbum         func(context.Context, updater.AlbumWithImage)
 }
 
-func (u *updateRunner) runUpdatesForever(ctx context.Context, startSignal <-chan struct{}) func() {
-	ch := make(chan struct{})
-	go func() {
-		defer close(ch)
-		for {
-			u.runUpdate(ctx)
-			select {
-			case <-time.After(u.updateInterval):
-			case <-startSignal:
-			case <-ctx.Done():
-				return
-			}
+func (u *updateRunner) runUpdatesForever(
+	ctx context.Context,
+	startSignal <-chan struct{},
+	onStart func(context.Context),
+	onEnd func(context.Context),
+	onArtist func(context.Context),
+	onAlbum func(context.Context),
+) {
+	for {
+		onStart(ctx)
+		u.runUpdate(ctx, onArtist, onAlbum)
+		onEnd(ctx)
+		select {
+		case <-time.After(u.updateInterval):
+		case <-startSignal:
+		case <-ctx.Done():
+			return
 		}
-	}()
-	return func() { <-ch }
+	}
 }
 
-func (u *updateRunner) runUpdate(ctx context.Context) {
+func (u *updateRunner) runUpdate(
+	ctx context.Context,
+	onArtist func(context.Context),
+	onAlbum func(context.Context),
+) {
 	ctx, cancel := context.WithCancel(ctx)
 
 	u.cancelLock.Lock()
@@ -127,8 +141,8 @@ func (u *updateRunner) runUpdate(ctx context.Context) {
 
 	g.Go(func() error {
 		count := 0
-		for a := range finalArtists {
-			u.onArtist(ctx, a)
+		for range finalArtists {
+			onArtist(ctx)
 			count++
 		}
 		logger.With(zap.Int("count", count)).Info("inserted artists")
@@ -136,8 +150,8 @@ func (u *updateRunner) runUpdate(ctx context.Context) {
 	})
 	g.Go(func() error {
 		count := 0
-		for a := range finalAlbums {
-			u.onAlbum(ctx, a)
+		for range finalAlbums {
+			onAlbum(ctx)
 			count++
 		}
 		logger.With(zap.Int("count", count)).Info("inserted albums")
@@ -147,6 +161,27 @@ func (u *updateRunner) runUpdate(ctx context.Context) {
 	if err := g.Wait(); err != nil {
 		logger.With(zap.Error(err)).Error("processing failed")
 	}
+}
+
+type runner struct {
+	*updateRunner
+	startCh chan<- struct{}
+}
+
+func (r *runner) StopUpdate(context.Context) error {
+	r.cancelLock.Lock()
+	defer r.cancelLock.Unlock()
+	r.cancel()
+	return nil
+}
+
+func (r *runner) StartUpdate(ctx context.Context) error {
+	select {
+	case r.startCh <- struct{}{}:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	return nil
 }
 
 func main() {
@@ -172,6 +207,18 @@ func main() {
 		}
 	}
 
+	var revalidator status.Revalidator = status.NoopRevalidator{}
+	if redisURL := os.Getenv("REDIS_URL"); redisURL != "" {
+		opts, err := redis.ParseURL(redisURL)
+		if err != nil {
+			logger.With(zap.Error(err)).Fatal("could not parse Redis URL")
+		}
+
+		revalidator = &status.RedisRevalidator{Client: redis.NewClient(opts)}
+	}
+
+	su := status.NewStatusUpdater(status.WithRevalidator(revalidator))
+
 	db, err := sql.Open("sqlite3", os.Getenv("DATABASE_PATH"))
 	if err != nil {
 		logger.With(zap.Error(err)).Fatal("could not open db")
@@ -179,13 +226,78 @@ func main() {
 
 	defer db.Close()
 
+	sp := provider.NewSpotifyProvider(
+		ctx,
+		provider.SpotifyWithClient(
+			(&clientcredentials.Config{
+				ClientID:     os.Getenv("SPOTIFY_CLIENT_ID"),
+				ClientSecret: os.Getenv("SPOTIFY_CLIENT_SECRET"),
+				TokenURL:     "https://accounts.spotify.com/api/token",
+			}).Client(ctx),
+		),
+	)
+	dp := provider.NewDeezerProvider()
+	mbp := provider.NewMusicBrainzProvider()
+
 	ur := updateRunner{
-		Updater:         initUpdater(ctx, db),
+		Updater:         initUpdater(ctx, db, sp, dp, mbp, su),
 		updateInterval:  updateInterval,
-		onArtist:        func(ctx context.Context, awi updater.ArtistWithImage) {},
-		onAlbum:         func(ctx context.Context, awi updater.AlbumWithImage) {},
 		filterUnchanged: false,
 	}
-	wait := ur.runUpdatesForever(ctx, nil)
-	defer wait()
+
+	startCh := make(chan struct{}, 1)
+
+	g, ctx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		ur.runUpdatesForever(
+			ctx,
+			startCh,
+			func(ctx context.Context) { su.StartUpdate(ctx) },
+			func(ctx context.Context) { su.EndUpdate(ctx) },
+			func(ctx context.Context) { su.IncrementArtists(ctx) },
+			func(ctx context.Context) { su.IncrementAlbums(ctx) },
+		)
+		return nil
+	})
+	g.Go(func() error {
+		engine := gin.New()
+		engine.Use(ginzap.Ginzap(logger, time.RFC3339, false))
+
+		s := server.New(
+			db,
+			&runner{updateRunner: &ur, startCh: startCh},
+			su,
+			server.AddArtistProviders(sp),
+			server.AddArtistProviders(dp),
+			server.AddAlbumProviders(sp),
+			server.AddAlbumProviders(dp),
+			server.AddAlbumProviders(mbp),
+		)
+
+		s.Routing(engine)
+
+		var port = os.Getenv("UPDATER_PORT")
+		var host = os.Getenv("UPDATER_HOST")
+		if port == "" {
+			port = "8002"
+		}
+
+		srv := &http.Server{
+			Addr:    fmt.Sprintf("%s:%s", host, port),
+			Handler: engine,
+		}
+
+		go func() {
+			<-ctx.Done()
+			ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			defer cancel()
+			srv.Shutdown(ctx)
+		}()
+
+		return srv.ListenAndServe()
+	})
+
+	if err := g.Wait(); err != nil && !errors.Is(err, context.Canceled) {
+		logger.With(zap.Error(err)).Error("shutdown failed")
+	}
 }

@@ -27,6 +27,7 @@ var _ interface {
 type (
 	SpotifyOption   func(*SpotifyProvider)
 	SpotifyProvider struct {
+		disableable
 		client       *http.Client
 		limit        *rate.Limiter
 		limitReached bool
@@ -73,6 +74,8 @@ type (
 	}
 )
 
+func (*SpotifyProvider) Name() string { return "spotify" }
+
 func SpotifyWithClient(client *http.Client) SpotifyOption {
 	return func(mbp *SpotifyProvider) { mbp.client = client }
 }
@@ -83,6 +86,7 @@ func SpotifyWithRateLimiter(l *rate.Limiter) SpotifyOption {
 
 func NewSpotifyProvider(ctx context.Context, opts ...SpotifyOption) *SpotifyProvider {
 	sp := &SpotifyProvider{cond: sync.NewCond(&sync.Mutex{})}
+	sp.Enable()
 	for _, opt := range opts {
 		opt(sp)
 	}
@@ -243,6 +247,10 @@ func (sp *SpotifyProvider) doRequest(
 func (sp *SpotifyProvider) SearchAlbums(
 	ctx context.Context, artist string, album string,
 ) ([]AlbumResult, error) {
+	if !sp.Enabled() {
+		return nil, ErrDisabled
+	}
+
 	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.spotify.com/v1/search", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -282,6 +290,10 @@ func (sp *SpotifyProvider) SearchAlbums(
 func (sp *SpotifyProvider) SearchArtists(
 	ctx context.Context, artist string,
 ) ([]ArtistResult, error) {
+	if !sp.Enabled() {
+		return nil, ErrDisabled
+	}
+
 	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.spotify.com/v1/search", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)

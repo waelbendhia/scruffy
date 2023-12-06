@@ -19,6 +19,17 @@ import (
 
 const basePath = "https://scaruffi.com"
 
+func (u *Updater) error(ctx context.Context, err error, message string) {
+	if errors.Is(err, context.Canceled) || err == nil {
+		return
+	}
+	log := logging.GetLogger(ctx)
+	log.With(zap.Error(err)).Error("could not read page")
+	if u.errorHook != nil {
+		u.errorHook(err)
+	}
+}
+
 func (u *Updater) doRequest(ctx context.Context, req *http.Request) (*http.Response, error) {
 	if err := u.limiter.Do(ctx); err != nil {
 		return nil, err
@@ -112,7 +123,9 @@ func (u *Updater) readAllArtistsPages(ctx context.Context) <-chan artistsPageRea
 			log = log.With(zap.String("page", p))
 			page, err := u.getPage(ctx, p)
 			if err != nil {
-				log.With(zap.Error(err)).Warn("failed to get page")
+				if !errors.Is(err, context.Canceled) {
+					log.With(zap.Error(err)).Warn("failed to get page")
+				}
 				return nil
 			}
 
@@ -154,7 +167,9 @@ func (u *Updater) readAlbumPages(ctx context.Context) <-chan ratingsPageReadJob 
 			log = log.With(zap.String("page", p))
 			page, err := u.getPage(ctx, p)
 			if err != nil {
-				log.With(zap.Error(err)).Warn("failed to get page")
+				if !errors.Is(err, context.Canceled) {
+					log.With(zap.Error(err)).Error("failed to get page")
+				}
 				return nil
 			}
 

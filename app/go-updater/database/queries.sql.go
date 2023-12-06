@@ -45,6 +45,88 @@ func (q *Queries) GetUpdateHistory(ctx context.Context, pageurl string) (UpdateH
 	return i, err
 }
 
+const updateAlbum = `-- name: UpdateAlbum :one
+UPDATE
+  "Album"
+SET
+  "name" = COALESCE(?1, "name"),
+  "year" = COALESCE(?2, "year"),
+  "imageUrl" = COALESCE(?3, "imageUrl")
+WHERE
+  "artistUrl" = ?4
+  AND "name" = ?5
+RETURNING
+  "name",
+  "year",
+  "rating",
+  "artistUrl",
+  "imageUrl",
+  "pageURL"
+`
+
+type UpdateAlbumParams struct {
+	Newname   sql.NullString
+	Year      sql.NullInt64
+	Imageurl  sql.NullString
+	ArtistUrl string
+	Name      string
+}
+
+func (q *Queries) UpdateAlbum(ctx context.Context, arg UpdateAlbumParams) (Album, error) {
+	row := q.db.QueryRowContext(ctx, updateAlbum,
+		arg.Newname,
+		arg.Year,
+		arg.Imageurl,
+		arg.ArtistUrl,
+		arg.Name,
+	)
+	var i Album
+	err := row.Scan(
+		&i.Name,
+		&i.Year,
+		&i.Rating,
+		&i.Artisturl,
+		&i.Imageurl,
+		&i.Pageurl,
+	)
+	return i, err
+}
+
+const updateArtistNameAndImage = `-- name: UpdateArtistNameAndImage :one
+UPDATE
+  "Artist"
+SET
+  "name" = COALESCE(?1, "name"),
+  "imageUrl" = COALESCE(?2, "imageUrl")
+WHERE
+  "url" = ?3
+RETURNING
+  "url",
+  "name",
+  "bio",
+  "imageUrl",
+  "lastModified"
+`
+
+type UpdateArtistNameAndImageParams struct {
+	Name     sql.NullString
+	Imageurl sql.NullString
+	Url      string
+}
+
+func (q *Queries) UpdateArtistNameAndImage(ctx context.Context, arg UpdateArtistNameAndImageParams) (Artist, error) {
+	row := q.db.QueryRowContext(ctx, updateArtistNameAndImage, arg.Name, arg.Imageurl, arg.Url)
+	var i Artist
+	err := row.Scan(
+		&i.Url,
+		&i.Name,
+		&i.Bio,
+		&i.Imageurl,
+		&i.Lastmodified,
+	)
+	return i, err
+}
+
 const upsertAlbum = `-- name: UpsertAlbum :exec
 INSERT INTO "Album" ("name", "year", "rating", "artistUrl", "imageUrl", "pageURL")
   VALUES (?1, ?2, ?3, ?4, ?5, ?6)

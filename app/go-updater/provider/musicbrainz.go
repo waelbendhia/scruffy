@@ -24,6 +24,7 @@ const coverArchiveBaseURL = "https://coverartarchive.org"
 type (
 	MusicBrainzOption   func(*MusicBrainzProvider)
 	MusicBrainzProvider struct {
+		disableable
 		client *http.Client
 		limit  *rate.Limiter
 	}
@@ -45,6 +46,8 @@ type (
 	}
 )
 
+func (*MusicBrainzProvider) Name() string { return "musicbrainz" }
+
 func MusivBrainzWithClient(client *http.Client) MusicBrainzOption {
 	return func(mbp *MusicBrainzProvider) { mbp.client = client }
 }
@@ -55,6 +58,7 @@ func MusivBrainzWithRateLimiter(l *rate.Limiter) MusicBrainzOption {
 
 func NewMusicBrainzProvider(opts ...MusicBrainzOption) *MusicBrainzProvider {
 	mbp := &MusicBrainzProvider{}
+	mbp.Enable()
 	for _, opt := range opts {
 		opt(mbp)
 	}
@@ -147,6 +151,10 @@ func (mb *MusicBrainzProvider) getCover(ctx context.Context, mbid string) string
 func (mb *MusicBrainzProvider) SearchAlbums(
 	ctx context.Context, artist string, album string,
 ) ([]AlbumResult, error) {
+	if !mb.Enabled() {
+		return nil, ErrDisabled
+	}
+
 	req, err := http.NewRequestWithContext(
 		ctx, "GET", "https://musicbrainz.org/ws/2/release", nil,
 	)

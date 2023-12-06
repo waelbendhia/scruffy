@@ -8,6 +8,7 @@ import (
 
 	"github.com/waelbendhia/scruffy/app/go-updater/provider"
 	"github.com/waelbendhia/scruffy/app/go-updater/rate"
+	"github.com/waelbendhia/scruffy/app/go-updater/scraper"
 )
 
 type (
@@ -25,6 +26,9 @@ type (
 		limiter *rate.Limiter
 
 		concurrency int
+
+		errorHook func(error)
+		pageHook  func(*scraper.ScruffyPage)
 	}
 	UpdaterOption func(*Updater)
 )
@@ -32,22 +36,33 @@ type (
 func WithClient(c *http.Client) UpdaterOption   { return func(u *Updater) { u.client = c } }
 func WithLimiter(l *rate.Limiter) UpdaterOption { return func(u *Updater) { u.limiter = l } }
 func WithConcurrency(c int) UpdaterOption       { return func(u *Updater) { u.concurrency = c } }
+func WithErrorHook(h func(error)) UpdaterOption { return func(u *Updater) { u.errorHook = h } }
 
-func AddAlbumProvider(name string, weight int, p provider.AlbumProvider) UpdaterOption {
+func WithPageHook(h func(*scraper.ScruffyPage)) UpdaterOption {
+	return func(u *Updater) { u.pageHook = h }
+}
+
+func AddAlbumProvider(weight int, p provider.AlbumProvider) UpdaterOption {
 	return func(u *Updater) {
 		if u.albumProviders == nil {
 			u.albumProviders = map[string]withWeight[provider.AlbumProvider]{}
 		}
-		u.albumProviders[name] = withWeight[provider.AlbumProvider]{provider: p, weight: weight}
+		u.albumProviders[p.Name()] = withWeight[provider.AlbumProvider]{
+			provider: p,
+			weight:   weight,
+		}
 	}
 }
 
-func AddArtistProvider(name string, weight int, p provider.ArtistProvider) UpdaterOption {
+func AddArtistProvider(weight int, p provider.ArtistProvider) UpdaterOption {
 	return func(u *Updater) {
 		if u.artistProviders == nil {
 			u.artistProviders = map[string]withWeight[provider.ArtistProvider]{}
 		}
-		u.artistProviders[name] = withWeight[provider.ArtistProvider]{provider: p, weight: weight}
+		u.artistProviders[p.Name()] = withWeight[provider.ArtistProvider]{
+			provider: p,
+			weight:   weight,
+		}
 	}
 }
 
@@ -71,6 +86,12 @@ func NewUpdater(db *sql.DB, opts ...UpdaterOption) *Updater {
 	}
 	if u.concurrency == 0 {
 		u.concurrency = runtime.NumCPU()
+	}
+	if u.errorHook == nil {
+		u.errorHook = func(error) {}
+	}
+	if u.pageHook == nil {
+		u.pageHook = func(*scraper.ScruffyPage) {}
 	}
 
 	return u

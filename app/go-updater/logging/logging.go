@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type contextKey string
@@ -23,7 +24,7 @@ func GetLogger(ctx context.Context) *zap.Logger {
 	return log
 }
 
-func AddField(ctx context.Context, k string, v any) context.Context {
+func AddField(ctx context.Context, fs ...zapcore.Field) context.Context {
 	log := GetLogger(ctx)
-	return SetLogger(ctx, log.With(zap.Any(k, v)))
+	return SetLogger(ctx, log.With(fs...))
 }

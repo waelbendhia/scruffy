@@ -3,7 +3,6 @@ package updater
 import (
 	"context"
 	"database/sql"
-	"errors"
 
 	"github.com/waelbendhia/scruffy/app/go-updater/database"
 	"github.com/waelbendhia/scruffy/app/go-updater/logging"
@@ -48,15 +47,16 @@ func (u *Updater) getArtistImage(ctx context.Context, artist string) string {
 	out := make(chan provider.ArtistResult, len(u.artistProviders))
 
 	for name, provider := range u.artistProviders {
-		name := name
-		provider := provider
+		name, provider := name, provider
+		if !provider.provider.Enabled() {
+			continue
+		}
+
 		g.Go(func() error {
-			log := logging.GetLogger(ctx).With(zap.String("provider", name))
+			ctx := logging.AddField(ctx, zap.String("provider", name))
 			as, err := provider.provider.SearchArtists(ctx, artist)
 			if err != nil {
-				if !errors.Is(err, context.Canceled) {
-					log.With(zap.Error(err)).Error("could not search artists")
-				}
+				u.error(ctx, err, "could not search artists")
 				return nil
 			}
 
@@ -107,8 +107,8 @@ func (u *Updater) InsertArtists(
 	q := database.New(u.db)
 	go func() {
 		defer close(out)
-		log := logging.GetLogger(ctx)
 		for a := range in {
+			ctx := logging.AddField(ctx, zap.String("artist", a.URL))
 			if err := q.UpsertArtist(ctx, database.UpsertArtistParams{
 				Url:  a.URL,
 				Name: a.Name,
@@ -118,10 +118,7 @@ func (u *Updater) InsertArtists(
 					String: a.ImageURL,
 				},
 			}); err != nil {
-				if !errors.Is(err, context.Canceled) {
-					log.With(zap.Error(err), zap.String("artist", a.URL)).
-						Error("could not upsert artist")
-				}
+				u.error(ctx, err, "could not upsert artist")
 				continue
 			}
 			select {

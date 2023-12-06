@@ -3,6 +3,12 @@ package provider
 import "context"
 
 type (
+	Provider interface {
+		Name() string
+		Enabled() bool
+		Disable()
+		Enable()
+	}
 	ArtistResult struct {
 		ID         string `json:"id"`
 		Name       string `json:"name"`
@@ -10,6 +16,7 @@ type (
 		Confidence int    `json:"confidence"`
 	}
 	ArtistProvider interface {
+		Provider
 		SearchArtists(context.Context, string) ([]ArtistResult, error)
 	}
 
@@ -22,6 +29,7 @@ type (
 		Confidence  int    `json:"confidence"`
 	}
 	AlbumProvider interface {
+		Provider
 		SearchAlbums(ctx context.Context, artist, album string) ([]AlbumResult, error)
 	}
 )

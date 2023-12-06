@@ -3,7 +3,6 @@ package updater
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 
 	"github.com/waelbendhia/scruffy/app/go-updater/database"
@@ -47,15 +46,16 @@ func (u *Updater) getAlbumImageAndYear(ctx context.Context, artist, album string
 	out := make(chan provider.AlbumResult, len(u.albumProviders))
 
 	for name, provider := range u.albumProviders {
-		name := name
-		provider := provider
+		name, provider := name, provider
+		if !provider.provider.Enabled() {
+			continue
+		}
+
 		g.Go(func() error {
-			log := logging.GetLogger(ctx).With(zap.String("provider", name))
+			ctx := logging.AddField(ctx, zap.String("provider", name))
 			as, err := provider.provider.SearchAlbums(ctx, artist, album)
 			if err != nil {
-				if !errors.Is(err, context.Canceled) {
-					log.With(zap.Error(err)).Error("could not search albums")
-				}
+				u.error(ctx, err, "could not search albums")
 				return nil
 			}
 
@@ -141,8 +141,12 @@ func (u *Updater) InsertAlbums(
 	q := database.New(u.db)
 	go func() {
 		defer close(out)
-		log := logging.GetLogger(ctx)
 		for a := range in {
+			ctx := logging.AddField(
+				ctx,
+				zap.String("artist-url", a.ArtistURL),
+				zap.String("album", a.Name),
+			)
 			if err := q.UpsertAlbum(ctx, database.UpsertAlbumParams{
 				Name: a.Name,
 				Year: sql.NullInt64{
@@ -157,13 +161,7 @@ func (u *Updater) InsertAlbums(
 				},
 				PageURL: a.PageURL,
 			}); err != nil {
-				if !errors.Is(err, context.Canceled) {
-					log.With(
-						zap.Error(err),
-						zap.String("artist-url", a.ArtistURL),
-						zap.String("album", a.Name),
-					).Error("could not upsert album")
-				}
+				u.error(ctx, err, "could not upsert album")
 				continue
 			}
 			select {

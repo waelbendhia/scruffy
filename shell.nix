@@ -23,6 +23,7 @@ with pkgs; mkShell {
     nodejs_18
 
     sqlc
+    watchexec
   ];
 
   PRISMA_SCHEMA_ENGINE_BINARY = "${prisma-engines}/bin/schema-engine";
