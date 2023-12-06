@@ -1,5 +1,5 @@
 import * as axios from "axios";
-import { Subject, concatMap, Observable, endWith } from "rxjs";
+import { Subject, concatMap, Observable } from "rxjs";
 
 export const rateLimit =
   <T>(quantity: number, timeMs: number) =>
@@ -7,13 +7,7 @@ export const rateLimit =
     const sub = new Subject<T>();
     const buff: { ts: number }[] = [];
     o.pipe(
-      endWith("close" as const),
       concatMap(async (i) => {
-        if (i === "close") {
-          sub.complete();
-          return;
-        }
-
         const ts = new Date().getTime();
         if (buff.length >= quantity) {
           const first = buff.shift();
