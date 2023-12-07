@@ -21,9 +21,6 @@ type ArtistWithImage struct {
 func (u *Updater) addArtistImage(
 	ctx context.Context, in <-chan scraper.Artist,
 ) <-chan ArtistWithImage {
-	// TODO: make deadlline configuraable
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
-	defer cancel()
 	g, ctx := errgroup.WithContext(ctx)
 	out := make(chan ArtistWithImage, u.concurrency)
 
@@ -48,6 +45,9 @@ func (u *Updater) addArtistImage(
 }
 
 func (u *Updater) getArtistImage(ctx context.Context, artist string) string {
+	// TODO: make deadline configuraable
+	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	defer cancel()
 	g, ctx := errgroup.WithContext(ctx)
 
 	out := make(chan provider.ArtistResult, len(u.artistProviders))
