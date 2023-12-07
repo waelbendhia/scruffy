@@ -24,6 +24,7 @@ COPY --from=builder /base/updater-exe ./
 
 RUN ls -al /app
 
+ENV ENV "production"
 ENV SERVER_PORT 8002
 ENV SERVER_HOST "0.0.0.0"
 
