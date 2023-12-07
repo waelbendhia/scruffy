@@ -242,7 +242,7 @@ func main() {
 	ur := updateRunner{
 		Updater:         initUpdater(ctx, db, sp, dp, mbp, su),
 		updateInterval:  updateInterval,
-		filterUnchanged: false,
+		filterUnchanged: true,
 	}
 
 	startCh := make(chan struct{}, 1)
