@@ -16,6 +16,11 @@ const getProviderData = async (
       artistName,
     )}/album/${encodeURIComponent(albumName)}`,
   );
+
+  if (resp.status === 404 || resp.status === 408) {
+    return [];
+  }
+
   const res: AlbumResult[] = await resp.json();
   return res;
 };

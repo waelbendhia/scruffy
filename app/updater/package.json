@@ -1,43 +1,12 @@
 {
   "name": "@scruffy/updater",
   "version": "0.0.0",
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsup",
-    "dev": "yarn start",
-    "serve": "ts-node src/main.ts",
-    "start": "nodemon"
+    "build": "tygo generate && go build -o dist/updater cmd/main.go && tsup",
+    "dev": "watchexec -r -e go -e mod go run cmd/main.go"
   },
   "author": "Wael Ben Dhia",
-  "license": "ISC",
-  "dependencies": {
-    "@fastify/type-provider-typebox": "^3.5.0",
-    "@opentelemetry/api": "^1.7.0",
-    "@opentelemetry/auto-instrumentations-node": "^0.40.1",
-    "@prisma/instrumentation": "^5.6.0",
-    "@sinclair/typebox": "^0.31.28",
-    "axios": "^1.6.1",
-    "color-thief-node": "^1.0.4",
-    "fastify": "^4.24.3",
-    "fastify-sse-v2": "^3.1.2",
-    "global": "^4.3.2",
-    "nodemon": "^1.17.2",
-    "progress": "2.0.0",
-    "redis": "^4.6.11",
-    "rxjs": "^7.8.1",
-    "uuid": "^3.2.1",
-    "zod": "^3.22.4"
-  },
-  "repository": "https://github.com/WaelBenDhia/Scaruffi2.0Node.git",
-  "devDependencies": {
-    "@scruffy/database": "*",
-    "@scruffy/scraper": "*",
-    "@types/color-thief-node": "^1.0.4",
-    "@types/node": "^9.6.7",
-    "ts-node": "^10.9.1",
-    "tslint": "^5.9.1",
-    "tsup": "^7.2.0"
-  }
+  "dependencies": {},
+  "devDependencies": {}
 }

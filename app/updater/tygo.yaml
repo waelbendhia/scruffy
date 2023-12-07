@@ -1,0 +1,17 @@
+packages:
+  - path: github.com/waelbendhia/scruffy/app/updater/provider
+    output_path: typescript/provider.ts
+    exclude_files:
+      - deezer.go
+      - musicbrainz.go
+      - disableable.go
+      - spotify.go
+      - provider.go
+  - path: github.com/waelbendhia/scruffy/app/updater/status
+    output_path: typescript/status.ts
+    exclude_files:
+      - noop-revalidator.go
+      - redis-revalidator.go
+      - status.go
+    type_mappings:
+      time.Time: string

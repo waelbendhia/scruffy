@@ -1,44 +1,33 @@
-FROM node:18.17 AS builder
+FROM golang:1.21.3-alpine3.18 AS builder
 
 WORKDIR /base
 
-COPY package.json .
-COPY yarn.lock .
+RUN apk add build-base
 
-COPY packages/database/package.json packages/database/package.json
-COPY packages/scraper/package.json  packages/scraper/package.json
+COPY app/updater/go.mod .
+COPY app/updater/go.sum .
 
-RUN yarn
+RUN go mod download
 
-COPY tsconfig.json .
+COPY app/updater/ ./
 
-COPY packages/database/ packages/database/
-COPY packages/scraper/  packages/scraper/
 
-RUN yarn workspace @scruffy/database run build
-RUN yarn workspace @scruffy/scraper run build
+RUN CGO_ENABLED=1 go build -o ./updater-exe cmd/main.go
 
-COPY app/updater/package.json app/updater/package.json
-
-RUN yarn workspace @scruffy/updater install
-
-COPY app/updater app/updater
-
-RUN yarn workspace @scruffy/updater run build
-
-FROM node:18.17-slim
-
-RUN apt-get update -y && apt-get install -y openssl
+FROM alpine:3.18.5
 
 WORKDIR /app
 
-COPY --from=builder /base/app/updater/dist ./
-COPY --from=builder /base/packages/database/prisma/schema.prisma ./
-COPY --from=builder /base/node_modules/@prisma/engines/libquery_engine-debian-openssl-3.0.x.so.node ./
+RUN ls
 
-ENV PRISMA_QUERY_ENGINE_LIBRARY "/app/libquery_engine-debian-openssl-3.0.x.so.node"
+COPY --from=builder /base/updater-exe ./
 
-ENV LAST_FM_API_KEY ""
-ENV DATABASE_URL ""
+RUN ls -al /app
 
-CMD exec node /app/main.js
+ENV SERVER_PORT 8002
+ENV SERVER_HOST "0.0.0.0"
+
+EXPOSE ${SERVER_PORT}
+
+
+CMD exec /app/updater-exe

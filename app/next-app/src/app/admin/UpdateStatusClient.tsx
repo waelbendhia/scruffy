@@ -1,9 +1,10 @@
 "use client";
 import React from "react";
-import { UpdateInfo, useUpdates } from "@/hooks";
+import { useUpdates } from "@/hooks";
 import DataPoint from "./DataPoint";
+import { UpdateStatus } from "@scruffy/updater";
 
-type StatusProps = { loading: true } | ({ loading: false } & UpdateInfo);
+type StatusProps = { loading: true } | ({ loading: false } & UpdateStatus);
 
 const formatDate = (d?: string | undefined) =>
   d ? new Date(d).toLocaleString("en-US") : undefined;
@@ -39,12 +40,12 @@ export const UpdateData = (props: StatusProps) => {
   );
 };
 
-export const UpdateDataWithSSE = (props: UpdateInfo) => {
+export const UpdateDataWithSSE = (props: UpdateStatus) => {
   "use client";
   const [updateState, setState] = React.useState(props);
 
   const cb = React.useCallback(
-    (d: UpdateInfo) => {
+    (d: UpdateStatus) => {
       setState(d);
       console.log(d);
     },

@@ -6,7 +6,7 @@ import {
   useRouter,
 } from "next/navigation";
 import React from "react";
-import { UpdateInfo as UpdateInfoAPI } from "@scruffy/updater";
+import { UpdateStatus } from "@scruffy/updater";
 
 const parseIntMaybe = (s: string | undefined | null): number | undefined => {
   const parsed = parseInt(s ?? "");
@@ -115,13 +115,7 @@ export const useDebounced = <T>(value: T, debounce = 200) => {
   return debouncedValue;
 };
 
-type DateString<T> = T extends Date ? string : T;
-
-export type UpdateInfo = {
-  [K in keyof UpdateInfoAPI]: DateString<UpdateInfoAPI[K]>;
-};
-
-export const useUpdates = (cb: (_: UpdateInfo) => void) => {
+export const useUpdates = (cb: (_: UpdateStatus) => void) => {
   React.useEffect(() => {
     const es = new EventSource("/admin/sse");
     es.onmessage = (e) => {

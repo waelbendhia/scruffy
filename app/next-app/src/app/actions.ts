@@ -1,6 +1,6 @@
 "use server";
 import { cookies } from "next/headers";
-import { compare } from "bcrypt";
+import { compare, hashSync } from "bcrypt";
 import { randomBytes } from "crypto";
 import { getRedisClient } from "@/redis";
 
@@ -35,6 +35,7 @@ const checkSession = async (tkn: string) => {
 };
 
 export const login = async (password: string) => {
+  console.log(hashSync(password, 10));
   if (!(await compare(password, adminPassword))) {
     return null;
   }

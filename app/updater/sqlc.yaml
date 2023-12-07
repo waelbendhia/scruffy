@@ -1,0 +1,9 @@
+version: 2
+sql:
+  - engine: sqlite
+    queries: database/queries.sql
+    schema: ../../packages/database/prisma/migrations/20231112225516_init
+    gen:
+      go:
+        package: database
+        out: database

@@ -4,8 +4,8 @@ import { revalidateTag } from "next/cache";
 import { Suspense } from "react";
 import React from "react";
 import { UpdateData, UpdateDataWithSSE } from "./UpdateStatusClient";
-import { UpdateInfo } from "@/hooks";
 import AdminButton from "./Submit";
+import { UpdateStatus } from "@scruffy/updater";
 
 const action = async (formData: FormData) => {
   "use server";
@@ -35,7 +35,7 @@ const action = async (formData: FormData) => {
   }
 };
 
-type StatusProps = { loading: true } | ({ loading: false } & UpdateInfo);
+type StatusProps = { loading: true } | ({ loading: false } & UpdateStatus);
 
 const Actions = async (props: StatusProps) => {
   "use server";
@@ -79,7 +79,7 @@ const UpdateDataAsync = async () => {
   const resp = await fetch(`${updaterBaseURL}/update/status`, {
     next: { revalidate: 0, tags: ["updateInfo"] },
   });
-  const info: UpdateInfo = await resp.json();
+  const info: UpdateStatus = await resp.json();
 
   return <UpdateContent loading={false} {...info} />;
 };

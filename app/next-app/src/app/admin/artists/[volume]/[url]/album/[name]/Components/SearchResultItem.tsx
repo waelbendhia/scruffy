@@ -21,7 +21,7 @@ const SearchResultItem = ({
     className={`${className ?? ""} h-32 my-2`}
     imageClassName="w-32"
     artist={{ name: artistName }}
-    year={year ? new Date(year).getFullYear() : undefined}
+    year={year}
     name={name}
     imageUrl={imageUrl}
   />

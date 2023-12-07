@@ -43,14 +43,15 @@ const submitSelection = async (formData: FormData) => {
 
   const {
     name,
-    imageUrl,
-    year,
-  }: { name: string; imageUrl?: string; year?: number } = JSON.parse(selected);
+    coverURL,
+    releaseYear,
+  }: { name: string; coverURL?: string; releaseYear?: number } =
+    JSON.parse(selected);
 
   const update = {
     name: includeName ? name : undefined,
-    imageUrl: includeImage ? imageUrl : undefined,
-    year: includeYear ? year : undefined,
+    imageUrl: includeImage ? coverURL : undefined,
+    year: includeYear ? releaseYear : undefined,
   };
 
   const resp = await fetch(
