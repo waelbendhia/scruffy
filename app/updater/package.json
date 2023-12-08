@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tygo generate && go build -o dist/updater cmd/main.go && tsup",
-    "dev": "watchexec -r -e go -e mod go run cmd/main.go"
+    "build": "tygo generate && go build -o dist/updater cmd/updater/main.go && tsup",
+    "dev": "watchexec -r -e go -e mod go run cmd/updater/main.go"
   },
   "author": "Wael Ben Dhia",
   "dependencies": {},

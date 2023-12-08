@@ -3,4 +3,7 @@ node_modules/
 .direnv/*
 **/dist
 **/*.db
+**/*.db-shm
+**/*.db-wal
 **/dev.db
+

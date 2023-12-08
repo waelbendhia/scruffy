@@ -3,7 +3,9 @@ package updater
 import (
 	"context"
 	"database/sql"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/waelbendhia/scruffy/app/updater/database"
 	"github.com/waelbendhia/scruffy/app/updater/logging"
@@ -106,6 +108,17 @@ func (u *Updater) ProcessArtists(
 	return u.addArtistImage(ctx, artists), albums
 }
 
+func validateString(s string) sql.NullString {
+	switch {
+	case s == "":
+		return sql.NullString{Valid: false}
+	case utf8.ValidString(s):
+		return sql.NullString{Valid: true, String: s}
+	default:
+		return sql.NullString{Valid: true, String: strings.ToValidUTF8(s, "")}
+	}
+}
+
 func (u *Updater) InsertArtists(
 	ctx context.Context, in <-chan ArtistWithImage,
 ) <-chan ArtistWithImage {
@@ -118,7 +131,7 @@ func (u *Updater) InsertArtists(
 			if err := q.UpsertArtist(ctx, database.UpsertArtistParams{
 				Url:  a.URL,
 				Name: a.Name,
-				Bio:  sql.NullString{Valid: a.Bio != "", String: a.Bio},
+				Bio:  validateString(a.Bio),
 				ImageUrl: sql.NullString{
 					Valid:  a.ImageURL != "",
 					String: a.ImageURL,

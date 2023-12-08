@@ -37,7 +37,7 @@ ON CONFLICT ("artistUrl", "name")
 
 -- name: UpsertArtist :exec
 INSERT INTO "Artist" ("url", "name", "bio", "imageUrl", "lastModified")
-  VALUES (:url, :name, :bio, :imageUrl, DATE('now'))
+  VALUES (:url, :name, :bio, :imageUrl, DATETIME('now'))
 ON CONFLICT ("url")
   DO UPDATE SET
     "name" = excluded."name", "bio" = excluded."bio", "imageUrl" = excluded."imageUrl",
@@ -75,3 +75,18 @@ RETURNING
   "artistUrl",
   "imageUrl",
   "pageURL";
+
+-- name: SelectAllBios :many
+SELECT
+  "url",
+  "bio"
+FROM
+  "Artist";
+
+-- name: UpdateBio :exec
+UPDATE
+  "Artist"
+SET
+  "bio" = @bio
+WHERE
+  "url" = @url;

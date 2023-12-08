@@ -12,7 +12,7 @@ RUN go mod download
 COPY app/updater/ ./
 
 
-RUN CGO_ENABLED=1 go build -o ./updater-exe cmd/main.go
+RUN CGO_ENABLED=1 go build -o ./updater-exe cmd/updater/main.go
 
 FROM alpine:3.18.5
 

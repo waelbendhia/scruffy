@@ -85,11 +85,18 @@ func (sa *DeezerAlbum) cover() string {
 	return sa.Cover
 }
 
+var defaultImages = map[string]struct{}{
+	"https://e-cdns-images.dzcdn.net/images/artist//1000x1000-000000-80-0-0.jpg": {},
+	"https://e-cdns-images.dzcdn.net/images/artist//500x500-000000-80-0-0.jpg":   {},
+	"https://e-cdns-images.dzcdn.net/images/artist//250x250-000000-80-0-0.jpg":   {},
+	"https://e-cdns-images.dzcdn.net/images/artist//56x56-000000-80-0-0.jpg":     {},
+}
+
 func (sa *DeezerArtist) image() string {
 	for _, cover := range []string{
 		sa.PictureXL, sa.PictureBig, sa.PictureMedium, sa.PictureSmall,
 	} {
-		if cover != "" {
+		if _, isDefaultImage := defaultImages[cover]; cover != "" && !isDefaultImage {
 			return cover
 		}
 	}
