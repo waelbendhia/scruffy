@@ -52,6 +52,8 @@ func (u *Updater) getAlbumImageAndYear(ctx context.Context, artist, album string
 	for name, provider := range u.albumProviders {
 		name, provider := name, provider
 		if !provider.provider.Enabled() {
+			logging.GetLogger(ctx).With(zap.String("provider", name)).
+				Debug("skipping provider")
 			continue
 		}
 
@@ -102,6 +104,12 @@ func (u *Updater) addAlbumCover(ctx context.Context, in <-chan scraper.Album) <-
 			for a := range in {
 				cover, year := u.getAlbumImageAndYear(ctx, a.ArtistName, a.Name)
 				a.Year = selectNonEmpty(a.Year, year)
+				logging.GetLogger(ctx).
+					With(zap.Any("album", AlbumWithImage{
+						Album:    a,
+						CoverURL: cover,
+					})).
+					Debug("got cover and year")
 				select {
 				case out <- AlbumWithImage{Album: a, CoverURL: cover}:
 				case <-ctx.Done():

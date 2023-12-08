@@ -58,7 +58,6 @@ func MusivBrainzWithRateLimiter(l *rate.Limiter) MusicBrainzOption {
 
 func NewMusicBrainzProvider(opts ...MusicBrainzOption) *MusicBrainzProvider {
 	mbp := &MusicBrainzProvider{}
-	mbp.Enable()
 	for _, opt := range opts {
 		opt(mbp)
 	}

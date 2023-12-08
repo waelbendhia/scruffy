@@ -59,7 +59,6 @@ func DeezerWithRateLimiter(l *rate.Limiter) DeezerOption {
 
 func NewDeezerProvider(opts ...DeezerOption) *DeezerProvider {
 	dp := &DeezerProvider{}
-	dp.Enable()
 
 	for _, opt := range opts {
 		opt(dp)

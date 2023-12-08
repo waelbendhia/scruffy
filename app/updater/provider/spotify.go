@@ -86,7 +86,6 @@ func SpotifyWithRateLimiter(l *rate.Limiter) SpotifyOption {
 
 func NewSpotifyProvider(ctx context.Context, opts ...SpotifyOption) *SpotifyProvider {
 	sp := &SpotifyProvider{cond: sync.NewCond(&sync.Mutex{})}
-	sp.Enable()
 	for _, opt := range opts {
 		opt(sp)
 	}

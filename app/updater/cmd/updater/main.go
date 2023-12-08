@@ -52,15 +52,20 @@ func initUpdater(
 		updater.WithConcurrency(max(runtime.NumCPU(), 4)),
 		updater.WithErrorHook(func(err error) { su.AddError(ctx, err) }),
 		updater.WithPageHook(func(*scraper.ScruffyPage) { su.IncrementPages(ctx) }),
+		updater.AddArtistProvider(1, sp),
+		updater.AddArtistProvider(1, dp),
+		updater.AddAlbumProvider(9, sp),
+		updater.AddAlbumProvider(8, dp),
+		updater.AddAlbumProvider(10, mbp),
 	}
 
 	for _, p := range strings.Split(os.Getenv("ARTIST_PROVIDERS"), ",") {
 		p := strings.ToLower(strings.TrimSpace(p))
 		switch p {
 		case "spotify":
-			opts = append(opts, updater.AddArtistProvider(1, sp))
+			sp.Enable()
 		case "deezer":
-			opts = append(opts, updater.AddArtistProvider(1, dp))
+			dp.Enable()
 		}
 	}
 
@@ -68,11 +73,11 @@ func initUpdater(
 		p := strings.ToLower(strings.TrimSpace(p))
 		switch p {
 		case "spotify":
-			opts = append(opts, updater.AddAlbumProvider(9, sp))
+                        sp.Enable()
 		case "deezer":
-			opts = append(opts, updater.AddAlbumProvider(8, dp))
+                        dp.Enable()
 		case "musicbrainz":
-			opts = append(opts, updater.AddAlbumProvider(10, mbp))
+                        mbp.Enable()
 		case "lastfm":
 			// TODO: implement LastFM provider
 			logging.GetLogger(ctx).Warn("last.fm provider not implemented")
