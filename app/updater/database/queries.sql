@@ -18,7 +18,7 @@ SELECT
 
 -- name: UpsertUpdateHistory :one
 INSERT INTO "UpdateHistory" ("checkedOn", "hash", "pageURL")
-  VALUES (:checkedOn, :hash, :pageURL)
+  VALUES (@checkedOn, @hash, @pageURL)
 ON CONFLICT ("pageURL")
   DO UPDATE SET
     "hash" = excluded."hash", "checkedOn" = excluded."checkedOn"
@@ -29,7 +29,7 @@ ON CONFLICT ("pageURL")
 
 -- name: UpsertAlbum :exec
 INSERT INTO "Album" ("name", "year", "rating", "artistUrl", "imageUrl", "pageURL")
-  VALUES (:name, :year, :rating, :artistUrl, :imageUrl, :pageURL)
+  VALUES (@name, @year, @rating, @artistUrl, @imageUrl, @pageURL)
 ON CONFLICT ("artistUrl", "name")
   DO UPDATE SET
     "year" = excluded."year", "rating" = excluded."rating", "imageUrl" = excluded."imageUrl",
@@ -37,7 +37,7 @@ ON CONFLICT ("artistUrl", "name")
 
 -- name: UpsertArtist :exec
 INSERT INTO "Artist" ("url", "name", "bio", "imageUrl", "lastModified")
-  VALUES (:url, :name, :bio, :imageUrl, DATETIME('now'))
+  VALUES (@url, @name, @bio, @imageUrl, DATETIME('now'))
 ON CONFLICT ("url")
   DO UPDATE SET
     "name" = excluded."name", "bio" = excluded."bio", "imageUrl" = excluded."imageUrl",

@@ -19,7 +19,6 @@ export const get = (artistUrl: string) =>
       toRelatedArtists: { select: { url: true, name: true } },
       fromRelatedArtists: { select: { url: true, name: true } },
       albums: { include: {}, orderBy: { year: "asc" } },
-      fromUpdate: true,
     },
   });
 

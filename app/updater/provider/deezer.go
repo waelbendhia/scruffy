@@ -100,7 +100,8 @@ func (sa *DeezerArtist) image() string {
 			return cover
 		}
 	}
-	return sa.Picture
+
+	return ""
 }
 
 func (sp *DeezerProvider) doRequest(
