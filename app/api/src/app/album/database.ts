@@ -54,7 +54,7 @@ export const search = ({
              al.imageUrl AS imageUrl,
              ar.url      AS artistUrl,
              ar.name     AS artistName
-      FROM Album al 
+      FROM Album al
         INNER JOIN Artist ar       ON al.artistUrl = ar.url
         INNER JOIN UpdateHistory h ON al.pageUrl = h.pageUrl
       WHERE (${name} ISNULL OR al.name LIKE '%' || ${name} || '%'

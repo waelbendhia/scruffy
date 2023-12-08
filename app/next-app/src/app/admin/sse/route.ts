@@ -9,42 +9,33 @@ export async function GET(req: Request) {
   const writer = responseStream.writable.getWriter();
   const encoder = new TextEncoder();
 
-  let closed = false;
   const eventSource = new EventSource(`${updaterBaseURL}/update/live`);
   try {
     console.error("sse created");
-    eventSource.onmessage = (event) => {
+    eventSource.addEventListener("update-status", (e) => {
       try {
-        writer.write(encoder.encode("data: " + event.data + "\n\n"));
+        writer.write(encoder.encode("data: " + e.data + "\n\n"));
       } catch (e) {
         console.error("onmessage", e);
-        writer.close();
         eventSource.close();
+        writer.close().catch(() => {});
       }
-    };
+    });
 
     eventSource.onerror = (err) => {
       console.error("error reading live update sse", err);
-      if (!closed) {
-        try {
-          writer.close();
-        } catch (e) {
-          eventSource.close();
-        }
-        closed = true;
-      }
+      writer.close().catch(() => {});
+      eventSource.close();
     };
   } catch (e) {
-    writer.close();
+    await writer.close().catch(() => {});
   }
 
   req.signal.addEventListener(
     "abort",
     () => {
-      if (!closed) {
-        eventSource.close();
-        writer.close();
-      }
+      eventSource.close();
+      writer.close().catch(() => {});
     },
     { once: true },
   );

@@ -245,9 +245,9 @@ func main() {
 	mbp := provider.NewMusicBrainzProvider()
 
 	ur := updateRunner{
-		Updater:         initUpdater(ctx, db, sp, dp, mbp, su),
-		updateInterval:  updateInterval,
-                // TODO: make this configurable at runtime.
+		Updater:        initUpdater(ctx, db, sp, dp, mbp, su),
+		updateInterval: updateInterval,
+		// TODO: make this configurable at runtime.
 		filterUnchanged: os.Getenv("FILTER_UNCHANGED") == "true",
 	}
 

@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sync/atomic"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -398,9 +399,12 @@ func (s *Server) updatesSSE(c *gin.Context) {
 	ctx, cancel := context.WithCancel(c.Request.Context())
 	defer cancel()
 	msgCh := s.statusUpdater.ListenForUdpates(ctx)
+	var lastTS atomic.Int64
 	c.Stream(func(w io.Writer) bool {
 		msg, ok := <-msgCh
-		if ok {
+		ts := time.Now()
+		if ts.Sub(time.UnixMilli(lastTS.Load())) > (time.Second/4) && ok {
+			lastTS.Store(ts.UnixMilli())
 			c.SSEvent("update-status", msg)
 		}
 		return ok
