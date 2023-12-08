@@ -73,11 +73,11 @@ func initUpdater(
 		p := strings.ToLower(strings.TrimSpace(p))
 		switch p {
 		case "spotify":
-                        sp.Enable()
+			sp.Enable()
 		case "deezer":
-                        dp.Enable()
+			dp.Enable()
 		case "musicbrainz":
-                        mbp.Enable()
+			mbp.Enable()
 		case "lastfm":
 			// TODO: implement LastFM provider
 			logging.GetLogger(ctx).Warn("last.fm provider not implemented")
@@ -247,7 +247,8 @@ func main() {
 	ur := updateRunner{
 		Updater:         initUpdater(ctx, db, sp, dp, mbp, su),
 		updateInterval:  updateInterval,
-		filterUnchanged: true,
+                // TODO: make this configurable at runtime.
+		filterUnchanged: os.Getenv("FILTER_UNCHANGED") == "true",
 	}
 
 	startCh := make(chan struct{}, 1)
