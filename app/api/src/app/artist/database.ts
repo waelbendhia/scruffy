@@ -41,15 +41,6 @@ export const search = async ({
   sort,
 }: SearchRequest) =>
   prisma.$transaction(async (tx) => {
-    for (let i = 0; i < 1000; i++) {
-      const res = await tx.artist.findMany({
-        select: { url: true, bio: true, imageUrl: true, lastModified: true },
-        take: 1,
-        skip: i,
-      });
-      console.log(res[0]?.url);
-    }
-
     const data = await tx.$queryRaw<
       { name: string; url: string; imageUrl?: string; lastModified: Date }[]
     >`SELECT name, url, imageUrl, lastModified
