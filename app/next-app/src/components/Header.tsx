@@ -14,10 +14,10 @@ const Header = () => {
 
   return (
     <header
-      className={`
+      className="
         sticky top-0 flex items-end flex-row h-10 bg-gradient-to-b 
         bg-white-transparent backdrop-blur-sm text-black px-8 z-20 shadow-md
-      `}
+      "
     >
       <Link
         className={`text-xl h-8 leading-8 font-display font-bold ${
@@ -63,7 +63,7 @@ const Header = () => {
         ))}
       </div>
       <a
-        className={`w-8 h-8 text-center leading-8`}
+        className="w-8 h-8 text-center leading-8"
         onClick={() => toggleSearch()}
       >
         <i className="text-6 h-8 w-8 leading-8 text-lg hover:text-red material-icons cursor-pointer">

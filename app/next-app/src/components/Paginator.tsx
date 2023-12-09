@@ -42,14 +42,12 @@ const Clicker = ({
     (value < 0 && page === 0) || (value > 0 && page + 1 === maxPage);
 
   return isDisabled ? (
-    <span
-      className={`mx-2.5 text-3xl`}
-    >
+    <span className="mx-2.5 text-3xl">
       {value < 0 ? `${Math.abs(value)}<` : `>${value}`}
     </span>
   ) : (
     <Link
-      className={`mx-2.5 text-3xl`}
+      className="mx-2.5 text-3xl"
       href={{ pathname, query: newParams.toString() }}
       scroll={false}
     >
@@ -65,13 +63,13 @@ const Paginator = ({ className = "", total, dataLength }: Props) => {
   return (
     <div
       className={`
-        ${className} flex items-center justify-center select-none
+        ${className ?? ""} flex items-center justify-center select-none
         border-t-black-transparent border-t max-w-screen-2xl mx-auto mt-3 pt-2
       `}
     >
       <Clicker dataLength={dataLength} total={total} page={page} value={-10} />
       <Clicker dataLength={dataLength} total={total} page={page} value={-1} />
-      <h1 className={`w-52 text-center`}>
+      <h1 className="w-52 text-center">
         {page + 1}/{maxPage}
       </h1>
       <Clicker dataLength={dataLength} total={total} page={page} value={1} />

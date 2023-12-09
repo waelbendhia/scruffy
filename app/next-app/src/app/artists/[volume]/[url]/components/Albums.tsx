@@ -28,7 +28,7 @@ const AlbumList = async (props: Props) => {
             artist={artist}
             displayArtist={false}
             textSize="lg"
-            className={`w-full h-48 mb-6`}
+            className="w-full h-48 mb-6"
             imageClassName="w-48"
             key={`${a.name}`}
             year={a.year ?? undefined}
@@ -46,7 +46,7 @@ const AlbumPlaceHolder = () => (
       <AlbumCard
         key={i}
         loading
-        className={`w-full h-48 mb-6`}
+        className="w-full h-48 mb-6"
         imageClassName="w-48"
       />
     ))}
@@ -54,13 +54,9 @@ const AlbumPlaceHolder = () => (
 );
 
 const Albums = (props: Props) => (
-  <div className={`flex-0 w-full`}>
+  <div className="flex-0 w-full">
     <h1 className="text-3xl mb-8">Albums</h1>
-    <div
-      className={`
-        md:grid md:grid-cols-2 lg:block
-      `}
-    >
+    <div className="md:grid md:grid-cols-2 lg:block">
       <Suspense
         key={`${props.volume}/${props.url}`}
         fallback={<AlbumPlaceHolder />}
@@ -68,7 +64,7 @@ const Albums = (props: Props) => (
         <AlbumList {...props} />
       </Suspense>
     </div>
-    <div className={`lg:hidden mt-12 mb-12 ml-8 h-1 bg-red`} />
+    <div className="lg:hidden mt-12 mb-12 ml-8 h-1 bg-red" />
   </div>
 );
 

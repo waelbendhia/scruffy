@@ -51,7 +51,7 @@ func (u *Updater) getAlbumImageAndYear(ctx context.Context, artist, album string
 
 	for name, provider := range u.albumProviders {
 		name, provider := name, provider
-		if !provider.provider.Enabled() {
+		if !provider.provider.AlbumEnabled() {
 			logging.GetLogger(ctx).With(zap.String("provider", name)).
 				Debug("skipping provider")
 			continue

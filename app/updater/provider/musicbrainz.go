@@ -46,13 +46,17 @@ type (
 	}
 )
 
+func (mbp *MusicBrainzProvider) AlbumDisable()      { mbp.disable() }
+func (mbp *MusicBrainzProvider) AlbumEnable()       { mbp.enable() }
+func (mbp *MusicBrainzProvider) AlbumEnabled() bool { return mbp.enabled() }
+
 func (*MusicBrainzProvider) Name() string { return "musicbrainz" }
 
-func MusivBrainzWithClient(client *http.Client) MusicBrainzOption {
+func MusicBrainzWithClient(client *http.Client) MusicBrainzOption {
 	return func(mbp *MusicBrainzProvider) { mbp.client = client }
 }
 
-func MusivBrainzWithRateLimiter(l *rate.Limiter) MusicBrainzOption {
+func MusicBrainzWithRateLimiter(l *rate.Limiter) MusicBrainzOption {
 	return func(mbp *MusicBrainzProvider) { mbp.limit = l }
 }
 
@@ -154,7 +158,7 @@ func (mb *MusicBrainzProvider) getCover(ctx context.Context, mbid string) string
 func (mb *MusicBrainzProvider) SearchAlbums(
 	ctx context.Context, artist string, album string,
 ) ([]AlbumResult, error) {
-	if !mb.Enabled() {
+	if !mb.enabled() {
 		return nil, ErrDisabled
 	}
 

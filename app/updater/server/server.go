@@ -99,16 +99,13 @@ func (s *Server) Routing(r gin.IRouter) {
 	r.DELETE("/all-data", s.clearData)
 }
 
-func (s *Server) artistHandler(provider string) gin.HandlerFunc {
+func (s *Server) artistHandler(name string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		provider, ok := s.artistProviders[provider]
+		p, ok := s.artistProviders[name]
 		if !ok {
 			c.JSON(http.StatusNotFound, gin.H{
-				"message": fmt.Sprintf(
-					"Artist provider '%s' is disabled but no provider found.",
-					provider,
-				),
-				"error": "Not Found",
+				"message": fmt.Sprintf("Unknown provider '%s'", name),
+				"error":   "not_found",
 			})
 			return
 		}
@@ -116,35 +113,36 @@ func (s *Server) artistHandler(provider string) gin.HandlerFunc {
 		ctx, cancel := context.WithTimeout(c.Request.Context(), time.Second*5)
 		defer cancel()
 
-		as, err := provider.SearchArtists(ctx, c.Param("artist"))
-		if err != nil {
-			if errors.Is(err, context.DeadlineExceeded) {
-				c.JSON(http.StatusRequestTimeout, gin.H{
-					"error": "provider is taking too long",
-				})
-				c.Error(err)
-				return
-			}
-
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Error"})
+		as, err := p.SearchArtists(ctx, c.Param("artist"))
+		switch {
+		case errors.Is(err, provider.ErrDisabled):
+			c.JSON(http.StatusNotFound, gin.H{
+				"message": "provider is disabled",
+				"error":   "provider_disabled",
+			})
 			c.Error(err)
-			return
+		case errors.Is(err, context.DeadlineExceeded):
+			c.JSON(http.StatusRequestTimeout, gin.H{
+				"message": "provider is taking too long",
+				"error":   "provider_timeout",
+			})
+			c.Error(err)
+		case err != nil:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal"})
+			c.Error(err)
+		default:
+			c.JSON(http.StatusOK, as)
 		}
-
-		c.JSON(http.StatusOK, as)
 	}
 }
 
-func (s *Server) albumHandler(provider string) gin.HandlerFunc {
+func (s *Server) albumHandler(name string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		provider, ok := s.albumProviders[provider]
+		p, ok := s.albumProviders[name]
 		if !ok {
 			c.JSON(http.StatusNotFound, gin.H{
-				"message": fmt.Sprintf(
-					"Album provider '%s' is disabled but no provider found.",
-					provider,
-				),
-				"error": "Not Found",
+				"message": fmt.Sprintf("Unknown provider '%s'", name),
+				"error":   "not_found",
 			})
 			return
 		}
@@ -170,29 +168,33 @@ func (s *Server) albumHandler(provider string) gin.HandlerFunc {
 			return
 		}
 
-		as, err := provider.SearchAlbums(ctx, artist, album)
-		if err != nil {
-			if errors.Is(err, context.DeadlineExceeded) {
-				c.JSON(http.StatusRequestTimeout, gin.H{
-					"error": "provider is taking too long",
-				})
-				c.Error(err)
-				return
-			}
-
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Error"})
+		as, err := p.SearchAlbums(ctx, artist, album)
+		switch {
+		case errors.Is(err, provider.ErrDisabled):
+			c.JSON(http.StatusNotFound, gin.H{
+				"message": "provider is disabled",
+				"error":   "provider_disabled",
+			})
 			c.Error(err)
-			return
+		case errors.Is(err, context.DeadlineExceeded):
+			c.JSON(http.StatusRequestTimeout, gin.H{
+				"message": "provider is taking too long",
+				"error":   "provider_timeout",
+			})
+			c.Error(err)
+		case err != nil:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal"})
+			c.Error(err)
+		default:
+			c.JSON(http.StatusOK, as)
 		}
-
-		c.JSON(http.StatusOK, as)
 	}
 }
 
 func (s *Server) getArtistProviders(c *gin.Context) {
 	providers := map[string]bool{}
 	for _, p := range s.artistProviders {
-		providers[p.Name()] = p.Enabled()
+		providers[p.Name()] = p.ArtistEnabled()
 	}
 
 	c.JSON(http.StatusOK, providers)
@@ -205,15 +207,15 @@ func (s *Server) updateArtistProviders(c *gin.Context) {
 	}
 
 	for name, enabled := range ps {
-		p, ok := s.albumProviders[name]
+		p, ok := s.artistProviders[name]
 		if !ok {
 			continue
 		}
 
 		if enabled {
-			p.Enable()
+			p.ArtistEnable()
 		} else {
-			p.Disable()
+			p.ArtistDisable()
 		}
 	}
 
@@ -223,7 +225,7 @@ func (s *Server) updateArtistProviders(c *gin.Context) {
 func (s *Server) getAlbumProviders(c *gin.Context) {
 	providers := map[string]bool{}
 	for _, p := range s.albumProviders {
-		providers[p.Name()] = p.Enabled()
+		providers[p.Name()] = p.AlbumEnabled()
 	}
 
 	c.JSON(http.StatusOK, providers)
@@ -236,15 +238,15 @@ func (s *Server) updateAlbumProviders(c *gin.Context) {
 	}
 
 	for name, enabled := range ps {
-		p, ok := s.artistProviders[name]
+		p, ok := s.albumProviders[name]
 		if !ok {
 			continue
 		}
 
 		if enabled {
-			p.Enable()
+			p.AlbumEnable()
 		} else {
-			p.Disable()
+			p.AlbumDisable()
 		}
 	}
 

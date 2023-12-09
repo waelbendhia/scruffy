@@ -46,6 +46,7 @@ func initUpdater(
 	sp *provider.SpotifyProvider,
 	dp *provider.DeezerProvider,
 	mbp *provider.MusicBrainzProvider,
+	lfmp *provider.LastFMProvider,
 	su *status.StatusUpdater,
 ) *updater.Updater {
 	opts := []updater.UpdaterOption{
@@ -57,15 +58,16 @@ func initUpdater(
 		updater.AddAlbumProvider(9, sp),
 		updater.AddAlbumProvider(8, dp),
 		updater.AddAlbumProvider(10, mbp),
+		updater.AddAlbumProvider(0, lfmp),
 	}
 
 	for _, p := range strings.Split(os.Getenv("ARTIST_PROVIDERS"), ",") {
 		p := strings.ToLower(strings.TrimSpace(p))
 		switch p {
 		case "spotify":
-			sp.Enable()
+			sp.ArtistEnable()
 		case "deezer":
-			dp.Enable()
+			dp.ArtistEnable()
 		}
 	}
 
@@ -73,11 +75,11 @@ func initUpdater(
 		p := strings.ToLower(strings.TrimSpace(p))
 		switch p {
 		case "spotify":
-			sp.Enable()
+			sp.AlbumEnable()
 		case "deezer":
-			dp.Enable()
+			dp.AlbumEnable()
 		case "musicbrainz":
-			mbp.Enable()
+			mbp.AlbumEnable()
 		case "lastfm":
 			// TODO: implement LastFM provider
 			logging.GetLogger(ctx).Warn("last.fm provider not implemented")
@@ -245,7 +247,7 @@ func main() {
 	mbp := provider.NewMusicBrainzProvider()
 
 	ur := updateRunner{
-		Updater:        initUpdater(ctx, db, sp, dp, mbp, su),
+		Updater:        initUpdater(ctx, db, sp, dp, mbp, &provider.LastFMProvider{}, su),
 		updateInterval: updateInterval,
 		// TODO: make this configurable at runtime.
 		filterUnchanged: os.Getenv("FILTER_UNCHANGED") == "true",
@@ -278,6 +280,7 @@ func main() {
 			server.AddAlbumProviders(sp),
 			server.AddAlbumProviders(dp),
 			server.AddAlbumProviders(mbp),
+			server.AddAlbumProviders(&provider.LastFMProvider{}),
 		)
 
 		s.Routing(engine)

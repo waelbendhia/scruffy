@@ -8,9 +8,9 @@ import (
 var ErrDisabled = errors.New("provider is disabled")
 
 type disableable struct {
-	enabled atomic.Bool
+	isEnabled atomic.Bool
 }
 
-func (d *disableable) Enabled() bool { return d.enabled.Load() }
-func (d *disableable) Disable()      { d.enabled.Store(false) }
-func (d *disableable) Enable()       { d.enabled.Store(true) }
+func (d *disableable) enabled() bool { return d.isEnabled.Load() }
+func (d *disableable) disable()      { d.isEnabled.Store(false) }
+func (d *disableable) enable()       { d.isEnabled.Store(true) }

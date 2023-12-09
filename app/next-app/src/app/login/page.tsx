@@ -37,10 +37,10 @@ export default async function Login({ searchParams }: Props) {
   return (
     <main className="flex justify-center items-center">
       <div
-        className={`
+        className="
           bg-white-transparent backdroup-blur-sm rounded-sm max-w-screen-lg
           mx-auto p-8 drop-shadow-md
-        `}
+        "
       >
         <h2 className="text-xl">Prove it</h2>
         <form className="mt-8" action={submitLogin}>

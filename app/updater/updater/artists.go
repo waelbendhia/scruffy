@@ -56,7 +56,7 @@ func (u *Updater) getArtistImage(ctx context.Context, artist string) string {
 
 	for name, provider := range u.artistProviders {
 		name, provider := name, provider
-		if !provider.provider.Enabled() {
+		if !provider.provider.ArtistEnabled() {
 			continue
 		}
 

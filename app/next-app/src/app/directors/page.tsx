@@ -7,9 +7,9 @@ export const metadata: Metadata = {
 };
 
 const Directors = () => (
-  <main className={`flex flex-1 px-4`}>
-    <div className={`flex-1 flex flex-col justify-center`}>
-      <div className={`flex justify-center items-center`}>
+  <main className="flex flex-1 px-4">
+    <div className="flex-1 flex flex-col justify-center">
+      <div className="flex justify-center items-center">
         <Image
           width={100}
           height={113}

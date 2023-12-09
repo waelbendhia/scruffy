@@ -10,7 +10,6 @@ import { headers } from "next/headers";
 import { Suspense } from "react";
 import { getArtistName } from "@/app/artists/[volume]/[url]/api";
 import BlockContainer from "@/components/BlockContainer";
-import { ArtistProviders } from "@scruffy/updater";
 
 type Props = {
   params: { volume: string; url: string };
@@ -62,18 +61,9 @@ const submitSelection = async (formData: FormData) => {
   // TODO: indicate error somehow
 };
 
-const getArtistProviders = async () => {
-  const resp = await fetch(`${updaterBaseURL}/providers/artist`, {
-    next: { revalidate: 0 },
-  });
-  const res: ArtistProviders = await resp.json();
-
-  return res;
-};
-
 const SelectInputs = ({ className = "" }) => (
   <BlockContainer
-    className={`${className} flex flex-row justify-between items-center`}
+    className={`${className ?? ""} flex flex-row justify-between items-center`}
   >
     <fieldset className="flex flex-row gap-2 items-center">
       <span>Fields to update:</span>
@@ -131,12 +121,10 @@ const Search = async ({
   );
 
   const NameWithArtistValue = async () => {
-    const artist = await getArtistName({ volume, url });
+    const name = await getArtistName({ volume, url });
     const referer = headers().get("referer");
 
-    return (
-      <NameInput defaultValue={artist.name} referer={referer ?? undefined} />
-    );
+    return <NameInput defaultValue={name} referer={referer ?? undefined} />;
   };
 
   return (
@@ -154,29 +142,10 @@ const Search = async ({
 export default async function ArtistCorrect({ params, searchParams }: Props) {
   const referer = headers().get("referer");
   const searchValue = searchParams.name;
-  const providers = await getArtistProviders();
-  const activeProviders = Object.entries(providers).reduce(
-    (p, [_, v]) => p + (v === true ? 1 : 0),
-    0,
-  );
-  const containerGridCols =
-    activeProviders <= 1
-      ? "grid-cols-2"
-      : activeProviders === 2
-      ? "grid-cols-3"
-      : "grid-cols-4";
-  const controlsColSpan =
-    activeProviders <= 1
-      ? "grid-cols-2"
-      : activeProviders === 2
-      ? "grid-cols-3"
-      : "grid-cols-4";
 
   return (
     <main>
-      <div
-        className={`grid ${containerGridCols} gap-4 p-4 grid-rows-[82px_82px_1fr]`}
-      >
+      <div className="grid grid-cols-3 gap-4 p-4 grid-rows-[82px_82px_1fr]">
         <BlockContainer
           className="px-0 [&>h3]:px-4 row-span-3"
           title="Original data"
@@ -186,7 +155,7 @@ export default async function ArtistCorrect({ params, searchParams }: Props) {
         </BlockContainer>
         <Search
           {...params}
-          className={controlsColSpan}
+          className="col-span-2"
           searchParams={searchParams}
         />
         <form action={submitSelection} className="contents">
@@ -197,23 +166,19 @@ export default async function ArtistCorrect({ params, searchParams }: Props) {
           />
           <input name="vol" hidden defaultValue={params.volume} />
           <input name="url" hidden defaultValue={params.url} />
-          <SelectInputs className={controlsColSpan} />
-          {providers.deezer && (
-            <ProviderInformation
-              provider="deezer"
-              label="Deezer"
-              params={params}
-              searchValue={searchValue}
-            />
-          )}
-          {providers.spotify && (
-            <ProviderInformation
-              provider="spotify"
-              label="Spotify"
-              params={params}
-              searchValue={searchValue}
-            />
-          )}
+          <SelectInputs className="col-span-2" />
+          <ProviderInformation
+            provider="deezer"
+            label="Deezer"
+            params={params}
+            searchValue={searchValue}
+          />
+          <ProviderInformation
+            provider="spotify"
+            label="Spotify"
+            params={params}
+            searchValue={searchValue}
+          />
         </form>
       </div>
     </main>

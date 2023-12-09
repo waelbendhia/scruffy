@@ -36,15 +36,15 @@ const ArtistCard = ({
     layout={layout}
   >
     <div
-      className={`
+      className="
         overflow-hidden text-ellipsis text-lg font-bold max-w-full
-        group-hover:text-red
-      `}
+        group-hover:text-red 
+      "
     >
       {name !== undefined || !rest.loading ? (
         name
       ) : (
-        <div className={`rounded-md my-0.5 max-w-full h-6 w-40 bg-dark-gray`} />
+        <div className="rounded-md my-0.5 max-w-full h-6 w-40 bg-dark-gray" />
       )}
     </div>
   </LabeledImage>

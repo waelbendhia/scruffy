@@ -27,7 +27,7 @@ type Props = React.PropsWithChildren<{
 }>;
 
 const FilterLayout = ({ className, label, children }: Props) => (
-  <div className={`${className} flex items-center gap-2 mb-2`}>
+  <div className={`${className ?? ""} flex items-center gap-2 mb-2`}>
     <div>{label}: </div>
     {children}
   </div>

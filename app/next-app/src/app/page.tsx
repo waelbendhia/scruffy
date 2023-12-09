@@ -25,7 +25,7 @@ const ScruffLink = ({ children }: React.PropsWithChildren) => (
 
 const PageHeader = () => (
   <div className="mx-auto max-w-md pt-24 pb-28">
-    <h1 className={`mb-9 text-center text-6xl font-bold select-none`}>
+    <h1 className="mb-9 text-center text-6xl font-bold select-none">
       Scruffy2.0
     </h1>
     <p className="mx-auto font-light text-center">
@@ -100,7 +100,7 @@ const LatestLayout = ({
           <h2 className="font-display font-bold text-2xl mb-8">
             Latest Reviews
           </h2>
-          <div className={`grid gap-4 grid-cols-1 lg:grid-cols-2`}>
+          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
             {newest}
           </div>
         </div>
@@ -124,7 +124,7 @@ const Latest = async () => {
           {...a}
           key={`${a.artist.url}-${a.name}`}
           className={listClassname}
-          imageClassName={`w-[8.875rem]`}
+          imageClassName="w-[8.875rem]"
           displayArtist
         />
       ))}
@@ -135,7 +135,7 @@ const Latest = async () => {
             layout="vertical"
             textSize="xl"
             className={bnmClassname}
-            imageClassName={`h-80`}
+            imageClassName="h-80"
             displayArtist
           />
         )
@@ -149,7 +149,7 @@ const LatestPlaceholder = () => (
     newest={Array.from({ length: 6 }).map((_, i) => (
       <AlbumCard
         className={listClassname}
-        imageClassName={`w-[8.875rem]`}
+        imageClassName="w-[8.875rem]"
         key={i}
         loading
       />
@@ -160,7 +160,7 @@ const LatestPlaceholder = () => (
         layout="vertical"
         textSize="xl"
         className={bnmClassname}
-        imageClassName={`h-80`}
+        imageClassName="h-80"
       />
     }
   />

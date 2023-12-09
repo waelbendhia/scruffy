@@ -3,6 +3,7 @@ import { AlbumResult } from "@scruffy/updater";
 import SearchResult from "./SearchResult";
 import { Suspense } from "react";
 import { getAlbum } from "../api";
+import { handleSearchResp } from "../../../../types";
 
 type Params = { volume: string; url: string; name: string };
 
@@ -17,12 +18,7 @@ const getProviderData = async (
     )}/album/${encodeURIComponent(albumName)}`,
   );
 
-  if (resp.status === 404 || resp.status === 408) {
-    return [];
-  }
-
-  const res: AlbumResult[] = await resp.json();
-  return res;
+  return await handleSearchResp<AlbumResult>(resp);
 };
 
 type Props = {
@@ -50,11 +46,9 @@ const ProviderInformationAsync = async ({
     artistName = album.artist.name;
   }
 
-  const spotifyResults = await getProviderData(provider, artistName, albumName);
+  const results = await getProviderData(provider, artistName, albumName);
 
-  return (
-    <SearchResult loading={false} source={label} results={spotifyResults} />
-  );
+  return <SearchResult loading={false} source={label} results={results} />;
 };
 
 export default function ProviderInformation(props: Props) {

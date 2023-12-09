@@ -31,7 +31,7 @@ const Fields = <T extends "artist" | "album">({
           return (
             <DataPoint
               key={`${type}-${k}`}
-              className={`[&>span:first-child]:pl-4 group `}
+              className="[&>span:first-child]:pl-4 group"
               label={
                 <label
                   className={`ml-1 transition-colors ${

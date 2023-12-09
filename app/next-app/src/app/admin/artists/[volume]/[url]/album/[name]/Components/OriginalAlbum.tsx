@@ -44,7 +44,7 @@ export default function OriginalAlbum(props: Props) {
           layout="vertical"
           textSize="xl"
           className={bnmClassname}
-          imageClassName={`h-80`}
+          imageClassName="h-80"
         />
       }
     >

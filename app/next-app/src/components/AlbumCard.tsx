@@ -93,21 +93,21 @@ const AlbumCard = ({
         ${
           rating !== undefined && rating >= 8
             ? `before:content-[''] before:absolute before:bg-scruff before:h-full
-            before:w-full before:z-10 before:bg-1/2 before:bg-no-repeat
-            before:bg-scruff-offset`
+               before:w-full before:z-10 before:bg-1/2 before:bg-no-repeat
+               before:bg-scruff-offset`
             : ""
         }
       `}
     >
-      <div className={"overflow-hidden max-width-full"}>
+      <div className="overflow-hidden max-width-full">
         {artist !== false && (
           <WithData val={artist?.name} width="w-40" height="h-6">
             {
               <div
                 className={`
-              overflow-hidden whitespace-nowrap text-ellipsis max-w-full
-              ${artistSize} font-bold
-            `}
+                  overflow-hidden whitespace-nowrap text-ellipsis max-w-full
+                  ${artistSize} font-bold
+                `}
               >
                 {artist?.name}
               </div>

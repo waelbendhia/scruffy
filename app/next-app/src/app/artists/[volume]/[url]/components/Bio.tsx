@@ -32,16 +32,16 @@ const Body = async (props: Props) => {
     <>
       {firstParagraph && (
         <p
-          className={`
+          className="
             font-normal text-base mt-8 lg:mt-16 first-letter:font-display
             first-letter:text-3xl first-letter:ml-4
-          `}
+          "
         >
           {firstParagraph}
         </p>
       )}
       {rest.map((text, i) => (
-        <p key={i} className={`font-normal text-base mt-2`}>
+        <p key={i} className="font-normal text-base mt-2">
           {text}
         </p>
       ))}
@@ -50,14 +50,14 @@ const Body = async (props: Props) => {
 };
 
 const Bio = (props: Props) => (
-  <div className={`px-8 pb-12`}>
+  <div className="px-8 pb-12">
     <Suspense
       key={`${props.volume}/${props.url}`}
       fallback={<BodyPlaceholder />}
     >
       <Body {...props} />
     </Suspense>
-    <div className={`mt-24 ml-8 h-1 bg-red`} />
+    <div className="mt-24 ml-8 h-1 bg-red" />
   </div>
 );
 export default Bio;

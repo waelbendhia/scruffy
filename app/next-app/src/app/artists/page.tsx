@@ -66,7 +66,7 @@ export default function Artists({ searchParams }: Props) {
   const sort = searchParams.sort === "lastModified" ? "lastModified" : "name";
 
   return (
-    <main className={`flex-1 px-4`}>
+    <main className="flex-1 px-4">
       <SearchLayout
         loadingPlaceholder={
           <ArtistCard

@@ -71,7 +71,7 @@ const AsyncPaginator = async ({ asyncData }: Pick<Props<any>, "asyncData">) => {
   const { total, data } = await asyncData;
   return (
     total > 0 && (
-      <Paginator dataLength={data.length} className={`mb-4`} total={total} />
+      <Paginator dataLength={data.length} className="mb-4" total={total} />
     )
   );
 };
@@ -100,17 +100,17 @@ export default function SearchLayout<T>({
   return (
     <>
       <div
-        className={`
+        className="
           flex gap-2 items-center flex-row py-4 max-w-screen-2xl mx-auto
-        `}
+        "
       >
         <ArtistSearch className="flex-1" />
       </div>
       <div
-        className={`
+        className="
           max-w-screen-2xl h-8 leading-8 px-1 mx-auto border-b-black-transparent
           border-b
-        `}
+        "
       >
         <Suspense
           key={suspenseKey}
@@ -134,13 +134,13 @@ export default function SearchLayout<T>({
           />
         </Suspense>
       </div>
-      <div className={`max-w-screen-2xl mx-auto`}>{filters}</div>
+      <div className="max-w-screen-2xl mx-auto">{filters}</div>
       <div
         className={`grid ${
           colNumber === 4
             ? `sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6`
             : `sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`
-        } gap-2 md:gap-4 lg:gap-8 max-w-screen-2xl mx-auto ${className}`}
+        } gap-2 md:gap-4 lg:gap-8 max-w-screen-2xl mx-auto ${className ?? ""}`}
       >
         <Suspense
           key={suspenseKey}
@@ -158,19 +158,19 @@ export default function SearchLayout<T>({
             prevTotal > 0 && (
               <Paginator
                 dataLength={prevDataLength}
-                className={`mb-4`}
+                className="mb-4"
                 total={prevTotal}
               />
             )
           ) : (
             <div
-              className={`
+              className="
                 mb-4 flex items-center justify-center select-none
                 border-t-black-transparent border-t max-w-screen-2xl mx-auto
                 mt-3 pt-2
-              `}
+              "
             >
-              <h1 className={`w-52 text-center`}>Loading...</h1>
+              <h1 className="w-52 text-center">Loading...</h1>
             </div>
           )
         }

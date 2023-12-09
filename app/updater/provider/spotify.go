@@ -27,7 +27,8 @@ var _ interface {
 type (
 	SpotifyOption   func(*SpotifyProvider)
 	SpotifyProvider struct {
-		disableable
+		artist       disableable
+		album        disableable
 		client       *http.Client
 		limit        *rate.Limiter
 		limitReached atomic.Bool
@@ -73,6 +74,14 @@ type (
 		Artists SpotifySearchSubResult[SpotifyArtist] `json:"artists"`
 	}
 )
+
+func (sp *SpotifyProvider) ArtistDisable()      { sp.artist.disable() }
+func (sp *SpotifyProvider) ArtistEnable()       { sp.artist.enable() }
+func (sp *SpotifyProvider) ArtistEnabled() bool { return sp.artist.enabled() }
+
+func (sp *SpotifyProvider) AlbumDisable()      { sp.album.disable() }
+func (sp *SpotifyProvider) AlbumEnable()       { sp.album.enable() }
+func (sp *SpotifyProvider) AlbumEnabled() bool { return sp.album.enabled() }
 
 func (*SpotifyProvider) Name() string { return "spotify" }
 
@@ -250,7 +259,7 @@ func (sp *SpotifyProvider) doRequest(
 func (sp *SpotifyProvider) SearchAlbums(
 	ctx context.Context, artist string, album string,
 ) ([]AlbumResult, error) {
-	if !sp.Enabled() {
+	if !sp.album.enabled() {
 		return nil, ErrDisabled
 	}
 
@@ -293,7 +302,7 @@ func (sp *SpotifyProvider) SearchAlbums(
 func (sp *SpotifyProvider) SearchArtists(
 	ctx context.Context, artist string,
 ) ([]ArtistResult, error) {
-	if !sp.Enabled() {
+	if !sp.artist.enabled() {
 		return nil, ErrDisabled
 	}
 

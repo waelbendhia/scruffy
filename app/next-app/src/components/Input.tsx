@@ -43,8 +43,8 @@ const Input = React.forwardRef<HTMLInputElement, Props>(function Input(
 
   return (
     <div className={`flex items-center ${className ?? ""}`}>
-      {!!icon && <i className={`material-icons text-3xl mr-2`}>{icon}</i>}
-      <div className={"flex-1 relative h-10 my-[5px]"}>
+      {!!icon && <i className="material-icons text-3xl mr-2">{icon}</i>}
+      <div className="flex-1 relative h-10 my-[5px]">
         <input
           ref={ref}
           className={`
@@ -60,10 +60,10 @@ const Input = React.forwardRef<HTMLInputElement, Props>(function Input(
           disabled={disabled}
         />
         <span
-          className={
-            "absolute text-3xl bottom-0.5 left-0 block overflow-hidden h-0.5 whitespace-pre " +
-            "max-w-full bg-red"
-          }
+          className="
+            absolute text-3xl bottom-0.5 left-0 block overflow-hidden h-0.5
+            whitespace-pre max-w-full bg-red
+          "
         >
           {props.value}
         </span>

@@ -144,7 +144,7 @@ const Search = async ({
 
   const AsyncInputs = async () => {
     const referer = headers().get("referer");
-    const { name: artistName } = await getArtistName({ volume, url });
+    const artistName = await getArtistName({ volume, url });
 
     return (
       <Inputs
@@ -175,10 +175,10 @@ export default async function AlbumCorrection({ params, searchParams }: Props) {
   return (
     <main>
       <div
-        className={`
+        className="
           grid grid-cols-[22rem_1fr_1fr_1fr_1fr] p-4 grid-rows-[82px_82px_1fr]
           gap-4
-        `}
+        "
       >
         <BlockContainer className="row-span-4 w-[22rem]" title="Original data">
           <OriginalAlbum

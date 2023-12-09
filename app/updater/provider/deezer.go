@@ -18,7 +18,8 @@ var _ interface {
 type (
 	DeezerOption   func(*DeezerProvider)
 	DeezerProvider struct {
-		disableable
+		artist disableable
+		album  disableable
 		client *http.Client
 		limit  *rate.Limiter
 	}
@@ -46,6 +47,14 @@ type (
 		Artist      DeezerArtist `json:"artist"`
 	}
 )
+
+func (dp *DeezerProvider) ArtistDisable()      { dp.artist.disable() }
+func (dp *DeezerProvider) ArtistEnable()       { dp.artist.enable() }
+func (dp *DeezerProvider) ArtistEnabled() bool { return dp.artist.enabled() }
+
+func (dp *DeezerProvider) AlbumDisable()      { dp.album.disable() }
+func (dp *DeezerProvider) AlbumEnable()       { dp.album.enable() }
+func (dp *DeezerProvider) AlbumEnabled() bool { return dp.album.enabled() }
 
 func (*DeezerProvider) Name() string { return "deezer" }
 
@@ -117,7 +126,7 @@ func (sp *DeezerProvider) doRequest(
 func (sp *DeezerProvider) SearchAlbums(
 	ctx context.Context, artist string, album string,
 ) ([]AlbumResult, error) {
-	if !sp.Enabled() {
+	if !sp.album.enabled() {
 		return nil, ErrDisabled
 	}
 
@@ -161,7 +170,7 @@ func (sp *DeezerProvider) SearchAlbums(
 func (sp *DeezerProvider) SearchArtists(
 	ctx context.Context, artist string,
 ) ([]ArtistResult, error) {
-	if !sp.Enabled() {
+	if !sp.artist.enabled() {
 		return nil, ErrDisabled
 	}
 

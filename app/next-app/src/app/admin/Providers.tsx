@@ -77,7 +77,7 @@ const action = async (formData: FormData) => {
 const Providers = () => {
   return (
     <BlockContainer
-      className={`grid grid-cols-[max-content_1fr] gap-x-2 p-8 pt-4`}
+      className="grid grid-cols-[max-content_1fr] gap-x-2 p-8 pt-4"
     >
       <form action={action} className="contents">
         <h1 className="mb-4 col-span-2">Providers</h1>

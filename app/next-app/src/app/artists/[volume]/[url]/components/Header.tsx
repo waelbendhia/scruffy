@@ -42,12 +42,12 @@ const Name = (props: Props) => {
         `}
     >
       {resName ? (
-        <h1 className={`text-5xl m-0 flex-0 font-display`}>{resName}</h1>
+        <h1 className="text-5xl m-0 flex-0 font-display">{resName}</h1>
       ) : (
-        <div className={`h-12 w-56 bg-dark-white rounded-md m-0`} />
+        <div className="h-12 w-56 bg-dark-white rounded-md m-0" />
       )}
       <a
-        className={`overflow-hidden mt-6 text-white`}
+        className="overflow-hidden mt-6 text-white"
         href={`https://scaruffi.com/${props.volume}/${props.url}.html`}
         target="_blank"
       >
@@ -56,14 +56,7 @@ const Name = (props: Props) => {
     </div>
   );
 
-  const NameAsync = async () => {
-    const name = await getArtistName(props);
-    if (name.status !== "ok") {
-      return null;
-    }
-
-    return <NameG name={name.name} />;
-  };
+  const NameAsync = async () => <NameG name={await getArtistName(props)} />;
 
   return (
     <Suspense key={`${props.volume}/${props.url}`} fallback={<NameG />}>
@@ -74,11 +67,11 @@ const Name = (props: Props) => {
 
 const AdminLink = ({ href }: { href: string }) => (
   <Link
-    className={`
+    className="
       absolute top-2 left-2 z-30 bg-white-transparent rounded-full font-display
       drop-shadow-sm backdrop-blur w-8 h-8 leading-8 text-center text-xl
       font-bold hover:drop-shadow-md
-    `}
+    "
     href={href}
   >
     !
@@ -96,39 +89,39 @@ const HeaderG = ({
   adminURL?: string;
 }) => (
   <div
-    className={`mb-0 xl:mb-10 relative bg-black w-full h-96 py-8 px-8`}
+    className="mb-0 xl:mb-10 relative bg-black w-full h-96 py-8 px-8"
     style={{ backgroundColor }}
   >
     {adminURL && <AdminLink href={adminURL} />}
     <div
-      className={`
-          h-full grid grid-cols-artist-content z-10 max-w-screen-xl
-          text-dark-white mx-auto gap-x-8 px-14
-        `}
+      className="
+        h-full grid grid-cols-artist-content z-10 max-w-screen-xl
+        text-dark-white mx-auto gap-x-8 px-14
+      "
     >
       {!imageUrl ? (
         <div
-          className={`
+          className="
             bg-dark-gray absolute right-0 top-0 h-full w-full md:w-1/2
             bg-right z-0 animate-pulse
-          `}
+          "
         />
       ) : (
         <div
-          className={`
+          className="
             bg-dark-gray absolute right-0 top-0 h-full w-full md:w-1/2
             bg-cover bg-right z-0
-          `}
+          "
           style={{
             backgroundImage: `url('${imageUrl}')`,
           }}
         />
       )}
       <div
-        className={`
+        className="
           absolute right-0 top-0 h-full w-full md:w-1/2 bg-gradient-to-r z-10
           from-black to-transparent
-        `}
+        "
         style={{
           backgroundImage:
             backgroundColor !== undefined

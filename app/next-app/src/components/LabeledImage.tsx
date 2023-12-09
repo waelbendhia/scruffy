@@ -36,17 +36,17 @@ const Content = (props: Props) => (
     >
       {props.loading ? (
         <div
-          className={`
+          className="
             relative w-full overflow-hidden flex bg-dark-gray rounded-md
             max-h-full
-          `}
+          "
         />
       ) : (
         <Image
-          className={`
-          block bg-dark-gray max-h-full object-center object-cover
-          overflow-hidden relative w-full
-        `}
+          className="
+            block bg-dark-gray max-h-full object-center object-cover
+            overflow-hidden relative w-full
+          "
           width={300}
           height={300}
           placeholder={props.placeholder}
@@ -58,10 +58,10 @@ const Content = (props: Props) => (
         />
       )}
       <div
-        className={`
+        className="
           mix-blend-color absolute content-[''] opacity-0 w-full h-full bg-red
           transition-opacity group-hover:opacity-100 z-20
-        `}
+        "
       />
     </div>
     <div
@@ -86,11 +86,11 @@ const Content = (props: Props) => (
 
 const AdminLink = ({ href }: { href: string }) => (
   <Link
-    className={`
+    className="
       absolute top-2 left-2 z-30 bg-white-transparent rounded-full font-display
       drop-shadow-sm backdrop-blur w-8 h-8 leading-8 text-center text-xl
       font-bold hover:drop-shadow-md
-    `}
+    "
     href={href}
   >
     !

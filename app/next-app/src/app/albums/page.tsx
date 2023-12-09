@@ -84,7 +84,7 @@ export default function Albums({ searchParams }: Props) {
   const prevDataLength = parseIntMaybe(searchParams.prevDataLength);
 
   return (
-    <main className={`flex-1 px-4`}>
+    <main className="flex-1 px-4">
       <SearchLayout
         className="auto-rows-[12.5rem]"
         suspenseKey={JSON.stringify(searchParams)}
