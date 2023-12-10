@@ -241,7 +241,7 @@ func (sp *SpotifyProvider) doRequest(
 		retryAfter := resp.Header.Get("retry-after")
 
 		logging.GetLogger(ctx).With(zap.String("retry-after", retryAfter)).
-			Debug("got a 429 from spotify")
+			Warn("got a 429 from spotify")
 
 		retryDelay, err := strconv.Atoi(retryAfter)
 		if err != nil {
