@@ -4,7 +4,6 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const GITHUB_SHA = process.env.GITHUB_SHA;
-const REDIS_URL = process.env.REDIS_URL;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,9 +15,7 @@ const nextConfig = {
   env: GITHUB_SHA ? { GITHUB_SHA } : undefined,
   experimental: {
     instrumentationHook: true,
-    incrementalCacheHandlerPath: REDIS_URL
-      ? path.join(__dirname, "./cache-handler.js")
-      : undefined,
+    incrementalCacheHandlerPath: path.join(__dirname, "./cache-handler.js"),
   },
   images: {
     remotePatterns: [
