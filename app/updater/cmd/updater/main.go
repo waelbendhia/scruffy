@@ -193,8 +193,10 @@ func (r *runner) StartUpdate(ctx context.Context) error {
 
 func main() {
 	ctx := signalContext()
+
 	var logger *zap.Logger
 	if os.Getenv("ENV") == "production" {
+		gin.SetMode(gin.ReleaseMode)
 		logger, _ = zap.NewProduction()
 	} else {
 		logger, _ = zap.NewDevelopment()
@@ -269,6 +271,7 @@ func main() {
 	})
 	g.Go(func() error {
 		engine := gin.New()
+
 		engine.Use(ginzap.Ginzap(logger, time.RFC3339, false))
 
 		s := server.New(
