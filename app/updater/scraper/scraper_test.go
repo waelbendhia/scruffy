@@ -50,11 +50,11 @@ func (prt *pageReaderTest) run(t *testing.T) {
 		t.Fatalf("expected to find %d artists got %d", prt.expectedLen, len(as))
 	}
 
-	for artistUrl, name := range prt.shouldContain {
-		if as[artistUrl] != name {
+	for artistURL, name := range prt.shouldContain {
+		if as[artistURL] != name {
 			t.Fatalf(
 				"expected results to contain name '%s' at url '%s' got '%s'",
-				artistUrl, name, as[artistUrl],
+				artistURL, name, as[artistURL],
 			)
 		}
 	}

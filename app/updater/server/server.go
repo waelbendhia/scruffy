@@ -255,7 +255,7 @@ func (s *Server) updateAlbumProviders(c *gin.Context) {
 
 type ArtistUpdateRequest struct {
 	Name     string `json:"name"`
-	ImageUrl string `json:"imageUrl"`
+	ImageURL string `json:"imageURL"`
 }
 
 func (s *Server) updateArtist(c *gin.Context) {
@@ -274,8 +274,8 @@ func (s *Server) updateArtist(c *gin.Context) {
 				String: u.Name,
 			},
 			Imageurl: sql.NullString{
-				Valid:  u.ImageUrl != "",
-				String: u.ImageUrl,
+				Valid:  u.ImageURL != "",
+				String: u.ImageURL,
 			},
 			Url: fmt.Sprintf("/%s/%s.html", vol, path),
 		},

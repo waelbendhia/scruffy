@@ -3,6 +3,7 @@ import { getArtist } from "@/app/artists/[volume]/[url]/api";
 import { ArtistResult } from "@scruffy/updater";
 import SearchResult from "./SearchResult";
 import { Suspense } from "react";
+import { handleSearchResp } from "../../types";
 
 type Params = { volume: string; url: string };
 
@@ -10,9 +11,8 @@ const getProviderData = async (provider: string, name: string) => {
   const resp = await fetch(
     `${updaterBaseURL}/${provider}/artist/${encodeURIComponent(name)}`,
   );
-  const res: ArtistResult[] = await resp.json();
 
-  return res;
+  return await handleSearchResp<ArtistResult>(resp);
 };
 
 type Props = {
@@ -38,7 +38,6 @@ const ProviderInformationAsync = async ({
   }
 
   const results = await getProviderData(provider, name);
-  console.log(provider, results);
 
   return <SearchResult source={label} loading={false} results={results} />;
 };

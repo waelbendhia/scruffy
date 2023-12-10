@@ -38,11 +38,11 @@ const submitSelection = async (formData: FormData) => {
     console.warn("invalid update data", { selected, vol, url });
     return;
   }
-  const { name, imageUrl }: { name: string; imageUrl?: string } =
+  const { name, imageURL }: { name: string; imageURL?: string } =
     JSON.parse(selected);
   const artist = {
     name: includeName ? name : undefined,
-    imageUrl: includeImage ? imageUrl : undefined,
+    imageURL: includeImage ? imageURL : undefined,
   };
 
   const resp = await fetch(`${updaterBaseURL}/artist/${vol}/${url}`, {

@@ -2,8 +2,7 @@ import ArtistCard from "@/components/ArtistCard";
 import SearchResultItem from "./SearchResultItem";
 import BlockContainer from "@/components/BlockContainer";
 import { SearchResult as SR } from "../../types";
-
-type ArtistResult = { name: string; imageUrl?: string; id: string };
+import { ArtistResult } from "@scruffy/updater";
 
 type Props = { source: string; className?: string } & (
   | {
@@ -53,7 +52,7 @@ const ActualResults = ({ data }: { data: ArtistResult[] }) => (
             value={JSON.stringify(r)}
           />
           <label className="group" htmlFor={r.id}>
-            <SearchResultItem name={r.name} imageUrl={r.imageUrl} />
+            <SearchResultItem name={r.name} imageUrl={r.imageURL} />
           </label>
         </InputContainer>
       ))

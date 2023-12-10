@@ -30,7 +30,7 @@ func linksAsMap(
 			return
 		}
 
-		artistUrl, err := url.JoinPath(pagePath, "../", href)
+		artistURL, err := url.JoinPath(pagePath, "../", href)
 		if err != nil {
 			logging.GetLogger(ctx).
 				With(zap.Error(err), zap.String("href", href)).
@@ -38,7 +38,7 @@ func linksAsMap(
 			return
 		}
 
-		as[artistUrl] = strings.TrimSpace(s.Text())
+		as[artistURL] = strings.TrimSpace(s.Text())
 	})
 
 	return as
@@ -121,7 +121,7 @@ var nameExceptions = map[string]string{
 	"/vol6/aurora.html":  "Aurora Sutra",
 }
 
-var artistUrlRegex, _ = regexp.Compile("\\/(avant|jazz|vol).*\\.html$")
+var artistURLRegex, _ = regexp.Compile("\\/(avant|jazz|vol).*\\.html$")
 
 func getArtistName(artistURL string, doc *goquery.Document) (name string) {
 	defer func() { name = strings.TrimSpace(name) }()
@@ -313,7 +313,7 @@ func ReadArtistFromPage(
 	switch {
 	case isBlackListed:
 		return nil, ErrBlackListed
-	case !artistUrlRegex.Match([]byte(artistURL)):
+	case !artistURLRegex.Match([]byte(artistURL)):
 		return nil, ErrDoesNotMatchArtistURL
 	}
 
@@ -355,7 +355,7 @@ func readRatingsFromCDReview(
 		albumLink := s.Find("td > a").Eq(1)
 
 		href := artistLink.AttrOr("href", albumLink.AttrOr("href", ""))
-		artistUrl, err := url.JoinPath(pagePath, "../", href)
+		artistURL, err := url.JoinPath(pagePath, "../", href)
 		if err != nil {
 			return
 		}
@@ -380,7 +380,7 @@ func readRatingsFromCDReview(
 
 		as = append(as, Album{
 			PageURL:    pagePath,
-			ArtistURL:  artistUrl,
+			ArtistURL:  artistURL,
 			ArtistName: artistName,
 			Name:       albumName,
 			Rating:     rating,

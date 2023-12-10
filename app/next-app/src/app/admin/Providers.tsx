@@ -56,8 +56,6 @@ const action = async (formData: FormData) => {
     lastfm: formData.get("album-lastfm") === "on",
   };
 
-  console.log(artist, album);
-
   await Promise.all([
     fetch(`${updaterBaseURL}/providers/artist`, {
       method: "put",
@@ -76,9 +74,7 @@ const action = async (formData: FormData) => {
 
 const Providers = () => {
   return (
-    <BlockContainer
-      className="grid grid-cols-[max-content_1fr] gap-x-2 p-8 pt-4"
-    >
+    <BlockContainer className="grid grid-cols-[max-content_1fr] gap-x-2 p-8 pt-4">
       <form action={action} className="contents">
         <h1 className="mb-4 col-span-2">Providers</h1>
         <h2 className="pl-2 col-span-2">Artist Providers</h2>
